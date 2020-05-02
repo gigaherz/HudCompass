@@ -45,9 +45,8 @@ public class BasicIconData implements IIconData<BasicIconData>
         public static final Serializer MAP_SERIALIZER = new Serializer();
 
         @Override
-        public CompoundNBT write(BasicIconData data)
+        public CompoundNBT write(BasicIconData data, CompoundNBT tag)
         {
-            CompoundNBT tag = new CompoundNBT();
             tag.putInt("Index", data.iconIndex);
             return tag;
         }

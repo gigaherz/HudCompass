@@ -40,7 +40,7 @@ public class ServerWaypointCapability
                     MapDecoration decoration = mapData.mapDecorations.get(banner.getMapDecorationId());
                     seenDecorations.add(decoration);
                     int icon = decoration.getImage();
-                    sortedPoints.add(new PointInfo(banner.getPos(), banner.getMapDecorationId(), BasicIconData.mapMarker(icon)));
+                    sortedPoints.add(new BasicWaypoint(banner.getPos(), banner.getMapDecorationId(), BasicIconData.mapMarker(icon)));
                 }
                 for(Map.Entry<String, MapDecoration> kvp : mapData.mapDecorations.entrySet())
                 {
@@ -58,7 +58,7 @@ public class ServerWaypointCapability
                                     seenDecorations.contains(decoration))
                         continue;
                     int icon = decoration.getImage();
-                    sortedPoints.add(new PointInfo(new BlockPos(worldX,0,worldZ), decorationId, BasicIconData.mapMarker(icon)).noVerticalDistance());
+                    sortedPoints.add(new BasicWaypoint(new BlockPos(worldX,0,worldZ), decorationId, BasicIconData.mapMarker(icon)).noVerticalDistance());
                 }
             }
         }

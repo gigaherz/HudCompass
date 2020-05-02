@@ -1,6 +1,6 @@
 package gigaherz.hudcompass.waypoints.client;
 
-import gigaherz.hudcompass.HudOverlay;
+import gigaherz.hudcompass.client.HudOverlay;
 import gigaherz.hudcompass.icons.client.IconRendererRegistry;
 import gigaherz.hudcompass.waypoints.PointInfo;
 import net.minecraft.client.gui.FontRenderer;

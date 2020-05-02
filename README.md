@@ -1,4 +1,4 @@
-Tool Belt
+Hud Compass
 =============
 
-A belt to carry your tools in.
+Find your way in the world.

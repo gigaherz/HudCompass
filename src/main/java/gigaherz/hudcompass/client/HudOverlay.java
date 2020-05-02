@@ -1,4 +1,4 @@
-package gigaherz.hudcompass;
+package gigaherz.hudcompass.client;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -11,13 +11,13 @@ import net.minecraft.client.gui.AbstractGui;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.Vector3d;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec2f;
+import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -131,15 +131,15 @@ public class HudOverlay extends AbstractGui
         mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent(pts -> {
             List<PointInfo> sortedPoints = Lists.newArrayList(pts.getPoints());
             sortedPoints.sort((a,b) -> {
-                Vector3d positionA = a.getPosition(player);
-                Vector3d positionB = b.getPosition(player);
+                Vec3d positionA = a.getPosition(player);
+                Vec3d positionB = b.getPosition(player);
                 float angleA = Math.abs(angleDistance(yaw0, angleFromPoint(positionA, playerPosX, playerPosY, playerPosZ).x));
                 float angleB = Math.abs(angleDistance(yaw0, angleFromPoint(positionB, playerPosX, playerPosY, playerPosZ).x));
                 return (int)Math.signum(angleB-angleA);
             });
             for (PointInfo point : sortedPoints)
             {
-                Vector3d position = point.getPosition(player);
+                Vec3d position = point.getPosition(player);
                 Vec2f angleYd = angleFromPoint(position, playerPosX, playerPosY, playerPosZ);
                 drawPoi(player, yaw0, angleYd.x, angleYd.y, xPos, point);
             }
@@ -148,7 +148,7 @@ public class HudOverlay extends AbstractGui
         drawnThisFrame = true;
     }
 
-    private Vec2f angleFromPoint(Vector3d position, double playerPosX, double playerPosY, double playerPosZ)
+    private Vec2f angleFromPoint(Vec3d position, double playerPosX, double playerPosY, double playerPosZ)
     {
         double xd = position.x - playerPosX;
         double yd = position.y - playerPosY;

@@ -3,20 +3,29 @@ package gigaherz.hudcompass.waypoints;
 import gigaherz.hudcompass.icons.BasicIconData;
 import net.minecraft.client.renderer.Vector3d;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraftforge.registries.ObjectHolder;
 
-public class SpawnPointInfo extends PointInfo
+public class SpawnPointInfo extends BasicWaypoint
 {
+    @ObjectHolder("hudcompass:spawn")
+    public static PointInfoType<SpawnPointInfo> TYPE = null;
+
     public SpawnPointInfo()
     {
-        super("Home", BasicIconData.mapMarker(8));
+        super(TYPE, new Vec3d(0,0,0), "Home", BasicIconData.mapMarker(8));
     }
 
     @Override
-    public Vector3d getPosition(PlayerEntity player)
+    public void tick(PlayerEntity player)
     {
+        super.tick(player);
+
         BlockPos spawn = player.getBedPosition().orElseGet(() -> player.world.getSpawnPoint());
 
-        return new Vector3d(spawn.getX()+0.5, spawn.getY()+0.5, spawn.getZ()+0.5);
+        setPosition(new Vec3d(spawn.getX()+0.5, spawn.getY()+0.5, spawn.getZ()+0.5));
     }
 }

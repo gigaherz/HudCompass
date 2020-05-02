@@ -1,13 +1,19 @@
 package gigaherz.hudcompass;
 
+import gigaherz.hudcompass.client.ClientHandler;
+import gigaherz.hudcompass.client.HudOverlay;
+import gigaherz.hudcompass.waypoints.BasicWaypoint;
+import gigaherz.hudcompass.waypoints.PointInfoType;
 import gigaherz.hudcompass.waypoints.PointsOfInterest;
 import gigaherz.hudcompass.icons.BasicIconData;
 import gigaherz.hudcompass.icons.IconDataSerializer;
+import gigaherz.hudcompass.waypoints.SpawnPointInfo;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.network.play.ServerPlayNetHandler;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -49,9 +55,12 @@ public class HudCompass
 
         modEventBus.addListener(this::newRegistry);
         modEventBus.addGenericListener(IconDataSerializer.class, this::iconDataSerializers);
+        modEventBus.addGenericListener(PointInfoType.class, this::pointInfoTypes);
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::clientSetup);
         modEventBus.addListener(this::loadComplete);
+
+        MinecraftForge.EVENT_BUS.addListener(this::playerTickEvent);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -60,6 +69,11 @@ public class HudCompass
         new RegistryBuilder()
                 .setName(HudCompass.location("icon_data_serializers"))
                 .setType(IconDataSerializer.class)
+                .disableSaving()
+                .create();
+        new RegistryBuilder()
+                .setName(HudCompass.location("point_info_serializers"))
+                .setType(PointInfoType.class)
                 .disableSaving()
                 .create();
     }
@@ -72,14 +86,30 @@ public class HudCompass
         );
     }
 
+    public void pointInfoTypes(RegistryEvent.Register<PointInfoType<?>> event)
+    {
+        event.getRegistry().registerAll(
+                new PointInfoType<>(BasicWaypoint::new).setRegistryName("basic"),
+                new PointInfoType<>(SpawnPointInfo::new).setRegistryName("spawn")
+        );
+    }
+
     public void commonSetup(FMLCommonSetupEvent event)
     {
         PointsOfInterest.init();
+
+        int messageNumber = 0;
+        //channel.messageBuilder(SwapItems.class, messageNumber++).encoder(SwapItems::encode).decoder(SwapItems::new).consumer(SwapItems::handle).add();
+        //channel.messageBuilder(BeltContentsChange.class, messageNumber++).encoder(BeltContentsChange::encode).decoder(BeltContentsChange::new).consumer(BeltContentsChange::handle).add();
+        //channel.messageBuilder(OpenBeltSlotInventory.class, messageNumber++).encoder(OpenBeltSlotInventory::encode).decoder(OpenBeltSlotInventory::new).consumer(OpenBeltSlotInventory::handle).add();
+        //channel.messageBuilder(ContainerSlotsHack.class, messageNumber++).encoder(ContainerSlotsHack::encode).decoder(ContainerSlotsHack::new).consumer(ContainerSlotsHack::handle).add();
+        //channel.messageBuilder(SyncBeltSlotContents.class, messageNumber++).encoder(SyncBeltSlotContents::encode).decoder(SyncBeltSlotContents::new).consumer(SyncBeltSlotContents::handle).add();
+        LOGGER.debug("Final message number: " + messageNumber);
     }
 
     public void clientSetup(FMLClientSetupEvent event)
     {
-
+        ClientHandler.init();
     }
 
     public void loadComplete(FMLLoadCompleteEvent event)
@@ -90,19 +120,14 @@ public class HudCompass
         });
     }
 
-    public void clientTickEvent(TickEvent.ClientTickEvent event)
-    {
-        Minecraft.getInstance().player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> pois.updateByPosition(true));
-    }
-
     public void playerTickEvent(TickEvent.PlayerTickEvent event)
     {
         if (!(event.player instanceof ServerPlayerEntity))
             return;
 
         ServerPlayerEntity player = (ServerPlayerEntity)event.player;
-        ServerPlayNetHandler connection = player.connection;
 
+        PointsOfInterest.onTick(player);
     }
 
     public static ResourceLocation location(String path)

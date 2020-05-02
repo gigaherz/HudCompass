@@ -1,7 +1,7 @@
 package gigaherz.hudcompass.icons.client;
 
 import com.google.common.collect.Maps;
-import gigaherz.hudcompass.HudOverlay;
+import gigaherz.hudcompass.client.HudOverlay;
 import gigaherz.hudcompass.icons.BasicIconData;
 import gigaherz.hudcompass.icons.IIconData;
 import gigaherz.hudcompass.icons.IconDataSerializer;

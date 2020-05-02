@@ -1,6 +1,7 @@
 package gigaherz.hudcompass.icons;
 
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryManager;
@@ -23,7 +24,7 @@ public class IconDataRegistry
         }
         CompoundNBT tag = new CompoundNBT();
         tag.putString("Type", serializer.getRegistryName().toString());
-        tag.put("Data", serializer.write(iconData));
+        tag = serializer.write(iconData, tag);
         return tag;
     }
 
@@ -37,5 +38,24 @@ public class IconDataRegistry
             throw new IllegalStateException(String.format("Serializer not registered %s", serializerId));
         }
         return serializer.read(tag);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static void serializeIcon(IIconData<?> iconData, PacketBuffer buffer)
+    {
+        IconDataSerializer serializer = iconData.getSerializer();
+        buffer.writeRegistryIdUnsafe(REGISTRY, serializer);
+        serializer.write(iconData, buffer);
+    }
+
+    @Nonnull
+    public static IIconData<?> deserializeIcon(PacketBuffer buffer)
+    {
+        IconDataSerializer<?> serializer = buffer.readRegistryIdUnsafe(REGISTRY);
+        if (serializer == null)
+        {
+            throw new IllegalStateException("Server returned unknown serializer");
+        }
+        return serializer.read(buffer);
     }
 }
