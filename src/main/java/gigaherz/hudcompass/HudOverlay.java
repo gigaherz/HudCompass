@@ -1,27 +1,38 @@
 package gigaherz.hudcompass;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
+import gigaherz.hudcompass.waypoints.PointInfo;
+import gigaherz.hudcompass.waypoints.PointsOfInterest;
+import gigaherz.hudcompass.waypoints.client.PointRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.AbstractGui;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.Vector3d;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec2f;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import org.lwjgl.opengl.GL11;
 
-import javax.vecmath.Vector3d;
+import java.util.List;
 import java.util.Set;
 
 public class HudOverlay extends AbstractGui
 {
-    private final Minecraft minecraft;
+    public static final ResourceLocation LOCATION_MAP_ICONS = new ResourceLocation("minecraft", "textures/map/map_icons.png");
+    public static final ResourceLocation LOCATION_POI_ICONS = new ResourceLocation("hudcompass", "textures/poi_icons.png");
+
+    private final Minecraft mc;
     private final FontRenderer font;
     private final TextureManager textureManager;
 
@@ -32,13 +43,14 @@ public class HudOverlay extends AbstractGui
 
     private HudOverlay()
     {
-        this.minecraft = Minecraft.getInstance();
-        this.font = minecraft.fontRenderer;
-        this.textureManager = minecraft.textureManager;
+        this.mc = Minecraft.getInstance();
+        this.font = mc.fontRenderer;
+        this.textureManager = mc.textureManager;
     }
 
     Set<RenderGameOverlayEvent.ElementType> NOT_BEFORE = Sets.newHashSet(
             RenderGameOverlayEvent.ElementType.ALL,
+            RenderGameOverlayEvent.ElementType.VIGNETTE,
             RenderGameOverlayEvent.ElementType.HELMET,
             RenderGameOverlayEvent.ElementType.PORTAL,
             RenderGameOverlayEvent.ElementType.CROSSHAIRS,
@@ -48,7 +60,7 @@ public class HudOverlay extends AbstractGui
 
     boolean drawnThisFrame = false;
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public void preOverlay(RenderGameOverlayEvent.Pre event)
     {
         if (event.getType() == RenderGameOverlayEvent.ElementType.ALL)
@@ -57,7 +69,7 @@ public class HudOverlay extends AbstractGui
             return;
         }
 
-        if (minecraft.gameSettings.hideGUI || drawnThisFrame)
+        if (mc.gameSettings.hideGUI || drawnThisFrame)
             return;
 
         if (NOT_BEFORE.contains(event.getType()))
@@ -66,9 +78,10 @@ public class HudOverlay extends AbstractGui
         renderCompass();
     }
 
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void postOverlay(RenderGameOverlayEvent.Post event)
     {
-        if (minecraft.gameSettings.hideGUI || drawnThisFrame)
+        if (mc.gameSettings.hideGUI || drawnThisFrame)
             return;
 
         if (event.getType() == RenderGameOverlayEvent.ElementType.ALL)
@@ -81,18 +94,18 @@ public class HudOverlay extends AbstractGui
 
     private void renderCompass()
     {
-        if (!minecraft.isGamePaused())
+        if (!mc.isGamePaused())
         {
-            partialTicks = minecraft.getRenderPartialTicks();
+            partialTicks = mc.getRenderPartialTicks();
         }
 
-        int xPos = minecraft.mainWindow.getScaledWidth() / 2;
-        float yaw = MathHelper.lerp(partialTicks, minecraft.player.prevRotationYawHead, minecraft.player.rotationYawHead) % 360;
+        int xPos = mc.getMainWindow().getScaledWidth() / 2;
+        float yaw = MathHelper.lerp(partialTicks, mc.player.prevRotationYawHead, mc.player.rotationYawHead) % 360;
         //if (yaw > 180) yaw -= 360;
         if (yaw < 0) yaw += 360;
 
-        GlStateManager.enableBlend();
-        GlStateManager.disableAlphaTest();
+        RenderSystem.enableBlend();
+        RenderSystem.disableAlphaTest();
 
         fillRect(xPos - 90, 10, xPos + 90, 18, 0x3f000000);
 
@@ -106,21 +119,41 @@ public class HudOverlay extends AbstractGui
         fillRect(xPos - 1.5f, 10, xPos - 0.5f, 18, 0x3FFFFFFF);
         fillRect(xPos + 0.5f, 10, xPos + 1.5f, 18, 0x3FFFFFFF);
 
-        PlayerEntity player = minecraft.player;
-        double playerPosX = MathHelper.lerp(partialTicks, minecraft.player.prevPosX, minecraft.player.posX);
-        double playerPosY = MathHelper.lerp(partialTicks, minecraft.player.prevPosY, minecraft.player.posY);
-        double playerPosZ = MathHelper.lerp(partialTicks, minecraft.player.prevPosZ, minecraft.player.posZ);
-        for (PointInfo point : PointsOfInterest.CLIENT.getPoints())
-        {
-            Vector3d position = point.getPosition(player);
-            double xd = position.x - playerPosX;
-            double yd = position.y - playerPosY;
-            double zd = position.z - playerPosZ;
-            float angle = (float) Math.toDegrees(-Math.atan2(xd, zd));
-            drawPoi(player, yaw, angle, (float) yd, xPos, point);
-        }
+        fillRect(xPos - 45 - 0.5f, 10, xPos - 45 + 0.5f, 18, 0x3FFFFFFF);
+        fillRect(xPos + 45 - 0.5f, 10, xPos + 45 + 0.5f, 18, 0x3FFFFFFF);
+
+        PlayerEntity player = mc.player;
+        double playerPosX = MathHelper.lerp(partialTicks, mc.player.prevPosX, mc.player.getPosX());
+        double playerPosY = MathHelper.lerp(partialTicks, mc.player.prevPosY, mc.player.getPosY());
+        double playerPosZ = MathHelper.lerp(partialTicks, mc.player.prevPosZ, mc.player.getPosZ());
+
+        final float yaw0 = yaw;
+        mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent(pts -> {
+            List<PointInfo> sortedPoints = Lists.newArrayList(pts.getPoints());
+            sortedPoints.sort((a,b) -> {
+                Vector3d positionA = a.getPosition(player);
+                Vector3d positionB = b.getPosition(player);
+                float angleA = Math.abs(angleDistance(yaw0, angleFromPoint(positionA, playerPosX, playerPosY, playerPosZ).x));
+                float angleB = Math.abs(angleDistance(yaw0, angleFromPoint(positionB, playerPosX, playerPosY, playerPosZ).x));
+                return (int)Math.signum(angleB-angleA);
+            });
+            for (PointInfo point : sortedPoints)
+            {
+                Vector3d position = point.getPosition(player);
+                Vec2f angleYd = angleFromPoint(position, playerPosX, playerPosY, playerPosZ);
+                drawPoi(player, yaw0, angleYd.x, angleYd.y, xPos, point);
+            }
+        });
 
         drawnThisFrame = true;
+    }
+
+    private Vec2f angleFromPoint(Vector3d position, double playerPosX, double playerPosY, double playerPosZ)
+    {
+        double xd = position.x - playerPosX;
+        double yd = position.y - playerPosY;
+        double zd = position.z - playerPosZ;
+        return new Vec2f((float) Math.toDegrees(-Math.atan2(xd, zd)), (float)yd);
     }
 
     private void drawCardinalDirection(float yaw, float angle, int xPos, String text)
@@ -129,11 +162,11 @@ public class HudOverlay extends AbstractGui
         if (Math.abs(nDist) <= 90)
         {
             float nPos = xPos + nDist;
-            fillRect(nPos-0.5f, 10, 0.5f, 18, 0x7FFFFFFF);
-            if (minecraft.gameSettings.accessibilityTextBackground)
-                drawCenteredShadowString(font, text, nPos, 20, 0xFFFFFF);
+            fillRect(nPos-0.5f, 10, nPos+0.5f, 18, 0x7FFFFFFF);
+            if (mc.gameSettings.accessibilityTextBackground)
+                drawCenteredShadowString(font, text, nPos, 1, 0xFFFFFF);
             else
-                drawCenteredBoxedString(font, text, nPos, 20, 0xFFFFFF);
+                drawCenteredBoxedString(font, text, nPos, 1, 0xFFFFFF);
         }
     }
 
@@ -161,12 +194,11 @@ public class HudOverlay extends AbstractGui
         if (Math.abs(nDist) <= 90)
         {
             float nPos = xPos + nDist;
-            GlStateManager.pushMatrix();
-            GlStateManager.translatef(nPos, 0, 0);
+            RenderSystem.pushMatrix();
+            RenderSystem.translatef(nPos, 0, 0);
 
-            point.renderIcon(player, textureManager, 0, 14);
-
-            point.renderLabel(player, font, 0, 20);
+            PointRenderer.renderIcon(point, player, textureManager, 0, 14);
+            PointRenderer.renderLabel(point, player, font, 0, 20);
 
             if (point.displayVerticalDistance(player))
             {
@@ -174,7 +206,7 @@ public class HudOverlay extends AbstractGui
                 if (yDelta <= -2) drawBelowArrow(nPos, yDelta);
             }
 
-            GlStateManager.popMatrix();
+            RenderSystem.popMatrix();
         }
     }
 
@@ -182,7 +214,7 @@ public class HudOverlay extends AbstractGui
     {
         int x = yDelta > 10 ? 8 : 0;
         int y = 0;
-        textureManager.bindTexture(PointInfo.LOCATION_POI_ICONS);
+        textureManager.bindTexture(LOCATION_POI_ICONS);
         blitRect(-4.5f, 4, x, y, 8, 8, 128, 128);
     }
 
@@ -190,7 +222,7 @@ public class HudOverlay extends AbstractGui
     {
         int x = yDelta < -10 ? 24 : 16;
         int y = 0;
-        textureManager.bindTexture(PointInfo.LOCATION_POI_ICONS);
+        textureManager.bindTexture(LOCATION_POI_ICONS);
         blitRect(-4.5f, 16, x, y, 8, 8, 128, 128);
     }
 
@@ -205,23 +237,30 @@ public class HudOverlay extends AbstractGui
      */
     private static void fillRect(float x0, float y0, float x1, float y1, int color)
     {
+        RenderSystem.enableBlend();
+        RenderSystem.disableAlphaTest();
+
         int a = (color >> 24 & 255);
         int r = (color >> 16 & 255);
         int g = (color >> 8 & 255);
         int b = (color & 255);
         Tessellator tess = Tessellator.getInstance();
         BufferBuilder builder = tess.getBuffer();
-        GlStateManager.disableTexture();
-        builder.begin(7, DefaultVertexFormats.POSITION_COLOR);
+        RenderSystem.disableTexture();
+        builder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
         builder.pos((double) x0, (double) y1, 0.0D).color(r, g, b, a).endVertex();
         builder.pos((double) x1, (double) y1, 0.0D).color(r, g, b, a).endVertex();
         builder.pos((double) x1, (double) y0, 0.0D).color(r, g, b, a).endVertex();
         builder.pos((double) x0, (double) y0, 0.0D).color(r, g, b, a).endVertex();
         tess.draw();
-        GlStateManager.enableTexture();
+        RenderSystem.enableTexture();
     }
+
     private static void blitRect(float x0, float y0, float xt, float yt, float width, float height, int tWidth, int tHeight)
     {
+        RenderSystem.enableBlend();
+        RenderSystem.disableAlphaTest();
+
         float tx0 = xt / tWidth;
         float ty0 = yt / tHeight;
         float tx1 = tx0 + width/tWidth;

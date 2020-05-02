@@ -1,13 +1,14 @@
 package gigaherz.hudcompass;
 
+import gigaherz.hudcompass.waypoints.PointInfo;
+import gigaherz.hudcompass.waypoints.PointsOfInterest;
+import gigaherz.hudcompass.icons.BasicIconData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.client.util.InputMappings;
-import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.glfw.GLFW;
 
 public class ClientHandler
@@ -27,15 +28,25 @@ public class ClientHandler
     {
         Minecraft mc = Minecraft.getInstance();
 
-        while (ADD_WAYPOINT.isPressed())
+        if (ADD_WAYPOINT.isPressed())
         {
-            PointsOfInterest.CLIENT.addPoint(new PointInfo(mc.player.getPosition(), String.format("autopoint-%d",++autoPoint), 7));
+            Minecraft.getInstance().player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
+                pois.addPoint(new PointInfo(mc.player.getPosition(), String.format("autopoint-%d",++autoPoint), BasicIconData.mapMarker(7)));
+            });
+
+
+            while (ADD_WAYPOINT.isPressed())
+            {
+                // eat
+            }
         }
     }
 
     public static boolean isKeyDown(KeyBinding keybind)
     {
-        return InputMappings.isKeyDown(Minecraft.getInstance().mainWindow.getHandle(), keybind.getKey().getKeyCode());
+        if (keybind.isInvalid())
+            return false;
+        return InputMappings.isKeyDown(Minecraft.getInstance().getMainWindow().getHandle(), keybind.getKey().getKeyCode())
+                && keybind.getKeyConflictContext().isActive() && keybind.getKeyModifier().isActive(keybind.getKeyConflictContext());
     }
-
 }

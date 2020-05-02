@@ -1,21 +1,25 @@
 package gigaherz.hudcompass;
 
-import net.minecraft.entity.player.PlayerEntity;
+import gigaherz.hudcompass.waypoints.PointsOfInterest;
+import gigaherz.hudcompass.icons.BasicIconData;
+import gigaherz.hudcompass.icons.IconDataSerializer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.network.play.ServerPlayNetHandler;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.network.NetworkRegistry;
 import net.minecraftforge.fml.network.simple.SimpleChannel;
+import net.minecraftforge.registries.RegistryBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,7 +30,7 @@ public class HudCompass
 
     public static HudCompass instance;
 
-    public static final Logger logger = LogManager.getLogger(MODID);
+    public static final Logger LOGGER = LogManager.getLogger(MODID);
 
     public static final String CHANNEL = MODID;
     private static final String PROTOCOL_VERSION = "1.0";
@@ -41,24 +45,36 @@ public class HudCompass
     {
         instance = this;
 
-        ModLoadingContext modLoadingContext = ModLoadingContext.get();
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
+        modEventBus.addListener(this::newRegistry);
+        modEventBus.addGenericListener(IconDataSerializer.class, this::iconDataSerializers);
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::clientSetup);
         modEventBus.addListener(this::loadComplete);
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public void newRegistry(RegistryEvent.NewRegistry event)
+    {
+        new RegistryBuilder()
+                .setName(HudCompass.location("icon_data_serializers"))
+                .setType(IconDataSerializer.class)
+                .disableSaving()
+                .create();
+    }
+
+    public void iconDataSerializers(RegistryEvent.Register<IconDataSerializer<?>> event)
+    {
+        event.getRegistry().registerAll(
+                BasicIconData.Serializer.POI_SERIALIZER.setRegistryName("poi"),
+                BasicIconData.Serializer.MAP_SERIALIZER.setRegistryName("map_marker")
+        );
+    }
+
     public void commonSetup(FMLCommonSetupEvent event)
     {
-        /*int messageNumber = 0;
-        channel.registerMessage(messageNumber++, SwapItems.class, SwapItems::encode, SwapItems::new, SwapItems::handle);
-        channel.registerMessage(messageNumber++, BeltContentsChange.class, BeltContentsChange::encode, BeltContentsChange::new, BeltContentsChange::handle);
-        channel.registerMessage(messageNumber++, OpenBeltSlotInventory.class, OpenBeltSlotInventory::encode, OpenBeltSlotInventory::new, OpenBeltSlotInventory::handle);
-        channel.registerMessage(messageNumber++, ContainerSlotsHack.class, ContainerSlotsHack::encode, ContainerSlotsHack::new, ContainerSlotsHack::handle);
-        channel.registerMessage(messageNumber++, SyncBeltSlotContents.class, SyncBeltSlotContents::encode, SyncBeltSlotContents::new, SyncBeltSlotContents::handle);
-        logger.debug("Final message number: " + messageNumber);
-        */
+        PointsOfInterest.init();
     }
 
     public void clientSetup(FMLClientSetupEvent event)
@@ -76,7 +92,7 @@ public class HudCompass
 
     public void clientTickEvent(TickEvent.ClientTickEvent event)
     {
-        PointsOfInterest.CLIENT.updateByPosition(true);
+        Minecraft.getInstance().player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> pois.updateByPosition(true));
     }
 
     public void playerTickEvent(TickEvent.PlayerTickEvent event)

@@ -1,4 +1,4 @@
-package gigaherz.hudcompass;
+package gigaherz.hudcompass.util;
 
 import net.minecraft.client.gui.FontRenderer;
 
