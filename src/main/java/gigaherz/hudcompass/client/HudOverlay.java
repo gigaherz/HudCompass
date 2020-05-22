@@ -131,15 +131,15 @@ public class HudOverlay extends AbstractGui
         mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent(pts -> {
             List<PointInfo> sortedPoints = Lists.newArrayList(pts.getPoints());
             sortedPoints.sort((a,b) -> {
-                Vec3d positionA = a.getPosition(player);
-                Vec3d positionB = b.getPosition(player);
+                Vec3d positionA = a.getPosition();
+                Vec3d positionB = b.getPosition();
                 float angleA = Math.abs(angleDistance(yaw0, angleFromPoint(positionA, playerPosX, playerPosY, playerPosZ).x));
                 float angleB = Math.abs(angleDistance(yaw0, angleFromPoint(positionB, playerPosX, playerPosY, playerPosZ).x));
                 return (int)Math.signum(angleB-angleA);
             });
             for (PointInfo point : sortedPoints)
             {
-                Vec3d position = point.getPosition(player);
+                Vec3d position = point.getPosition();
                 Vec2f angleYd = angleFromPoint(position, playerPosX, playerPosY, playerPosZ);
                 drawPoi(player, yaw0, angleYd.x, angleYd.y, xPos, point);
             }
@@ -198,7 +198,7 @@ public class HudOverlay extends AbstractGui
             RenderSystem.translatef(nPos, 0, 0);
 
             PointRenderer.renderIcon(point, player, textureManager, 0, 14);
-            PointRenderer.renderLabel(point, player, font, 0, 20);
+            PointRenderer.renderLabel(point, font, 0, 20);
 
             if (point.displayVerticalDistance(player))
             {

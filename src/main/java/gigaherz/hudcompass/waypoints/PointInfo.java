@@ -18,10 +18,13 @@ public abstract class PointInfo<T extends PointInfo<T>>
     }
 
     private final PointInfoType<? extends T> type;
+    private PointsOfInterest owner;
     private UUID internalId;
     private String label;
     private IIconData<?> iconData;
     private boolean displayVerticalDistance = true;
+    private boolean isServerProvided = true; // not used in the server
+    private boolean isDynamic = false; // will not be saved to disk
 
     public PointInfo(PointInfoType<? extends T> type)
     {
@@ -41,9 +44,18 @@ public abstract class PointInfo<T extends PointInfo<T>>
         return type;
     }
 
-    public abstract Vec3d getPosition(PlayerEntity player);
+    public UUID getInternalId()
+    {
+        return internalId;
+    }
+    public void setInternalId(UUID uuid)
+    {
+        internalId = uuid;
+    }
 
-    public String getLabel(PlayerEntity player)
+    public abstract Vec3d getPosition();
+
+    public String getLabel()
     {
         return this.label;
     }
@@ -65,8 +77,44 @@ public abstract class PointInfo<T extends PointInfo<T>>
         return displayVerticalDistance;
     }
 
+    public void makeClientPoint()
+    {
+        isServerProvided = false;
+    }
+
+    public boolean isServerManaged()
+    {
+        return isServerProvided;
+    }
+
+    public boolean isDynamic()
+    {
+        return isDynamic;
+    }
+
     public void tick(PlayerEntity player)
     {
+    }
+
+    void setOwner(PointsOfInterest owner)
+    {
+        this.owner = owner;
+    }
+
+    public void markDirty()
+    {
+        if(owner != null)
+        {
+            owner.markDirty(this);
+        }
+    }
+
+    public void remove()
+    {
+        if (owner != null)
+        {
+            owner.remove(this);
+        }
     }
 
     public final CompoundNBT write(CompoundNBT tag)
@@ -94,6 +142,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
         buffer.writeString(label);
         IconDataRegistry.serializeIcon(iconData, buffer);
         buffer.writeBoolean(displayVerticalDistance);
+        buffer.writeBoolean(isDynamic);
         serializeAdditional(buffer);
     }
 
@@ -103,6 +152,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
         label = buffer.readString();
         iconData = IconDataRegistry.deserializeIcon(buffer);
         displayVerticalDistance = buffer.readBoolean();
+        isDynamic = buffer.readBoolean();
         deserializeAdditional(buffer);
     }
 

@@ -5,6 +5,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.registries.ObjectHolder;
 
@@ -37,22 +38,26 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
     }
 
     @Override
-    public Vec3d getPosition(PlayerEntity player)
+    public Vec3d getPosition()
     {
         return position;
     }
 
     public void setPosition(Vec3d position)
     {
-        this.position = position;
+        if (MathHelper.epsilonEquals(position.squareDistanceTo(position),0))
+        {
+            this.position = position;
+            markDirty();
+        }
     }
 
     @Override
     protected void serializeAdditional(CompoundNBT tag)
     {
         tag.putDouble("X", position.x);
-        tag.putDouble("Y", position.x);
-        tag.putDouble("Z", position.x);
+        tag.putDouble("Y", position.y);
+        tag.putDouble("Z", position.z);
     }
 
     @Override
@@ -69,8 +74,8 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
     protected void serializeAdditional(PacketBuffer buffer)
     {
         buffer.writeDouble(position.x);
-        buffer.writeDouble(position.x);
-        buffer.writeDouble(position.x);
+        buffer.writeDouble(position.y);
+        buffer.writeDouble(position.z);
     }
 
     @Override

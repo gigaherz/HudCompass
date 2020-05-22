@@ -10,6 +10,10 @@ buildscript {
     }
 }
 
+plugins {
+    id "com.wynprice.cursemaven" version "2.1.1"
+}
+
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'maven-publish'
 
@@ -79,6 +83,7 @@ minecraft {
 dependencies {
     minecraft 'net.minecraftforge:forge:1.15.2-31.1.62'
 
+    implementation fg.deobf('curse.maven:JourneyMap:2946765')
 }
 
 processResources {

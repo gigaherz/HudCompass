@@ -13,7 +13,7 @@ public class BasicIconData implements IIconData<BasicIconData>
     @ObjectHolder(HudCompass.MODID + ":map_marker")
     public static IconDataSerializer<BasicIconData> MAP_SERIALIZER = null;
 
-    public static final BasicIconData MISSING_ICON = new BasicIconData(Serializer.POI_SERIALIZER, 0);
+    public static final BasicIconData MISSING_ICON = new BasicIconData(Serializer.POI_SERIALIZER, 4);
 
     public static IIconData<?> poi(int index)
     {

@@ -1,0 +1,11 @@
+TODO:
+- Journeymap waypoint integration
+- Server-side map marker integration
+- Per-Team and Global waypoints
+
+Potential features:
+- Only show if map or compass are held
+  - Use tag or config file to tweak
+- Only show NSEW indicators if compass is held
+- Require both map+compass to show map markers
+-

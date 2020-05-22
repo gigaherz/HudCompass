@@ -1,7 +1,9 @@
-package gigaherz.hudcompass.waypoints;
+package gigaherz.hudcompass.integrations.server;
 
 import com.google.common.collect.Sets;
 import gigaherz.hudcompass.icons.BasicIconData;
+import gigaherz.hudcompass.waypoints.BasicWaypoint;
+import gigaherz.hudcompass.waypoints.PointInfo;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.FilledMapItem;
 import net.minecraft.item.ItemStack;
@@ -14,14 +16,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ServerWaypointCapability
+public class VanillaMapPoints
 {
     /**
      * Doesn't work. The server chooses not to sync the x/z of the center of the map.
      * @param player
      * @param sortedPoints
      */
-    private void addMapPoints(PlayerEntity player, List<PointInfo> sortedPoints)
+    private void gatherMapPoints(PlayerEntity player, List<PointInfo<?>> sortedPoints)
     {
         Set<MapData> seenMaps = Sets.newHashSet();
         for(int slot = 0;slot < player.inventory.getSizeInventory();slot++)
@@ -63,5 +65,4 @@ public class ServerWaypointCapability
             }
         }
     }
-
 }

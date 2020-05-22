@@ -14,9 +14,9 @@ public class PointRenderer
         IconRendererRegistry.renderIcon(info.getIconData(), player, textureManager, x, y);
     }
 
-    public static void renderLabel(PointInfo info, PlayerEntity player, FontRenderer font, int x, int y)
+    public static void renderLabel(PointInfo info, FontRenderer font, int x, int y)
     {
-        String label = info.getLabel(player);
+        String label = info.getLabel();
         HudOverlay.drawCenteredBoxedString(font, label, x, y, 0xFFFFFF);
     }
 }
