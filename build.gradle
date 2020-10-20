@@ -11,28 +11,32 @@ buildscript {
 }
 
 plugins {
-    id "com.wynprice.cursemaven" version "2.1.1"
+    //id "com.wynprice.cursemaven" version "2.1.5"
 }
 
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'maven-publish'
 
 repositories {
-    mavenLocal()
+    flatDir { dirs 'deps' }
 }
 
+version = "0.0.1"
+group= "dev.gigaherz.hudcompass" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "HudCompass-UNKNOWN"
 
-version = "1.9.0"
-group= "gigaherz.hudcompass" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "ToolBelt-1.14.3"
+project.afterEvaluate {
+    archivesBaseName = "HudCompass-${project.MC_VERSION}"
+}
 
 sourceCompatibility = targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 compileJava {
     sourceCompatibility = targetCompatibility = '1.8'
+    options.compilerArgs.addAll(['--release', '8'])
 }
 
 minecraft {
-    mappings channel: 'snapshot', version: '20200428-1.15.1'
+    mappings channel: 'snapshot', version: '20200916-1.16.2'
 
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
@@ -81,25 +85,27 @@ minecraft {
 }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.15.2-31.1.62'
+    minecraft 'net.minecraftforge:forge:1.16.3-34.1.22'
 
-    implementation fg.deobf('curse.maven:JourneyMap:2946765')
+    compileOnly 'xaero:Xaeros_Minimap:20.25.1_Forge_1.16.3-deobf'
+    runtimeOnly fg.deobf('xaero:Xaeros_Minimap:20.25.1_Forge_1.16.3-deobf')
+    //https://www.curseforge.com/minecraft/mc-mods/xaeros-minimap/files/3081699
 }
 
-processResources {
-    // this will ensure that this task is redone when the versions change.
-    inputs.property 'version', project.version
-
-    // replace stuff in mcmod.info, nothing else
-    from(sourceSets.main.resources.srcDirs) {
-        include 'META-INF/mods.toml'
-                
-        // replace version and mcversion
-        expand 'version':project.version
+jar {
+    from('/') {
+        include 'LICENSE.txt'
     }
 
-    // copy everything else except the mcmod.info
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'META-INF/mods.toml'
+    manifest {
+        attributes([
+                "Specification-Title": "eyes",
+                "Specification-Vendor": "gigaherz",
+                "Specification-Version": "1", // We are version 1 of ourselves
+                "Implementation-Title": project.name,
+                "Implementation-Version": "${version}",
+                "Implementation-Vendor" :"gigaherz",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
     }
 }
