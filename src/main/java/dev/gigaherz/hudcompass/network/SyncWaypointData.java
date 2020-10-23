@@ -1,10 +1,12 @@
 package dev.gigaherz.hudcompass.network;
 
 import com.google.common.collect.ImmutableList;
+import com.mojang.datafixers.util.Pair;
 import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.waypoints.PointInfoRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.network.NetworkEvent;
 
 import java.util.UUID;
@@ -13,10 +15,10 @@ import java.util.function.Supplier;
 public class SyncWaypointData
 {
     public final boolean replaceAll;
-    public final ImmutableList<PointInfo<?>> pointsAddedOrUpdated;
+    public final ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsAddedOrUpdated;
     public final ImmutableList<UUID> pointsRemoved;
 
-    public SyncWaypointData(boolean replaceAll, ImmutableList<PointInfo<?>> addedOrUpdated, ImmutableList<UUID> removed)
+    public SyncWaypointData(boolean replaceAll, ImmutableList<Pair<ResourceLocation, PointInfo<?>>> addedOrUpdated, ImmutableList<UUID> removed)
     {
         this.replaceAll = replaceAll;
         this.pointsAddedOrUpdated = addedOrUpdated;
@@ -25,7 +27,7 @@ public class SyncWaypointData
 
     public SyncWaypointData(PacketBuffer buffer)
     {
-        ImmutableList.Builder<PointInfo<?>> toAdd = ImmutableList.builder();
+        ImmutableList.Builder<Pair<ResourceLocation, PointInfo<?>>> toAdd = ImmutableList.builder();
         ImmutableList.Builder<UUID> toRemove = ImmutableList.builder();
 
         replaceAll = buffer.readBoolean();
@@ -33,7 +35,9 @@ public class SyncWaypointData
         int numberToAdd = buffer.readVarInt();
         for(int i=0;i<numberToAdd;i++)
         {
-            toAdd.add(PointInfoRegistry.deserializePoint(buffer));
+            ResourceLocation id = buffer.readResourceLocation();
+            PointInfo<?> pt = PointInfoRegistry.deserializePoint(buffer);
+            toAdd.add(Pair.of(id, pt));
         }
 
         int numberToRemove = buffer.readVarInt();
@@ -51,7 +55,10 @@ public class SyncWaypointData
         buffer.writeBoolean(replaceAll);
 
         buffer.writeVarInt(pointsAddedOrUpdated.size());
-        pointsAddedOrUpdated.forEach(pt -> PointInfoRegistry.serializePoint(pt, buffer));
+        pointsAddedOrUpdated.forEach(pt -> {
+            buffer.writeResourceLocation(pt.getFirst());
+            PointInfoRegistry.serializePoint(pt.getSecond(), buffer);
+        });
 
         buffer.writeVarInt(pointsRemoved.size());
         pointsRemoved.forEach(buffer::writeUniqueId);

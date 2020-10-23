@@ -11,7 +11,10 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.network.NetworkManager;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.TickEvent;
@@ -33,7 +36,7 @@ public class ClientWaypointDatabase
     {
         if (mc.isIntegratedServerRunning())
         {
-            return mc.getIntegratedServer().getDataDirectory().toPath().resolve("waypoints.dat").toAbsolutePath();
+            return mc.getIntegratedServer().getDataDirectory().toPath().resolve("client_waypoints").resolve("waypoints.dat").toAbsolutePath();
         }
         else
         {
@@ -79,12 +82,21 @@ public class ClientWaypointDatabase
 
                     pois.clear();
 
-                    ListNBT list = tag.getList("Waypoints", Constants.NBT.TAG_COMPOUND);
-                    for (int i = 0; i < list.size(); i++)
+                    ListNBT list0 = tag.getList("Worlds", Constants.NBT.TAG_COMPOUND);
+                    for (int j = 0; j < list0.size(); j++)
                     {
-                        CompoundNBT waypointTag = list.getCompound(i);
-                        PointInfo<?> waypoint = PointInfoRegistry.deserializePoint(waypointTag);
-                        pois.addPoint(waypoint);
+                        CompoundNBT worldTag = list0.getCompound(j);
+                        RegistryKey<World> key = RegistryKey.getOrCreateKey(Registry.WORLD_KEY, new ResourceLocation(worldTag.getString("Id")));
+
+                        PointsOfInterest.WorldPoints waypoints = pois.get(key);
+
+                        ListNBT list = tag.getList("Waypoints", Constants.NBT.TAG_COMPOUND);
+                        for (int i = 0; i < list.size(); i++)
+                        {
+                            CompoundNBT waypointTag = list.getCompound(i);
+                            PointInfo<?> waypoint = PointInfoRegistry.deserializePoint(waypointTag);
+                            waypoints.addPoint(waypoint);
+                        }
                     }
                 }
                 catch (IOException e)
@@ -113,22 +125,33 @@ public class ClientWaypointDatabase
                         //noinspection UnstableApiUsage
                         Files.copy(file, backup);
                     }
-
-                    CompoundNBT tag = new CompoundNBT();
-
-                    ListNBT list = new ListNBT();
-                    for (PointInfo<?> point : pois.getPoints())
+                    else
                     {
-                        if (point.isDynamic()) continue;
-                        CompoundNBT waypointTag = PointInfoRegistry.serializePoint(point);
-                        list.add(waypointTag);
+                        file.getParentFile().mkdirs();
                     }
 
-                    tag.put("Waypoints", list);
+                    CompoundNBT tag0 = new CompoundNBT();
 
-                    file.getParentFile().mkdirs();
+                    ListNBT list0 = new ListNBT();
+                    for (PointsOfInterest.WorldPoints world : pois.getAllWorlds())
+                    {
+                        CompoundNBT tag = new CompoundNBT();
 
-                    CompressedStreamTools.write(tag, file);
+                        ListNBT list = new ListNBT();
+                        for (PointInfo<?> point : world.getPoints())
+                        {
+                            if (point.isDynamic()) continue;
+                            CompoundNBT waypointTag = PointInfoRegistry.serializePoint(point);
+                            list.add(waypointTag);
+                        }
+
+                        tag.put("Waypoints", list);
+                        tag.putString("Id", world.getWorldKey().getLocation().toString());
+                    }
+
+                    tag0.put("Worlds", list0);
+
+                    CompressedStreamTools.write(tag0, file);
 
                     pois.savedNumber = pois.changeNumber;
                 }

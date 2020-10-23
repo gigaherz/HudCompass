@@ -93,7 +93,7 @@ public class XaeroMinimapIntegration
 
         public void updateWaypoints()
         {
-            ClientPlayerEntity player = Minecraft.getInstance().player;
+            final ClientPlayerEntity player = Minecraft.getInstance().player;
             if (player == null)
                 return;
 
@@ -130,20 +130,15 @@ public class XaeroMinimapIntegration
                 {
                     XMWaypoint way = new XMWaypoint(wp);
                     waypoints.put(wp, way);
-                    pois.addPoint(way);
+                    pois.get(player.world).addPoint(way);
                 }
                 for(Waypoint wp : toRemove)
                 {
                     XMWaypoint way = waypoints.get(wp);
                     waypoints.remove(wp);
-                    pois.remove(way);
+                    pois.get(player.world).remove(way);
                 }
             });
-        }
-
-        private Waypoint findById(String id)
-        {
-            return null;
         }
 
         private static class XMIconData implements IIconData<XMIconData>

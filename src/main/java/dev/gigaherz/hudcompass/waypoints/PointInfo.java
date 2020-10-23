@@ -18,7 +18,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
     }
 
     private final PointInfoType<? extends T> type;
-    private PointsOfInterest owner;
+    private PointsOfInterest.WorldPoints owner;
     private UUID internalId;
     private String label;
     private IIconData<?> iconData;
@@ -48,6 +48,11 @@ public abstract class PointInfo<T extends PointInfo<T>>
     public PointInfoType<? extends T> getType()
     {
         return type;
+    }
+
+    public final PointsOfInterest.WorldPoints getOwner()
+    {
+        return owner;
     }
 
     public UUID getInternalId()
@@ -102,7 +107,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
     {
     }
 
-    void setOwner(PointsOfInterest owner)
+    void setOwner(PointsOfInterest.WorldPoints owner)
     {
         this.owner = owner;
     }

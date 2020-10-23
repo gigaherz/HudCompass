@@ -3,6 +3,7 @@ package dev.gigaherz.hudcompass.waypoints;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.mojang.datafixers.util.Pair;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.network.AddWaypoint;
@@ -15,13 +16,17 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.INBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.Direction;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
@@ -30,6 +35,7 @@ import net.minecraftforge.fml.network.PacketDistributor;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class PointsOfInterest implements INBTSerializable<ListNBT>
 {
@@ -109,24 +115,208 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         }
     }
 
+    public static void onTick(PlayerEntity player)
+    {
+        player.getCapability(PointsOfInterest.INSTANCE).ifPresent(PointsOfInterest::tick);
+    }
+
+    public Iterable<WorldPoints> getAllWorlds()
+    {
+        return perWorld.values();
+    }
+
+    public class WorldPoints
+    {
+        private final RegistryKey<World> worldKey;
+        private Map<UUID, PointInfo<?>> points = Maps.newHashMap();
+
+        public WorldPoints(RegistryKey<World> worldKey)
+        {
+            this.worldKey = worldKey;
+        }
+
+        public Collection<PointInfo<?>> getPoints()
+        {
+            return points.values();
+        }
+
+        private void tick()
+        {
+            for (PointInfo<?> point : points.values())
+            {
+                point.tick(player);
+            }
+
+            if (player.world.isRemote)
+            {
+                PointInfo<?> closest = null;
+                double closestAngle = Double.POSITIVE_INFINITY;
+                for (PointInfo<?> point : points.values())
+                {
+                    Vector3d direction = point.getPosition().subtract(player.getPositionVec());
+                    Vector3d look = player.getLookVec();
+                    double dot = direction.x * look.x + direction.z * look.z;
+                    double m1 = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
+                    double m2 = Math.sqrt(look.x * look.x + look.z * look.z);
+                    double angle = Math.abs(Math.acos(dot / (m1 * m2)));
+                    if (angle < closestAngle)
+                    {
+                        closest = point;
+                        closestAngle = angle;
+                    }
+                }
+
+                if (closest != null && closestAngle < Math.toRadians(15))
+                {
+                    setTargetted(closest);
+                }
+                else
+                {
+                    setTargetted(null);
+                }
+            }
+
+            if (!player.world.isRemote && (changed.size() > 0 || removed.size() > 0))
+            {
+                sendSync();
+                changed.clear();
+                removed.clear();
+            }
+        }
+
+        public void addPoint(PointInfo<?> point)
+        {
+            point.setOwner(this);
+            points.put(point.getInternalId(), point);
+            if (!player.world.isRemote && otherSideHasMod)
+            {
+                changed.add(point);
+            }
+            changeNumber++;
+        }
+
+        public void remove(PointInfo<?> point)
+        {
+            remove(point.getInternalId());
+        }
+
+        private void remove(UUID id)
+        {
+            PointInfo<?> point = points.get(id);
+            if (point != null)
+            {
+                point.setOwner(null);
+                points.remove(point.getInternalId());
+                if (!player.world.isRemote && otherSideHasMod)
+                {
+                    removed.add(point);
+                }
+                changeNumber++;
+            }
+        }
+
+        public void clear()
+        {
+            removed.addAll(points.values());
+            points.clear();
+            changeNumber++;
+        }
+
+        public void markDirty(PointInfo<?> point)
+        {
+            if (!player.world.isRemote && otherSideHasMod)
+            {
+                changed.add(point);
+            }
+            changeNumber++;
+        }
+
+        public ListNBT serializeNBT()
+        {
+            ListNBT tag = new ListNBT();
+
+            for (PointInfo<?> point : points.values())
+            {
+                if (!point.isDynamic())
+                    tag.add(PointInfoRegistry.serializePoint(point));
+            }
+
+            return tag;
+        }
+
+        public void deserializeNBT(ListNBT nbt)
+        {
+            points.clear();
+            for (int i = 0; i < nbt.size(); i++)
+            {
+                CompoundNBT pointTag = nbt.getCompound(i);
+                PointInfo<?> point = PointInfoRegistry.deserializePoint(pointTag);
+                points.put(point.getInternalId(), point);
+            }
+        }
+
+        public RegistryKey<World> getWorldKey()
+        {
+            return worldKey;
+        }
+
+        public Optional<PointInfo<?>> find(UUID id)
+        {
+            return Optional.ofNullable(points.get(id));
+        }
+    }
+
+    private final Set<PointInfo<?>> changed = Sets.newHashSet();
+    private final Set<PointInfo<?>> removed = Sets.newHashSet();
+
+    private final Map<RegistryKey<World>, WorldPoints> perWorld = Maps.newHashMap();
+
     private PlayerEntity player;
-
-    private Set<PointInfo<?>> changed = Sets.newHashSet();
-    private Set<PointInfo<?>> removed = Sets.newHashSet();
-
-    private Map<UUID, PointInfo<?>> points = Maps.newHashMap();
 
     public boolean otherSideHasMod = false;
 
+    public PointsOfInterest()
     {
-        SpawnPointInfo spawn = new SpawnPointInfo();
+        //SpawnPointInfo spawn = new SpawnPointInfo(player);
 
-        points.put(spawn.getInternalId(), spawn);
+        //get(spawn.getDimension())
+        //points.put(spawn.getInternalId(), spawn);
     }
 
-    public Collection<PointInfo<?>> getPoints()
+    @Override
+    public ListNBT serializeNBT()
     {
-        return points.values();
+        ListNBT list = new ListNBT();
+
+        for (Map.Entry<RegistryKey<World>, WorldPoints> point : perWorld.entrySet())
+        {
+            CompoundNBT tag = new CompoundNBT();
+            tag.putString("World", point.getKey().getLocation().toString());
+            tag.put("POIs", point.getValue().serializeNBT());
+            list.add(tag);
+        }
+
+        return list;
+    }
+
+    @Override
+    public void deserializeNBT(ListNBT nbt)
+    {
+        perWorld.clear();
+        for (int i = 0; i < nbt.size(); i++)
+        {
+            CompoundNBT tag = nbt.getCompound(i);
+            RegistryKey<World> key = RegistryKey.getOrCreateKey(Registry.WORLD_KEY, new ResourceLocation(tag.getString("World")));
+            WorldPoints p = new WorldPoints(key);
+            p.deserializeNBT(tag.getList("POIs", Constants.NBT.TAG_COMPOUND));
+            perWorld.put(key, p);
+        }
+    }
+
+    public void clear()
+    {
+        perWorld.values().forEach(WorldPoints::clear);
+        perWorld.clear();
     }
 
     public void setTargetted(PointInfo<?> targetted)
@@ -139,142 +329,33 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         return targetted;
     }
 
-    public void setPlayer(PlayerEntity player) {
+    public void setPlayer(PlayerEntity player)
+    {
         this.player = player;
     }
 
-    public static void onTick(PlayerEntity player)
+    public void tick()
     {
-        player.getCapability(PointsOfInterest.INSTANCE).ifPresent(PointsOfInterest::tick);
-    }
-
-    private void tick()
-    {
-        for (PointInfo<?> point : points.values())
-        {
-            point.tick(player);
-        }
-
-        if (player.world.isRemote)
-        {
-            PointInfo<?> closest = null;
-            double closestAngle = Double.POSITIVE_INFINITY;
-            for (PointInfo<?> point : points.values())
-            {
-                Vector3d direction = point.getPosition().subtract(player.getPositionVec());
-                Vector3d look = player.getLookVec();
-                double dot = direction.x * look.x + direction.z * look.z;
-                double m1 = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
-                double m2 = Math.sqrt(look.x * look.x + look.z * look.z);
-                double angle = Math.abs(Math.acos(dot / (m1 * m2)));
-                if (angle < closestAngle)
-                {
-                    closest = point;
-                    closestAngle = angle;
-                }
-            }
-
-            if (closest != null && closestAngle < Math.toRadians(15))
-            {
-                setTargetted(closest);
-            }
-            else
-            {
-                setTargetted(null);
-            }
-        }
-
-        if (!player.world.isRemote && (changed.size() > 0 || removed.size() > 0))
-        {
-            if (otherSideHasMod)
-            {
-                HudCompass.channel.send(PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player),
-                        new SyncWaypointData(false, ImmutableList.copyOf(points.values()), ImmutableList.of()));
-            }
-            changed.clear();
-            removed.clear();
-        }
-    }
-
-    public void addPoint(PointInfo<?> point)
-    {
-        point.setOwner(this);
-        points.put(point.getInternalId(), point);
-        if (!player.world.isRemote && otherSideHasMod)
-        {
-            changed.add(point);
-        }
-        changeNumber++;
-    }
-
-    public void remove(PointInfo<?> point)
-    {
-        remove(point.getInternalId());
-    }
-
-    private void remove(UUID id)
-    {
-        PointInfo<?> point = points.get(id);
-        if (point != null)
-        {
-            point.setOwner(null);
-            points.remove(point.getInternalId());
-            if (!player.world.isRemote && otherSideHasMod)
-            {
-                removed.add(point);
-            }
-            changeNumber++;
-        }
-    }
-
-    public void clear()
-    {
-        removed.addAll(points.values());
-        points.clear();
-        changeNumber++;
-    }
-
-    public void markDirty(PointInfo<?> point)
-    {
-        if (!player.world.isRemote && otherSideHasMod)
-        {
-            changed.add(point);
-        }
-        changeNumber++;
-    }
-
-    @Override
-    public ListNBT serializeNBT()
-    {
-        ListNBT tag = new ListNBT();
-
-        for(PointInfo<?> point : points.values())
-        {
-            if (!point.isDynamic())
-                tag.add(PointInfoRegistry.serializePoint(point));
-        }
-
-        return tag;
-    }
-
-    @Override
-    public void deserializeNBT(ListNBT nbt)
-    {
-        points.clear();
-        for (int i = 0; i < nbt.size(); i++)
-        {
-            CompoundNBT pointTag = nbt.getCompound(i);
-            PointInfo<?> point = PointInfoRegistry.deserializePoint(pointTag);
-            points.put(point.getInternalId(), point);
-        }
+        perWorld.values().forEach(WorldPoints::tick);
     }
 
     private void sendInitialSync()
     {
+        sendSync();
+    }
+
+    private void sendSync()
+    {
         if (otherSideHasMod)
         {
+            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> points = perWorld
+                    .entrySet()
+                    .stream()
+                    .<Pair<ResourceLocation, PointInfo<?>>>flatMap(kv -> kv.getValue().points.values().stream().map(v -> Pair.of(kv.getKey().getLocation(), v)))
+                    .collect(ImmutableList.toImmutableList());
             HudCompass.channel.send(PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player),
-                    new SyncWaypointData(true, ImmutableList.copyOf(points.values()), ImmutableList.of()));
+                    new SyncWaypointData(true, points, ImmutableList.of())
+            );
         }
     }
 
@@ -286,15 +367,33 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
                             ? BasicIconData.mapMarker(addWaypoint.iconIndex)
                             : BasicIconData.poi(addWaypoint.iconIndex)
             );
-            points.addPoint(waypoint);
+            points.get(sender.world).addPoint(waypoint);
         });
+    }
+
+    public WorldPoints get(World world)
+    {
+        return get(world.getDimensionKey());
+    }
+
+    public WorldPoints get(RegistryKey<World> worldKey)
+    {
+        return perWorld.computeIfAbsent(worldKey, WorldPoints::new);
     }
 
     public static void handleRemoveWaypoint(ServerPlayerEntity sender, RemoveWaypoint removeWaypoint)
     {
-        sender.getCapability(INSTANCE).ifPresent(points -> {
-            points.remove(removeWaypoint.id);
-        });
+        sender.getCapability(INSTANCE).ifPresent(points -> points
+                .find(removeWaypoint.id)
+                .ifPresent(pt -> {
+            if (!pt.isDynamic())
+                pt.getOwner().remove(removeWaypoint.id);
+        }));
+    }
+
+    private Optional<PointInfo<?>> find(UUID id)
+    {
+        return perWorld.values().stream().<PointInfo<?>>flatMap(world -> world.find(id).map(Stream::of).orElseGet(Stream::empty)).findAny();
     }
 
     public static void handleSync(PlayerEntity player, SyncWaypointData packet)
@@ -302,15 +401,15 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(points -> {
             if (packet.replaceAll)
             {
-                points.points.entrySet().removeIf(kv -> kv.getValue().isServerManaged());
+                points.perWorld.clear();
             }
             else
             {
-                points.points.entrySet().removeIf(kv -> packet.pointsRemoved.contains(kv.getValue().getInternalId()));
+                points.perWorld.values().forEach(pt -> pt.points.entrySet().removeIf(kv -> packet.pointsRemoved.contains(kv.getValue().getInternalId())));
             }
-            for(PointInfo<?> pt : packet.pointsAddedOrUpdated)
+            for(Pair<ResourceLocation, PointInfo<?>> pt : packet.pointsAddedOrUpdated)
             {
-                points.addPoint(pt);
+                points.get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
             }
         });
     }

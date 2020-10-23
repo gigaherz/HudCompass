@@ -128,15 +128,15 @@ public class HudOverlay extends AbstractGui
         fillRect(matrixStack, xPos - 45 - 0.5f, 10, xPos - 45 + 0.5f, 18, 0x3FFFFFFF);
         fillRect(matrixStack, xPos + 45 - 0.5f, 10, xPos + 45 + 0.5f, 18, 0x3FFFFFFF);
 
-        PlayerEntity player = mc.player;
+        final PlayerEntity player = mc.player;
         double playerPosX = MathHelper.lerp(partialTicks, mc.player.prevPosX, mc.player.getPosX());
         double playerPosY = MathHelper.lerp(partialTicks, mc.player.prevPosY, mc.player.getPosY());
         double playerPosZ = MathHelper.lerp(partialTicks, mc.player.prevPosZ, mc.player.getPosZ());
 
         final float yaw0 = yaw;
         final float elapsed0 = elapsed;
-        mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent(pts -> {
-            List<PointInfo<?>> sortedPoints = Lists.newArrayList(pts.getPoints());
+        player.getCapability(PointsOfInterest.INSTANCE).ifPresent(pts -> {
+            List<PointInfo<?>> sortedPoints = Lists.newArrayList(pts.get(player.world).getPoints());
             sortedPoints.sort((a,b) -> {
                 Vector3d positionA = a.getPosition();
                 Vector3d positionB = b.getPosition();

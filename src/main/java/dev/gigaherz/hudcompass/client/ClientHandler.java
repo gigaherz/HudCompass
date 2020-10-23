@@ -60,7 +60,7 @@ public class ClientHandler
                 }
                 else
                 {
-                    pois.addPoint(new BasicWaypoint(position, label, BasicIconData.mapMarker(7)));
+                    pois.get(mc.player.world).addPoint(new BasicWaypoint(position, label, BasicIconData.mapMarker(7)));
                 }
             });
 
@@ -76,7 +76,7 @@ public class ClientHandler
             mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
                 PointInfo<?> targetted = pois.getTargetted();
 
-                if (targetted != null)
+                if (targetted != null && !targetted.isDynamic())
                 {
                     if (pois.otherSideHasMod)
                     {
@@ -84,7 +84,7 @@ public class ClientHandler
                     }
                     else
                     {
-                        pois.remove(targetted);
+                        pois.get(mc.player.world).remove(targetted);
                     }
                 }
             });

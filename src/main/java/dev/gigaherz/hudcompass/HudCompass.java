@@ -118,7 +118,7 @@ public class HudCompass
     {
         event.getRegistry().registerAll(
                 new PointInfoType<>(BasicWaypoint::new).setRegistryName("basic"),
-                new PointInfoType<>(SpawnPointInfo::new).setRegistryName("spawn")
+                new PointInfoType<>(() -> new SpawnPointInfo()).setRegistryName("spawn")
         );
     }
 
