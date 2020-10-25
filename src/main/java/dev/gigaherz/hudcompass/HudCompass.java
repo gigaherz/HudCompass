@@ -2,6 +2,7 @@ package dev.gigaherz.hudcompass;
 
 import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.client.HudOverlay;
+import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
 import dev.gigaherz.hudcompass.integrations.xaerominimap.XaeroMinimapIntegration;
 import dev.gigaherz.hudcompass.network.ServerHello;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
@@ -71,7 +72,12 @@ public class HudCompass
         MinecraftForge.EVENT_BUS.addListener(this::playerTickEvent);
         MinecraftForge.EVENT_BUS.addListener(this::playerLoggedIn);
 
-        if (ModList.get().isLoaded("xaerominimap"))
+        if (ConfigData.enableVanillaMapIntegration)
+        {
+            VanillaMapPoints.init();
+        }
+
+        if (ConfigData.enableXaeroMinimapIntegration && ModList.get().isLoaded("xaerominimap"))
         {
             XaeroMinimapIntegration.init();
         }

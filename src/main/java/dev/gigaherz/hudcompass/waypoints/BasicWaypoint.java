@@ -6,6 +6,7 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.registries.ObjectHolder;
 
 public class BasicWaypoint extends PointInfo<BasicWaypoint>
@@ -32,7 +33,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
 
     public BasicWaypoint(PointInfoType<? extends BasicWaypoint> type, Vector3d exactPosition, String label, IIconData<?> iconData)
     {
-        super(type, false, label, iconData);
+        super(type, false, new StringTextComponent(label), iconData);
         this.position = exactPosition;
     }
 

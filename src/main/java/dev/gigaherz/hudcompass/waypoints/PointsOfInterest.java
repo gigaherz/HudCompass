@@ -6,6 +6,7 @@ import com.google.common.collect.Sets;
 import com.mojang.datafixers.util.Pair;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
+import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
 import dev.gigaherz.hudcompass.network.AddWaypoint;
 import dev.gigaherz.hudcompass.network.RemoveWaypoint;
 import dev.gigaherz.hudcompass.network.SyncWaypointData;
@@ -35,6 +36,7 @@ import net.minecraftforge.fml.network.PacketDistributor;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class PointsOfInterest implements INBTSerializable<ListNBT>
@@ -46,6 +48,14 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
 
     public int changeNumber;
     public int savedNumber;
+
+    private final Map<ResourceLocation, Object> addonData = Maps.newHashMap();
+
+    @SuppressWarnings("unchecked")
+    public <T> T getOrCreateAddonData(ResourceLocation addonId, Supplier<T> factory)
+    {
+        return (T) addonData.computeIfAbsent(addonId, key -> factory.get());
+    }
 
     public static void init()
     {

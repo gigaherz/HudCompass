@@ -17,11 +17,13 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.IReorderingProcessor;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.vector.Matrix4f;
 import net.minecraft.util.math.vector.Vector2f;
 import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -193,6 +195,21 @@ public class HudOverlay extends AbstractGui
         float x0 = x-width1/2;
         fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) MathHelper.clamp(mc.gameSettings.accessibilityTextBackgroundOpacity * ((color >>24) & 0xFF), 0, 255)) << 24);
         font.drawStringWithShadow(matrixStack, text, x-width/2, y+2, color);
+
+        RenderSystem.enableBlend();
+    }
+
+    public static void drawCenteredBoxedString(MatrixStack matrixStack, FontRenderer font, ITextComponent text, float x, float y, int color)
+    {
+        IReorderingProcessor reodering = text.func_241878_f();
+        Minecraft mc = Minecraft.getInstance();
+        float width = font.func_243245_a(reodering);
+        float height = font.FONT_HEIGHT;
+        float width1 = width+4;
+        float height1 = height+3;
+        float x0 = x-width1/2;
+        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) MathHelper.clamp(mc.gameSettings.accessibilityTextBackgroundOpacity * ((color >>24) & 0xFF), 0, 255)) << 24);
+        font.func_238407_a_(matrixStack, reodering, x-width/2, y+2, color);
 
         RenderSystem.enableBlend();
     }

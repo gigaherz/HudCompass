@@ -7,17 +7,21 @@ import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.text.ITextComponent;
 
 public class PointRenderer
 {
-    public static void renderIcon(PointInfo info, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y)
+    public static void renderIcon(PointInfo<?> info, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y)
     {
         IconRendererRegistry.renderIcon(info.getIconData(), player, textureManager, matrixStack, x, y);
     }
 
-    public static void renderLabel(PointInfo info, FontRenderer font, MatrixStack matrixStack, int x, int y, int alpha)
+    public static void renderLabel(PointInfo<?> info, FontRenderer font, MatrixStack matrixStack, int x, int y, int alpha)
     {
-        String label = info.getLabel();
-        HudOverlay.drawCenteredBoxedString(matrixStack, font, label, x, y, (alpha << 24) | 0xFFFFFF);
+        ITextComponent label = info.getLabel();
+        if (label != null)
+        {
+            HudOverlay.drawCenteredBoxedString(matrixStack, font, label, x, y, (alpha << 24) | 0xFFFFFF);
+        }
     }
 }

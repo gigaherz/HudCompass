@@ -37,7 +37,7 @@ public class PointInfoRegistry
         {
             throw new IllegalStateException(String.format("Serializer not registered %s", typeId));
         }
-        PointInfo info = type.create();
+        PointInfo<?> info = type.create();
         info.read(tag);
         return info;
     }
@@ -58,7 +58,7 @@ public class PointInfoRegistry
         {
             throw new IllegalStateException("Server returned unknown serializer");
         }
-        PointInfo info = serializer.create();
+        PointInfo<?> info = serializer.create();
         info.readFromPacket(buffer);
         return info;
     }

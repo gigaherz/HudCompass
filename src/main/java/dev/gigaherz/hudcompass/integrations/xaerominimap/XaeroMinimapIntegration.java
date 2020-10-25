@@ -2,42 +2,36 @@ package dev.gigaherz.hudcompass.integrations.xaerominimap;
 
 import com.google.common.collect.Maps;
 import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.systems.RenderSystem;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import dev.gigaherz.hudcompass.icons.client.IIconRenderer;
 import dev.gigaherz.hudcompass.icons.client.IconRendererRegistry;
-import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
+import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.player.ClientPlayerEntity;
-import net.minecraft.client.gui.AbstractGui;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.registries.DeferredRegister;
-import xaero.common.IXaeroMinimap;
 import xaero.common.XaeroMinimapSession;
-import xaero.common.gui.GuiWaypoints;
-import xaero.common.interfaces.render.InterfaceRenderer;
 import xaero.common.minimap.waypoints.Waypoint;
 import xaero.common.minimap.waypoints.WaypointSet;
 import xaero.common.minimap.waypoints.WaypointsManager;
-import xaero.common.misc.Misc;
-import xaero.common.settings.ModSettings;
 import xaero.minimap.XaeroMinimap;
 
 import java.util.HashSet;
@@ -196,7 +190,7 @@ public class XaeroMinimapIntegration
 
             public XMWaypoint(Waypoint way)
             {
-                super(TYPE.get(), true, way.getLocalizedName(), new XMIconData(way));
+                super(TYPE.get(), true, new TranslationTextComponent(way.getName()), new XMIconData(way));
                 this.parent = way;
             }
 
@@ -207,9 +201,9 @@ public class XaeroMinimapIntegration
             }
 
             @Override
-            public String getLabel()
+            public ITextComponent getLabel()
             {
-                return parent.getLocalizedName();
+                return new TranslationTextComponent(parent.getName());
             }
 
             @Override
