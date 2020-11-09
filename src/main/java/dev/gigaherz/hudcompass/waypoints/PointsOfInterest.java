@@ -130,9 +130,9 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(PointsOfInterest::tick);
     }
 
-    public Iterable<WorldPoints> getAllWorlds()
+    public Collection<WorldPoints> getAllWorlds()
     {
-        return perWorld.values();
+        return Collections.unmodifiableCollection(perWorld.values());
     }
 
     public class WorldPoints

@@ -11,6 +11,7 @@ import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.UUID;
 
@@ -74,6 +75,11 @@ public abstract class PointInfo<T extends PointInfo<T>>
     public ITextComponent getLabel()
     {
         return this.label;
+    }
+
+    public void setLabel(@Nullable ITextComponent text)
+    {
+        this.label = text;
     }
 
     public IIconData<?> getIconData()

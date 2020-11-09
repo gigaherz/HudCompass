@@ -9,10 +9,14 @@ import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.registries.ObjectHolder;
 
+import javax.annotation.Nullable;
+
 public class BasicWaypoint extends PointInfo<BasicWaypoint>
 {
     @ObjectHolder("hudcompass:basic")
     public static PointInfoType<BasicWaypoint> TYPE = null;
+
+    private String label;
 
     private Vector3d position;
 
@@ -24,6 +28,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
     public BasicWaypoint(BlockPos exactPosition, String label, IIconData<?> iconData)
     {
         this(toVec3d(exactPosition), label, iconData);
+        this.label = label;
     }
 
     public BasicWaypoint(Vector3d exactPosition, String label, IIconData<?> iconData)
@@ -52,12 +57,24 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
         }
     }
 
+    public String getLabelText()
+    {
+        return label;
+    }
+
+    public void setLabelText(String label)
+    {
+        this.label = label;
+        super.setLabel(label.length() > 0 ? new StringTextComponent(label) : null);
+    }
+
     @Override
     protected void serializeAdditional(CompoundNBT tag)
     {
         tag.putDouble("X", position.x);
         tag.putDouble("Y", position.y);
         tag.putDouble("Z", position.z);
+        tag.putString("Text", label);
     }
 
     @Override
@@ -68,6 +85,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
                 tag.getDouble("Y"),
                 tag.getDouble("Z")
         );
+        label = tag.getString("Text");
     }
 
     @Override
@@ -76,6 +94,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
         buffer.writeDouble(position.x);
         buffer.writeDouble(position.y);
         buffer.writeDouble(position.z);
+        buffer.writeString(label, 1024);
     }
 
     @Override
@@ -86,5 +105,6 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
                 buffer.readDouble(),
                 buffer.readDouble()
         );
+        label = buffer.readString(1024);
     }
 }

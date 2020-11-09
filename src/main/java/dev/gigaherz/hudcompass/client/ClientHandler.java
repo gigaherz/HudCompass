@@ -22,6 +22,7 @@ public class ClientHandler
 {
     public static KeyBinding ADD_WAYPOINT;
     public static KeyBinding REMOVE_WAYPOINT;
+    public static KeyBinding EDIT_WAYPOINTS;
 
     public static void init()
     {
@@ -35,6 +36,9 @@ public class ClientHandler
 
         ClientRegistry.registerKeyBinding(REMOVE_WAYPOINT =
                 new KeyBinding("key.hudcompass.remove_waypoint", InputMappings.INPUT_INVALID.getKeyCode(), "key.hudcompass.category"));
+
+        ClientRegistry.registerKeyBinding(EDIT_WAYPOINTS =
+                new KeyBinding("key.hudcompass.edit_waypoints", InputMappings.INPUT_INVALID.getKeyCode(), "key.hudcompass.category"));
 
         MinecraftForge.EVENT_BUS.addListener(ClientHandler::handleKeys);
     }
@@ -87,6 +91,19 @@ public class ClientHandler
                         pois.get(mc.player.world).remove(targetted);
                     }
                 }
+            });
+
+            //noinspection StatementWithEmptyBody
+            while (ADD_WAYPOINT.isPressed())
+            {
+                // eat
+            }
+        }
+
+        if (EDIT_WAYPOINTS.isPressed())
+        {
+            mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
+                mc.displayGuiScreen(new ClientWaypointManagerScreen(pois));
             });
 
             //noinspection StatementWithEmptyBody

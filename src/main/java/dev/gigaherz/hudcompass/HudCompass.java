@@ -56,6 +56,10 @@ public class HudCompass
             .networkProtocolVersion(() -> PROTOCOL_VERSION)
             .simpleChannel();
 
+    public static class X{
+
+    }
+
     public HudCompass()
     {
         instance = this;
