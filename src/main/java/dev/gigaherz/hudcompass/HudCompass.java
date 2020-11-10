@@ -4,12 +4,9 @@ import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
 import dev.gigaherz.hudcompass.integrations.xaerominimap.XaeroMinimapIntegration;
-import dev.gigaherz.hudcompass.network.ServerHello;
+import dev.gigaherz.hudcompass.network.*;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import dev.gigaherz.hudcompass.network.AddWaypoint;
-import dev.gigaherz.hudcompass.network.ClientHello;
-import dev.gigaherz.hudcompass.network.SyncWaypointData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
@@ -138,9 +135,11 @@ public class HudCompass
 
         int messageNumber = 0;
         channel.messageBuilder(AddWaypoint.class, messageNumber++).encoder(AddWaypoint::encode).decoder(AddWaypoint::new).consumer(AddWaypoint::handle).add();
+        channel.messageBuilder(RemoveWaypoint.class, messageNumber++).encoder(RemoveWaypoint::encode).decoder(RemoveWaypoint::new).consumer(RemoveWaypoint::handle).add();
         channel.messageBuilder(ServerHello.class, messageNumber++).encoder(ServerHello::encode).decoder(ServerHello::new).consumer(ServerHello::handle).add();
         channel.messageBuilder(ClientHello.class, messageNumber++).encoder(ClientHello::encode).decoder(ClientHello::new).consumer(ClientHello::handle).add();
         channel.messageBuilder(SyncWaypointData.class, messageNumber++).encoder(SyncWaypointData::encode).decoder(SyncWaypointData::new).consumer(SyncWaypointData::handle).add();
+        channel.messageBuilder(UpdateWaypointsFromGui.class, messageNumber++).encoder(UpdateWaypointsFromGui::encode).decoder(UpdateWaypointsFromGui::new).consumer(UpdateWaypointsFromGui::handle).add();
         LOGGER.debug("Final message number: " + messageNumber);
     }
 

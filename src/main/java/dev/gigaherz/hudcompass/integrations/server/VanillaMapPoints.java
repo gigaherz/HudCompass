@@ -117,7 +117,7 @@ public class VanillaMapPoints
 
                     for(MapDecoration remove : toRemove)
                     {
-                        worldPoints.remove(decorationPointInfoMap.get(remove));
+                        worldPoints.removePoint(decorationPointInfoMap.get(remove));
                         decorationPointInfoMap.remove(remove);
                     }
                 }
@@ -132,7 +132,7 @@ public class VanillaMapPoints
 
                 for(PointInfo<?> pt : map.values())
                 {
-                    worldPoints.remove(pt);
+                    worldPoints.removePoint(pt);
                 }
 
                 addon.mapDecorations.remove(remove);

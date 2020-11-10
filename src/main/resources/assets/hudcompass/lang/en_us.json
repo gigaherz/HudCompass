@@ -1,15 +1,23 @@
 {
-  "item.toolbelt.belt": "Tool Belt",
-  "item.toolbelt.pouch": "Belt Pouch",
-  "key.toolbelt.open": "Swap Tool",
-  "key.toolbelt.category": "Tool Belt",
-  "key.toolbelt.slot": "Open Belt Slot Inventory",
-  "key.toolbelt.cycle.left": "Cycle Tool Left",
-  "key.toolbelt.cycle.right": "Cycle Tool Right",
-  "text.toolbelt.empty": "EMPTY",
-  "text.toolbelt.swap": "SWAP",
-  "text.toolbelt.insert": "INSERT",
-  "text.toolbelt.extract": "EXTRACT",
-  "text.toolbelt.tooltip": "Upgrades: %s (%s slots)",
-  "text.toolbelt": "Tool Belt"
+
+  "key.hudcompass.category": "Hud Compass",
+  "key.hudcompass.add_waypoint": "Quick Waypoint",
+  "key.hudcompass.remove_waypoint": "Remove Targetted Waypoint",
+  "key.hudcompass.edit_waypoints": "Waypoint Editor",
+
+  "text.hudcompass.waypoint_editor.title": "Waypoint Editor",
+
+  "text.hudcompass.waypoint_editor.new_waypoint": "New Waypoint",
+  "text.hudcompass.waypoint_editor.world_all": "World: All",
+  "text.hudcompass.waypoint_editor.world": "World: %s",
+
+  "text.hudcompass.waypoint_editor.cancel": "Cancel",
+  "text.hudcompass.waypoint_editor.save": "Save",
+
+  "text.hudcompass.waypoint_editor.header_label": "Label",
+  "text.hudcompass.waypoint_editor.header_x": "X",
+  "text.hudcompass.waypoint_editor.header_y": "Y",
+  "text.hudcompass.waypoint_editor.header_z": "Z",
+  "text.hudcompass.waypoint_editor.change_symbol": "◆",
+  "text.hudcompass.waypoint_editor.delete": "✕"
 }

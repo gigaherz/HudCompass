@@ -6,10 +6,10 @@ import com.google.common.collect.Sets;
 import com.mojang.datafixers.util.Pair;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
-import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
 import dev.gigaherz.hudcompass.network.AddWaypoint;
 import dev.gigaherz.hudcompass.network.RemoveWaypoint;
 import dev.gigaherz.hudcompass.network.SyncWaypointData;
+import dev.gigaherz.hudcompass.network.UpdateWaypointsFromGui;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
@@ -135,145 +135,8 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         return Collections.unmodifiableCollection(perWorld.values());
     }
 
-    public class WorldPoints
+    public void sendToServer(RegistryKey<World> worldKey, BasicWaypoint pointInfo)
     {
-        private final RegistryKey<World> worldKey;
-        private Map<UUID, PointInfo<?>> points = Maps.newHashMap();
-
-        public WorldPoints(RegistryKey<World> worldKey)
-        {
-            this.worldKey = worldKey;
-        }
-
-        public Collection<PointInfo<?>> getPoints()
-        {
-            return points.values();
-        }
-
-        private void tick()
-        {
-            for (PointInfo<?> point : points.values())
-            {
-                point.tick(player);
-            }
-
-            if (player.world.isRemote)
-            {
-                PointInfo<?> closest = null;
-                double closestAngle = Double.POSITIVE_INFINITY;
-                for (PointInfo<?> point : points.values())
-                {
-                    Vector3d direction = point.getPosition().subtract(player.getPositionVec());
-                    Vector3d look = player.getLookVec();
-                    double dot = direction.x * look.x + direction.z * look.z;
-                    double m1 = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
-                    double m2 = Math.sqrt(look.x * look.x + look.z * look.z);
-                    double angle = Math.abs(Math.acos(dot / (m1 * m2)));
-                    if (angle < closestAngle)
-                    {
-                        closest = point;
-                        closestAngle = angle;
-                    }
-                }
-
-                if (closest != null && closestAngle < Math.toRadians(15))
-                {
-                    setTargetted(closest);
-                }
-                else
-                {
-                    setTargetted(null);
-                }
-            }
-
-            if (!player.world.isRemote && (changed.size() > 0 || removed.size() > 0))
-            {
-                sendSync();
-                changed.clear();
-                removed.clear();
-            }
-        }
-
-        public void addPoint(PointInfo<?> point)
-        {
-            point.setOwner(this);
-            points.put(point.getInternalId(), point);
-            if (!player.world.isRemote && otherSideHasMod)
-            {
-                changed.add(point);
-            }
-            changeNumber++;
-        }
-
-        public void remove(PointInfo<?> point)
-        {
-            remove(point.getInternalId());
-        }
-
-        private void remove(UUID id)
-        {
-            PointInfo<?> point = points.get(id);
-            if (point != null)
-            {
-                point.setOwner(null);
-                points.remove(point.getInternalId());
-                if (!player.world.isRemote && otherSideHasMod)
-                {
-                    removed.add(point);
-                }
-                changeNumber++;
-            }
-        }
-
-        public void clear()
-        {
-            removed.addAll(points.values());
-            points.clear();
-            changeNumber++;
-        }
-
-        public void markDirty(PointInfo<?> point)
-        {
-            if (!player.world.isRemote && otherSideHasMod)
-            {
-                changed.add(point);
-            }
-            changeNumber++;
-        }
-
-        public ListNBT serializeNBT()
-        {
-            ListNBT tag = new ListNBT();
-
-            for (PointInfo<?> point : points.values())
-            {
-                if (!point.isDynamic())
-                    tag.add(PointInfoRegistry.serializePoint(point));
-            }
-
-            return tag;
-        }
-
-        public void deserializeNBT(ListNBT nbt)
-        {
-            points.clear();
-            for (int i = 0; i < nbt.size(); i++)
-            {
-                CompoundNBT pointTag = nbt.getCompound(i);
-                PointInfo<?> point = PointInfoRegistry.deserializePoint(pointTag);
-                points.put(point.getInternalId(), point);
-            }
-        }
-
-        public RegistryKey<World> getWorldKey()
-        {
-            return worldKey;
-        }
-
-        public Optional<PointInfo<?>> find(UUID id)
-        {
-            return Optional.ofNullable(points.get(id));
-        }
     }
 
     private final Set<PointInfo<?>> changed = Sets.newHashSet();
@@ -369,6 +232,17 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         }
     }
 
+    public void sendUpdateFromGui(
+            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toAdd,
+            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toUpdate,
+            ImmutableList<UUID> toRemove)
+    {
+
+        HudCompass.channel.sendToServer(
+                new UpdateWaypointsFromGui(toAdd, toUpdate, toRemove)
+        );
+    }
+
     public static void handleAddWaypoint(ServerPlayerEntity sender, AddWaypoint addWaypoint)
     {
         sender.getCapability(INSTANCE).ifPresent(points -> {
@@ -397,7 +271,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
                 .find(removeWaypoint.id)
                 .ifPresent(pt -> {
             if (!pt.isDynamic())
-                pt.getOwner().remove(removeWaypoint.id);
+                pt.getOwner().removePoint(removeWaypoint.id);
         }));
     }
 
@@ -424,6 +298,21 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         });
     }
 
+    public static void handleUpdateFromGui(ServerPlayerEntity sender, UpdateWaypointsFromGui packet)
+    {
+        sender.getCapability(INSTANCE).ifPresent(points -> {
+            points.perWorld.values().forEach(pt -> pt.points.entrySet().removeIf(kv -> packet.pointsRemoved.contains(kv.getValue().getInternalId())));
+            for(Pair<ResourceLocation, PointInfo<?>> pt : packet.pointsAdded)
+            {
+                points.get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
+            }
+            for(Pair<ResourceLocation, PointInfo<?>> pt : packet.pointsUpdated)
+            {
+                points.get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
+            }
+        });
+    }
+
     public static void remoteHello(@Nullable PlayerEntity player)
     {
         if (player == null) return;
@@ -433,4 +322,174 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
                 points.sendInitialSync();
         });
     }
+
+    public class WorldPoints
+    {
+        private final RegistryKey<World> worldKey;
+        private Map<UUID, PointInfo<?>> points = Maps.newHashMap();
+
+        public WorldPoints(RegistryKey<World> worldKey)
+        {
+            this.worldKey = worldKey;
+        }
+
+        public Collection<PointInfo<?>> getPoints()
+        {
+            return points.values();
+        }
+
+        private void tick()
+        {
+            for (PointInfo<?> point : points.values())
+            {
+                point.tick(player);
+            }
+
+            if (player.world.isRemote)
+            {
+                PointInfo<?> closest = null;
+                double closestAngle = Double.POSITIVE_INFINITY;
+                for (PointInfo<?> point : points.values())
+                {
+                    Vector3d direction = point.getPosition().subtract(player.getPositionVec());
+                    Vector3d look = player.getLookVec();
+                    double dot = direction.x * look.x + direction.z * look.z;
+                    double m1 = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
+                    double m2 = Math.sqrt(look.x * look.x + look.z * look.z);
+                    double angle = Math.abs(Math.acos(dot / (m1 * m2)));
+                    if (angle < closestAngle)
+                    {
+                        closest = point;
+                        closestAngle = angle;
+                    }
+                }
+
+                if (closest != null && closestAngle < Math.toRadians(15))
+                {
+                    setTargetted(closest);
+                }
+                else
+                {
+                    setTargetted(null);
+                }
+            }
+
+            if (!player.world.isRemote && (changed.size() > 0 || removed.size() > 0))
+            {
+                sendSync();
+                changed.clear();
+                removed.clear();
+            }
+        }
+
+        public void addPointRequest(PointInfo<?> point)
+        {
+            if (otherSideHasMod && player.world.isRemote && point instanceof BasicWaypoint)
+            {
+                HudCompass.channel.sendToServer(new AddWaypoint((BasicWaypoint) point));
+            }
+            else
+            {
+                addPoint(point);
+            }
+        }
+
+        public void addPoint(PointInfo<?> point)
+        {
+            point.setOwner(this);
+            PointInfo<?> oldPoint = points.put(point.getInternalId(), point);
+            if (oldPoint != null) {
+                oldPoint.setOwner(null);
+            }
+            if (!player.world.isRemote && otherSideHasMod)
+            {
+                changed.add(point);
+            }
+            changeNumber++;
+        }
+
+        public void removePointRequest(PointInfo<?> point)
+        {
+            UUID id = point.getInternalId();
+            if (otherSideHasMod && player.world.isRemote)
+            {
+                HudCompass.channel.sendToServer(new RemoveWaypoint(id));
+            }
+            else
+            {
+                removePoint(id);
+            }
+        }
+
+        public void removePoint(PointInfo<?> point)
+        {
+            removePoint(point.getInternalId());
+        }
+
+        public void removePoint(UUID id)
+        {
+            PointInfo<?> point = points.get(id);
+            if (point != null)
+            {
+                point.setOwner(null);
+                points.remove(point.getInternalId());
+                if (!player.world.isRemote && otherSideHasMod)
+                {
+                    removed.add(point);
+                }
+                changeNumber++;
+            }
+        }
+
+        public void clear()
+        {
+            removed.addAll(points.values());
+            points.clear();
+            changeNumber++;
+        }
+
+        public void markDirty(PointInfo<?> point)
+        {
+            if (!player.world.isRemote && otherSideHasMod)
+            {
+                changed.add(point);
+            }
+            changeNumber++;
+        }
+
+        public ListNBT serializeNBT()
+        {
+            ListNBT tag = new ListNBT();
+
+            for (PointInfo<?> point : points.values())
+            {
+                if (!point.isDynamic())
+                    tag.add(PointInfoRegistry.serializePoint(point));
+            }
+
+            return tag;
+        }
+
+        public void deserializeNBT(ListNBT nbt)
+        {
+            points.clear();
+            for (int i = 0; i < nbt.size(); i++)
+            {
+                CompoundNBT pointTag = nbt.getCompound(i);
+                PointInfo<?> point = PointInfoRegistry.deserializePoint(pointTag);
+                points.put(point.getInternalId(), point);
+            }
+        }
+
+        public RegistryKey<World> getWorldKey()
+        {
+            return worldKey;
+        }
+
+        public Optional<PointInfo<?>> find(UUID id)
+        {
+            return Optional.ofNullable(points.get(id));
+        }
+    }
+
 }

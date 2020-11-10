@@ -10,6 +10,7 @@ import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.registries.ObjectHolder;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 public class BasicWaypoint extends PointInfo<BasicWaypoint>
 {
@@ -25,21 +26,21 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
         super(TYPE, false);
     }
 
-    public BasicWaypoint(BlockPos exactPosition, String label, IIconData<?> iconData)
+    public BasicWaypoint(BlockPos exactPosition, @Nullable String label, IIconData<?> iconData)
     {
         this(toVec3d(exactPosition), label, iconData);
-        this.label = label;
     }
 
-    public BasicWaypoint(Vector3d exactPosition, String label, IIconData<?> iconData)
+    public BasicWaypoint(Vector3d exactPosition, @Nullable String label, IIconData<?> iconData)
     {
         this(TYPE, exactPosition, label, iconData);
     }
 
-    public BasicWaypoint(PointInfoType<? extends BasicWaypoint> type, Vector3d exactPosition, String label, IIconData<?> iconData)
+    public BasicWaypoint(PointInfoType<? extends BasicWaypoint> type, Vector3d exactPosition, @Nullable String label, IIconData<?> iconData)
     {
-        super(type, false, new StringTextComponent(label), iconData);
+        super(type, false, label == null ? null : new StringTextComponent(label), iconData);
         this.position = exactPosition;
+        this.label = label == null ? "" : label;
     }
 
     @Override
@@ -64,7 +65,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
 
     public void setLabelText(String label)
     {
-        this.label = label;
+        this.label = Objects.requireNonNull(label);
         super.setLabel(label.length() > 0 ? new StringTextComponent(label) : null);
     }
 

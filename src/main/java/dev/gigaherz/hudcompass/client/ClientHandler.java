@@ -2,7 +2,6 @@ package dev.gigaherz.hudcompass.client;
 
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
-import dev.gigaherz.hudcompass.network.AddWaypoint;
 import dev.gigaherz.hudcompass.network.ClientHello;
 import dev.gigaherz.hudcompass.network.RemoveWaypoint;
 import dev.gigaherz.hudcompass.network.SyncWaypointData;
@@ -56,16 +55,7 @@ public class ClientHandler
                 Vector3d position = mc.player.getPositionVec();
                 String label = String.format("{%1.2f, %1.2f, %1.2f}", position.getX(), position.getY(), position.getZ());
 
-                if (pois.otherSideHasMod)
-                {
-                    HudCompass.channel.sendToServer(new AddWaypoint(
-                        label, position.getX(), position.getY(), position.getZ(), true, 7
-                    ));
-                }
-                else
-                {
-                    pois.get(mc.player.world).addPoint(new BasicWaypoint(position, label, BasicIconData.mapMarker(7)));
-                }
+                pois.get(mc.player.world).addPointRequest(new BasicWaypoint(position, label, BasicIconData.mapMarker(7)));
             });
 
             //noinspection StatementWithEmptyBody
@@ -88,7 +78,7 @@ public class ClientHandler
                     }
                     else
                     {
-                        pois.get(mc.player.world).remove(targetted);
+                        pois.get(mc.player.world).removePointRequest(targetted);
                     }
                 }
             });

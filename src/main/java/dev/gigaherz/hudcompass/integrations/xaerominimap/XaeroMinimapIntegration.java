@@ -130,7 +130,7 @@ public class XaeroMinimapIntegration
                 {
                     XMWaypoint way = waypoints.get(wp);
                     waypoints.remove(wp);
-                    pois.get(player.world).remove(way);
+                    pois.get(player.world).removePoint(way);
                 }
             });
         }

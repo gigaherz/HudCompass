@@ -17,6 +17,11 @@ public class RemoveWaypoint
         this.id = point.getInternalId();
     }
 
+    public RemoveWaypoint(UUID point)
+    {
+        this.id = point;
+    }
+
     public RemoveWaypoint(PacketBuffer buffer)
     {
         this.id = buffer.readUniqueId();

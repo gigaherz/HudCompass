@@ -50,6 +50,14 @@ public class PointInfoRegistry
         iconData.writeToPacket(buffer);
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static void serializePointWithoutId(PointInfo<?> iconData, PacketBuffer buffer)
+    {
+        PointInfoType type = iconData.getType();
+        buffer.writeRegistryIdUnsafe(REGISTRY, type);
+        iconData.writeToPacketWithoutId(buffer);
+    }
+
     @Nonnull
     public static PointInfo<?> deserializePoint(PacketBuffer buffer)
     {
@@ -60,6 +68,19 @@ public class PointInfoRegistry
         }
         PointInfo<?> info = serializer.create();
         info.readFromPacket(buffer);
+        return info;
+    }
+
+    @Nonnull
+    public static PointInfo<?> deserializePointWithoutId(PacketBuffer buffer)
+    {
+        PointInfoType<?> serializer = buffer.readRegistryIdUnsafe(REGISTRY);
+        if (serializer == null)
+        {
+            throw new IllegalStateException("Server returned unknown serializer");
+        }
+        PointInfo<?> info = serializer.create();
+        info.readFromPacketWithoutId(buffer);
         return info;
     }
 }

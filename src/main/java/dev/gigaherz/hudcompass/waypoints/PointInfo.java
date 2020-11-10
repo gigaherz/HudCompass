@@ -2,16 +2,14 @@ package dev.gigaherz.hudcompass.waypoints;
 
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataRegistry;
-import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
+import net.minecraftforge.common.util.Constants;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.UUID;
 
@@ -43,7 +41,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
     }
 
     /* For CLIENT side use */
-    public PointInfo(PointInfoType<? extends T> type, boolean isDynamic, ITextComponent label, IIconData<?> iconData)
+    public PointInfo(PointInfoType<? extends T> type, boolean isDynamic, @Nullable ITextComponent label, IIconData<?> iconData)
     {
         this(type, isDynamic);
         this.label = label;
@@ -138,18 +136,10 @@ public abstract class PointInfo<T extends PointInfo<T>>
         }
     }
 
-    public void remove()
-    {
-        if (owner != null)
-        {
-            owner.remove(this);
-        }
-    }
-
     public final CompoundNBT write(CompoundNBT tag)
     {
         tag.putString("ID", internalId.toString());
-        tag.putString("Label", ITextComponent.Serializer.toJson(label));
+        if (label != null) tag.putString("Label", ITextComponent.Serializer.toJson(label));
         tag.put("Icon", IconDataRegistry.serializeIcon(iconData));
         tag.putBoolean("DisplayVerticalDistance", displayVerticalDistance);
         serializeAdditional(tag);
@@ -159,7 +149,10 @@ public abstract class PointInfo<T extends PointInfo<T>>
     public final void read(CompoundNBT tag)
     {
         internalId = UUID.fromString(tag.getString("ID"));
-        label = ITextComponent.Serializer.getComponentFromJson(tag.getString("Label"));
+        if (tag.contains("Label", Constants.NBT.TAG_STRING))
+            label = ITextComponent.Serializer.getComponentFromJson(tag.getString("Label"));
+        else
+            label = null;
         iconData = IconDataRegistry.deserializeIcon(tag.getCompound("Icon"));
         displayVerticalDistance = tag.getBoolean("DisplayVerticalDistance");
         deserializeAdditional(tag);
@@ -168,7 +161,15 @@ public abstract class PointInfo<T extends PointInfo<T>>
     public final void writeToPacket(PacketBuffer buffer)
     {
         buffer.writeUniqueId(internalId);
-        buffer.writeTextComponent(label);
+        writeToPacketWithoutId(buffer);
+    }
+
+    public final void writeToPacketWithoutId(PacketBuffer buffer)
+    {
+        boolean hasLabel = label != null;
+        buffer.writeBoolean(hasLabel);
+        if (hasLabel)
+            buffer.writeTextComponent(label);
         IconDataRegistry.serializeIcon(iconData, buffer);
         buffer.writeBoolean(displayVerticalDistance);
         buffer.writeBoolean(isDynamic);
@@ -178,7 +179,16 @@ public abstract class PointInfo<T extends PointInfo<T>>
     public final void readFromPacket(PacketBuffer buffer)
     {
         internalId = buffer.readUniqueId();
-        label = buffer.readTextComponent();
+        readFromPacketWithoutId(buffer);
+    }
+
+    public final void readFromPacketWithoutId(PacketBuffer buffer)
+    {
+        boolean hasLabel = buffer.readBoolean();
+        if (hasLabel)
+            label = buffer.readTextComponent();
+        else
+            label = null;
         iconData = IconDataRegistry.deserializeIcon(buffer);
         displayVerticalDistance = buffer.readBoolean();
         isDynamic = buffer.readBoolean();

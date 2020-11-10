@@ -1,8 +1,10 @@
 package dev.gigaherz.hudcompass.client;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.datafixers.util.Pair;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
@@ -16,11 +18,11 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
 import net.minecraftforge.client.gui.ScrollPanel;
@@ -35,7 +37,7 @@ import java.util.stream.Collectors;
 
 public class ClientWaypointManagerScreen extends Screen
 {
-    private static final ITextComponent TITLE = new TranslationTextComponent("text.hudcompass.waypoint_manager.title");
+    private static final ITextComponent TITLE = new TranslationTextComponent("text.hudcompass.waypoint_editor.title");
 
     private static final Pattern COORD_VALIDATOR = Pattern.compile("^[0-9]*\\.?[0-9]*$");
     private static final Pattern COORD_FORMAT = Pattern.compile("^[0-9]*\\.?[0-9]*$");
@@ -65,10 +67,15 @@ public class ClientWaypointManagerScreen extends Screen
     {
         super(TITLE);
         this.pois = pois;
-        this.worlds = minecraft.world.getServer().func_244267_aX()
-                .func_230520_a_().keySet().stream()
-                .map(key -> RegistryKey.getOrCreateKey(Registry.WORLD_KEY, key))
-                .collect(Collectors.toList());
+        if (false)
+            this.worlds = minecraft.world.getServer().func_244267_aX()
+                    .func_230520_a_().keySet().stream()
+                    .map(key -> RegistryKey.getOrCreateKey(Registry.WORLD_KEY, key))
+                    .collect(Collectors.toList());
+        else
+            this.worlds = pois.getAllWorlds().stream()
+                    .map(PointsOfInterest.WorldPoints::getWorldKey)
+                    .collect(Collectors.toList());
     }
 
     @Override
@@ -82,27 +89,39 @@ public class ClientWaypointManagerScreen extends Screen
         addListener(scrollPanel);
 
         int center = width/2;
-        addButton(createWaypoint = new Button(center-124,20,120,20, new StringTextComponent("NEW WAYPOINT"), (button) -> {
+        addButton(createWaypoint = new Button(center-200,20,200,20, new TranslationTextComponent("text.hudcompass.waypoint_editor.new_waypoint"), (button) -> {
             if (currentWorld != null)
                 createNewPoint();
         }));
-        addButton(changeWorld = new Button(center+4,20,120,20, new StringTextComponent("WORLD: ALL"), (button) -> {
+        addButton(changeWorld = new Button(center+4,20,200,20, new TranslationTextComponent("text.hudcompass.waypoint_editor.world_all"), (button) -> {
             currentWorldIndex = (currentWorldIndex+1) % (worlds.size() + 1);
             currentWorld = currentWorldIndex < worlds.size() ? worlds.get(currentWorldIndex) : null;
             createWaypoint.active = currentWorld != null;
+            if (currentWorld != null)
+                changeWorld.setMessage(new TranslationTextComponent("text.hudcompass.waypoint_editor.world", currentWorld.getLocation()));
+            else
+                changeWorld.setMessage(new TranslationTextComponent("text.hudcompass.waypoint_editor.world_all"));
+            scrollPanel.setAll(itemsPerPage.computeIfAbsent(currentWorldIndex, idx -> Lists.newArrayList()));
+            scrollPanel.scrollTop();
         }));
 
-        addButton(saveButton = new Button(width-128,height-28,120,20, new StringTextComponent("SAVE"), (button) -> {
-            scrollPanel.saveAll();
-            toRemove.forEach(point -> {
-                pois.get(point.worldKey).remove(point.pointInfo);
-            });
-            toAdd.forEach(point -> {
-                pois.get(point.worldKey).addPoint(point.pointInfo);
-            });
+        addButton(cancelButton = new Button(width-128,height-28,120,20, new TranslationTextComponent("text.hudcompass.waypoint_editor.cancel"), (button) -> {
             closeScreen();
         }));
-        addButton(cancelButton = new Button(8,height-28,120,20, new StringTextComponent("CANCEL"), (button) -> {
+        addButton(saveButton = new Button(8,height-28,120,20, new TranslationTextComponent("text.hudcompass.waypoint_editor.save"), (button) -> {
+            List<WaypointListItem> toUpdate = Lists.newArrayList();
+            scrollPanel.saveAll(toUpdate);
+            toRemove.forEach(point -> {
+                pois.get(point.worldKey).removePointRequest(point.pointInfo);
+            });
+            toAdd.forEach(point -> {
+                pois.get(point.worldKey).addPointRequest(point.pointInfo);
+            });
+            pois.sendUpdateFromGui(
+                    toAdd.stream().map(i -> Pair.<ResourceLocation, PointInfo<?>>of(i.worldKey.getLocation(), i.pointInfo)).collect(ImmutableList.toImmutableList()),
+                    toUpdate.stream().map(i -> Pair.<ResourceLocation, PointInfo<?>>of(i.worldKey.getLocation(), i.pointInfo)).collect(ImmutableList.toImmutableList()),
+                    toRemove.stream().map(i -> i.pointInfo.getInternalId()).collect(ImmutableList.toImmutableList())
+            );
             closeScreen();
         }));
 
@@ -120,6 +139,8 @@ public class ClientWaypointManagerScreen extends Screen
                 }
             }
         }
+
+        scrollPanel.scrollTop();
     }
 
     private void createNewPoint()
@@ -160,16 +181,16 @@ public class ClientWaypointManagerScreen extends Screen
 
         drawCenteredString(matrixStack, minecraft.fontRenderer, title, width/2, 7, 0xFFFFFFFF);
 
-        int nameWidth = Math.max(scrollPanel.getContentWidth() - (61*3+41+3), 50);
+        int nameWidth = Math.max(scrollPanel.getContentWidth() - (61*2+41+23+23+3), 50);
         int x = scrollPanel.getLeft() + 6;
         int y = scrollPanel.getTop() - 10;
-        drawString(matrixStack, minecraft.fontRenderer,  new StringTextComponent("LABEL"), x, y, 0xFFFFFFFF);
+        drawString(matrixStack, minecraft.fontRenderer,  new TranslationTextComponent("text.hudcompass.waypoint_editor.header_label"), x, y, 0xFFFFFFFF);
         x+=nameWidth+3;
-        drawString(matrixStack, minecraft.fontRenderer,  new StringTextComponent("X"), x, y, 0xFFFFFFFF);
+        drawString(matrixStack, minecraft.fontRenderer,  new TranslationTextComponent("text.hudcompass.waypoint_editor.header_x"), x, y, 0xFFFFFFFF);
         x+=61;
-        drawString(matrixStack, minecraft.fontRenderer,  new StringTextComponent("Y"), x, y, 0xFFFFFFFF);
+        drawString(matrixStack, minecraft.fontRenderer,  new TranslationTextComponent("text.hudcompass.waypoint_editor.header_y"), x, y, 0xFFFFFFFF);
         x+=41;
-        drawString(matrixStack, minecraft.fontRenderer,  new StringTextComponent("Z"), x, y, 0xFFFFFFFF);
+        drawString(matrixStack, minecraft.fontRenderer,  new TranslationTextComponent("text.hudcompass.waypoint_editor.header_z"), x, y, 0xFFFFFFFF);
     }
 
     private class WaypointListItem extends CompositeListItem
@@ -180,7 +201,13 @@ public class ClientWaypointManagerScreen extends Screen
         private TextFieldWidget xCoord;
         private TextFieldWidget yCoord;
         private TextFieldWidget zCoord;
+        private Button changeSymbol;
         private Button delete;
+        private String labelText;
+        private String xText;
+        private String yText;
+        private String zText;
+        private boolean dirty;
 
         public WaypointListItem(Minecraft minecraft, BasicWaypoint pointInfo, RegistryKey<World> worldKey)
         {
@@ -193,42 +220,59 @@ public class ClientWaypointManagerScreen extends Screen
         @Override
         public void init()
         {
+            super.init();
+
             Vector3d pos = pointInfo.getPosition();
 
-            int nameWidth = Math.max(getWidth() - (61*3+41+3), 50);
+            int nameWidth = Math.max(getWidth() - (61*2+41+23+23+3), 50);
 
             int x = 2;
-            addWidget(label = new TextFieldWidget(minecraft.fontRenderer, x+1, 2, nameWidth, 16, new StringTextComponent("LABEL")));
+            addWidget(label = new TextFieldWidget(minecraft.fontRenderer, x+1, 2, nameWidth, 16, new TranslationTextComponent("text.hudcompass.waypoint_editor.header_label")));
             x+=nameWidth+3;
-            addWidget(xCoord = new TextFieldWidget(minecraft.fontRenderer, x+1, 2, 60, 16, new StringTextComponent("X COORD")));
+            addWidget(xCoord = new TextFieldWidget(minecraft.fontRenderer, x+1, 2, 60, 16, new TranslationTextComponent("text.hudcompass.waypoint_editor.header_x")));
             x+=61;
-            addWidget(yCoord = new TextFieldWidget(minecraft.fontRenderer, x+1, 2, 40, 16, new StringTextComponent("Y COORD")));
+            addWidget(yCoord = new TextFieldWidget(minecraft.fontRenderer, x+1, 2, 40, 16, new TranslationTextComponent("text.hudcompass.waypoint_editor.header_y")));
             x+=41;
-            addWidget(zCoord = new TextFieldWidget(minecraft.fontRenderer, x+1, 2, 60, 16, new StringTextComponent("Z COORD")));
+            addWidget(zCoord = new TextFieldWidget(minecraft.fontRenderer, x+1, 2, 60, 16, new TranslationTextComponent("text.hudcompass.waypoint_editor.header_z")));
             x+=63;
-            addWidget(delete = new Button(x, 0, 50, 20, new StringTextComponent("DELETE"), (button) -> {
+            addWidget(changeSymbol = new Button(x, 0, 20, 20, new TranslationTextComponent("text.hudcompass.waypoint_editor.change_symbol"), (button) -> {
+            }));
+            x+=21;
+            addWidget(delete = new Button(x, 0, 20, 20, new TranslationTextComponent("text.hudcompass.waypoint_editor.delete"), (button) -> {
                 deletePoint(this);
             }));
 
+            changeSymbol.active = false;
+
             label.setMaxStringLength(1024);
             label.setText(pointInfo.getLabelText());
-            xCoord.setText(String.format("%1.2f", pos.x));
-            yCoord.setText(String.format("%1.2f", pos.y));
-            zCoord.setText(String.format("%1.2f", pos.z));
+            label.setResponder(str -> { this.labelText = str; this.dirty = true; });
+            xCoord.setText(String.format(Locale.ROOT, "%1.2f", pos.x));
+            yCoord.setText(String.format(Locale.ROOT, "%1.2f", pos.y));
+            zCoord.setText(String.format(Locale.ROOT, "%1.2f", pos.z));
             xCoord.setValidator(COORD_VALIDATOR.asPredicate());
             yCoord.setValidator(COORD_VALIDATOR.asPredicate());
             zCoord.setValidator(COORD_VALIDATOR.asPredicate());
+            xCoord.setResponder(str -> { this.xText = str; this.dirty = true; });
+            yCoord.setResponder(str -> { this.yText = str; this.dirty = true; });
+            zCoord.setResponder(str -> { this.zText = str; this.dirty = true; });
         }
 
-        public void save()
+        public void save(List<WaypointListItem> toUpdate)
         {
-            pointInfo.setLabelText(label.getText());
+            if (dirty)
+            {
+                pointInfo.setLabelText(labelText);
 
-            String strX = xCoord.getText();
-            String strY = yCoord.getText();
-            String strZ = zCoord.getText();
-            if(COORD_FORMAT_MATCHER.test(strX) && COORD_FORMAT_MATCHER.test(strY) && COORD_FORMAT_MATCHER.test(strZ))
-                pointInfo.setPosition(new Vector3d(Double.parseDouble(strX), Double.parseDouble(strY), Double.parseDouble(strZ)));
+                String strX = xText;
+                String strY = yText;
+                String strZ = zText;
+                if (COORD_FORMAT_MATCHER.test(strX) && COORD_FORMAT_MATCHER.test(strY) && COORD_FORMAT_MATCHER.test(strZ))
+                    pointInfo.setPosition(new Vector3d(Double.parseDouble(strX), Double.parseDouble(strY), Double.parseDouble(strZ)));
+                pois.sendToServer(worldKey, pointInfo);
+
+                toUpdate.add(this);
+            }
         }
     }
 
@@ -240,6 +284,15 @@ public class ClientWaypointManagerScreen extends Screen
         public CompositeListItem(Minecraft minecraft, int height)
         {
             super(minecraft, height);
+        }
+
+        @Override
+        public void init()
+        {
+            super.init();
+
+            renderables.clear();
+            listeners.clear();
         }
 
         public CompositeListItem addWidget(IRenderable widget)
@@ -473,7 +526,7 @@ public class ClientWaypointManagerScreen extends Screen
             }
         }
 
-        public void save()
+        public void save(List<WaypointListItem> toUpdate)
         {
         }
     }
@@ -557,9 +610,9 @@ public class ClientWaypointManagerScreen extends Screen
             return baseY;
         }
 
-        public void saveAll()
+        public void saveAll(List<WaypointListItem> toUpdate)
         {
-            items.forEach(ListItem::save);
+            items.forEach(item -> item.save(toUpdate));
         }
 
         public int getContentWidth()
@@ -577,7 +630,34 @@ public class ClientWaypointManagerScreen extends Screen
         public void scrollToItem(WaypointListItem item)
         {
             int scrollOffset = item.getTop() - height/2 - item.getHeight();
-            this.scrollDistance = MathHelper.clamp(scrollOffset, 0, Math.max(0, getContentHeight() - height));
+            this.scrollDistance = MathHelper.clamp(scrollOffset, 0, Math.max(0, getContentHeight() - (height-border)));
+        }
+
+        public void setAll(List<WaypointListItem> waypointListItems)
+        {
+            items.forEach(item -> item.setParent(null));
+            items.clear();
+            waypointListItems.forEach(item -> {
+                items.add(item);
+                item.setParent(this);
+            });
+            recalculateHeight();
+            waypointListItems.forEach(item -> {
+                item.setWidth(getContentWidth());
+                item.init();
+            });
+        }
+
+        @Override
+        public void render(MatrixStack matrix, int mouseX, int mouseY, float partialTicks)
+        {
+            this.scrollDistance = MathHelper.clamp(scrollDistance, 0, Math.max(0, getContentHeight() - (height-border)));
+            super.render(matrix, mouseX, mouseY, partialTicks);
+        }
+
+        public void scrollTop()
+        {
+            scrollDistance = 0;
         }
     }
 }
