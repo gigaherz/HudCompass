@@ -11,6 +11,7 @@ import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import dev.gigaherz.hudcompass.waypoints.SpawnPointInfo;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.ResourceLocation;
@@ -18,6 +19,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
@@ -166,9 +168,9 @@ public class HudCompass
         PointsOfInterest.onTick(player);
     }
 
-    public void playerLoggedIn(PlayerEvent.PlayerLoggedInEvent event)
+    public void playerLoggedIn(EntityJoinWorldEvent event)
     {
-        PlayerEntity player = event.getPlayer();
+        Entity player = event.getEntity();
         if (player instanceof ServerPlayerEntity)
         {
             channel.send(PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player), new ServerHello());

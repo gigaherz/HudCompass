@@ -19,5 +19,7 @@
   "text.hudcompass.waypoint_editor.header_y": "Y",
   "text.hudcompass.waypoint_editor.header_z": "Z",
   "text.hudcompass.waypoint_editor.change_symbol": "◆",
-  "text.hudcompass.waypoint_editor.delete": "✕"
+  "text.hudcompass.waypoint_editor.delete": "✕",
+  "text.hudcompass.waypoint_editor.fold": "▼",
+  "text.hudcompass.waypoint_editor.unfold": "▶"
 }
