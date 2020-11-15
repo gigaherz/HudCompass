@@ -91,7 +91,7 @@ public class ClientWaypointManagerScreen extends Screen
 
             for (PointInfo<?> point : world.getPoints())
             {
-                if (point instanceof BasicWaypoint)
+                if (!point.isDynamic() && point instanceof BasicWaypoint)
                 {
                     BasicWaypoint wp = (BasicWaypoint) point;
                     addPoint(worldItem, wp);

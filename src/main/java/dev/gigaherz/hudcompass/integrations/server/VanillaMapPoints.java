@@ -2,6 +2,7 @@ package dev.gigaherz.hudcompass.integrations.server;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
@@ -25,7 +26,9 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -37,10 +40,8 @@ public class VanillaMapPoints
     private static final ResourceLocation ADDON_ID = HudCompass.location("vanilla_map");
 
     private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.makeDeferredPOI();
-    //private static final DeferredRegister<IconDataSerializer<?>> IDS = HudCompass.makeDeferredIDS();
     public static final RegistryObject<PointInfoType<MapDecorationWaypoint>> DECORATION_TYPE = PIT.register("map_decoration", () -> new PointInfoType<>(MapDecorationWaypoint::new));
     public static final RegistryObject<PointInfoType<MapBannerWaypoint>> BANNER_TYPE = PIT.register("map_banner", () -> new PointInfoType<>(MapBannerWaypoint::new));
-    //public static final RegistryObject<XaeroMinimapIntegration.XMWaypoints.XMIconData.Serializer> ICON_DATA = IDS.register("xmwaypoints", XaeroMinimapIntegration.XMWaypoints.XMIconData.Serializer::new);
 
     public static void init()
     {
@@ -60,84 +61,100 @@ public class VanillaMapPoints
         //IconRendererRegistry.registerRenderer(ICON_DATA.get(), new XaeroMinimapIntegration.XMWaypoints.XMWaypointRenderer());
     }
 
+    private int counter = 0;
     private void playerTick(TickEvent.PlayerTickEvent event)
     {
-        PlayerEntity player = event.player;
-        if (player.world.isRemote)
-            return;
+        if ((++counter) > 20)
+        {
+            counter = 0;
 
-        player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-            PointsOfInterest.WorldPoints worldPoints = pois.get(player.world);
+            PlayerEntity player = event.player;
+            if (player.world.isRemote)
+                return;
 
-            VanillaMapData addon = pois.getOrCreateAddonData(ADDON_ID, VanillaMapData::new);
+            player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
+                PointsOfInterest.WorldPoints worldPoints = pois.get(player.world);
 
-            Set<MapData> seenMaps = Sets.newHashSet();
-            for(int slot = 0;slot < player.inventory.getSizeInventory();slot++)
-            {
-                ItemStack stack = player.inventory.getStackInSlot(slot);
-                MapData mapData = FilledMapItem.getMapData(stack, player.world);
-                if (mapData != null && !seenMaps.contains(mapData) && mapData.dimension == worldPoints.getWorldKey())
+                VanillaMapData addon = pois.getOrCreateAddonData(ADDON_ID, VanillaMapData::new);
+
+                Set<MapData> seenMaps = getMapData(player, worldPoints, addon);
+
+                Set<MapData> toRemove = new HashSet<>(addon.mapDecorations.keySet());
+                toRemove.removeAll(seenMaps);
+
+                for (MapData remove : toRemove)
                 {
-                    seenMaps.add(mapData);
+                    Map<MapDecoration, PointInfo<?>> map = addon.mapDecorations.get(remove);
 
-                    Map<MapDecoration, PointInfo<?>> decorationPointInfoMap = addon.mapDecorations.computeIfAbsent(mapData, k -> Maps.newHashMap());
-
-                    for(MapBanner banner : mapData.banners.values())
+                    for (PointInfo<?> pt : map.values())
                     {
-                        MapDecoration decoration = mapData.mapDecorations.get(banner.getMapDecorationId());
-                        if (!decorationPointInfoMap.containsKey(decoration))
-                        {
-                            MapBannerWaypoint wp = new MapBannerWaypoint(banner, decoration);
-                            decorationPointInfoMap.put(decoration, wp);
-                            worldPoints.addPoint(wp);
-                        }
+                        worldPoints.removePoint(pt);
                     }
 
-                    for(Map.Entry<String, MapDecoration> kvp : mapData.mapDecorations.entrySet())
+                    addon.mapDecorations.remove(remove);
+                }
+            });
+        }
+    }
+
+    @Nonnull
+    private Set<MapData> getMapData(PlayerEntity player, PointsOfInterest.WorldPoints worldPoints, VanillaMapData addon)
+    {
+        if (!ConfigData.COMMON.enableVanillaMapIntegration.get())
+            return Collections.emptySet();
+
+        Set<MapData> seenMaps = Sets.newHashSet();
+        for(int slot = 0; slot < player.inventory.getSizeInventory(); slot++)
+        {
+            ItemStack stack = player.inventory.getStackInSlot(slot);
+            MapData mapData = FilledMapItem.getMapData(stack, player.world);
+            if (mapData != null && !seenMaps.contains(mapData) && mapData.dimension == worldPoints.getWorldKey())
+            {
+                seenMaps.add(mapData);
+
+                Map<MapDecoration, PointInfo<?>> decorationPointInfoMap = addon.mapDecorations.computeIfAbsent(mapData, k -> Maps.newHashMap());
+
+                for(MapBanner banner : mapData.banners.values())
+                {
+                    MapDecoration decoration = mapData.mapDecorations.get(banner.getMapDecorationId());
+                    if (!decorationPointInfoMap.containsKey(decoration))
                     {
-                        String decorationId = kvp.getKey();
-                        MapDecoration decoration = kvp.getValue();
-
-                        // skip players, they will be handled separately.
-                        if (decoration.getType() == MapDecoration.Type.PLAYER ||
-                                decoration.getType() == MapDecoration.Type.PLAYER_OFF_LIMITS ||
-                                decoration.getType() == MapDecoration.Type.PLAYER_OFF_MAP)
-                            continue;
-
-                        if (!decorationPointInfoMap.containsKey(decoration))
-                        {
-                            MapDecorationWaypoint wp = new MapDecorationWaypoint(mapData, decoration, decorationId);
-                            decorationPointInfoMap.put(decoration, wp);
-                            worldPoints.addPoint(wp);
-                        }
-                    }
-
-                    Set<MapDecoration> toRemove = new HashSet<>(decorationPointInfoMap.keySet());
-                    toRemove.removeAll(mapData.mapDecorations.values());
-
-                    for(MapDecoration remove : toRemove)
-                    {
-                        worldPoints.removePoint(decorationPointInfoMap.get(remove));
-                        decorationPointInfoMap.remove(remove);
+                        MapBannerWaypoint wp = new MapBannerWaypoint(banner, decoration);
+                        decorationPointInfoMap.put(decoration, wp);
+                        worldPoints.addPoint(wp);
                     }
                 }
-            }
 
-            Set<MapData> toRemove = new HashSet<>(addon.mapDecorations.keySet());
-            toRemove.removeAll(seenMaps);
-
-            for(MapData remove : toRemove)
-            {
-                Map<MapDecoration, PointInfo<?>> map = addon.mapDecorations.get(remove);
-
-                for(PointInfo<?> pt : map.values())
+                for(Map.Entry<String, MapDecoration> kvp : mapData.mapDecorations.entrySet())
                 {
-                    worldPoints.removePoint(pt);
+                    String decorationId = kvp.getKey();
+                    MapDecoration decoration = kvp.getValue();
+
+                    // skip players, they will be handled separately.
+                    if (decoration.getType() == MapDecoration.Type.PLAYER ||
+                            decoration.getType() == MapDecoration.Type.PLAYER_OFF_LIMITS ||
+                            decoration.getType() == MapDecoration.Type.PLAYER_OFF_MAP)
+                        continue;
+
+                    if (!decorationPointInfoMap.containsKey(decoration))
+                    {
+                        MapDecorationWaypoint wp = new MapDecorationWaypoint(mapData, decoration);
+                        decorationPointInfoMap.put(decoration, wp);
+                        worldPoints.addPoint(wp);
+                    }
                 }
 
-                addon.mapDecorations.remove(remove);
+                Set<MapDecoration> toRemove = new HashSet<>(decorationPointInfoMap.keySet());
+                toRemove.removeAll(mapData.mapDecorations.values());
+
+                for(MapDecoration remove : toRemove)
+                {
+                    worldPoints.removePoint(decorationPointInfoMap.get(remove));
+                    decorationPointInfoMap.remove(remove);
+                }
             }
-        });
+        }
+        return seenMaps;
     }
 
     public static class MapBannerWaypoint extends PointInfo<MapBannerWaypoint>
@@ -213,7 +230,7 @@ public class VanillaMapPoints
         private final MapDecoration decoration;
         private Vector3d position;
 
-        public MapDecorationWaypoint(MapData mapData, MapDecoration decoration, String decorationId)
+        public MapDecorationWaypoint(MapData mapData, MapDecoration decoration)
         {
             super(DECORATION_TYPE.get(), true, null, BasicIconData.mapMarker(decoration.getImage()));
 

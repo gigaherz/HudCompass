@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.mojang.datafixers.util.Pair;
+import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.network.AddWaypoint;
@@ -141,7 +142,9 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
 
         PlayerEntity newPlayer = event.getPlayer();
         newPlayer.getCapability(INSTANCE).ifPresent(newPois -> {
-            oldPlayer.getCapability(INSTANCE).ifPresent(newPois::transferFrom);
+            oldPlayer.getCapability(INSTANCE).ifPresent(oldPois -> {
+                newPois.transferFrom(oldPois);
+            });
         });
     }
 
@@ -149,7 +152,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
     {
         for(WorldPoints w : oldPois.getAllWorlds())
         {
-            get(w.worldKey, w.dimensionTypeKey).transferFrom(w);
+            get(w.worldKey).transferFrom(w);
         }
     }
 
@@ -185,11 +188,11 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
     {
         ListNBT list = new ListNBT();
 
-        for (Map.Entry<RegistryKey<World>, WorldPoints> point : perWorld.entrySet())
+        for (Map.Entry<RegistryKey<World>, WorldPoints> entry : perWorld.entrySet())
         {
             CompoundNBT tag = new CompoundNBT();
-            tag.putString("World", point.getKey().getLocation().toString());
-            tag.put("POIs", point.getValue().serializeNBT());
+            tag.putString("World", entry.getKey().getLocation().toString());
+            tag.put("POIs", entry.getValue().serializeNBT());
             list.add(tag);
         }
 
@@ -204,10 +207,10 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         {
             CompoundNBT tag = nbt.getCompound(i);
             RegistryKey<World> key = RegistryKey.getOrCreateKey(Registry.WORLD_KEY, new ResourceLocation(tag.getString("World")));
-            WorldPoints p = new WorldPoints(key, null);
+            WorldPoints p = get(key);
             p.deserializeNBT(tag.getList("POIs", Constants.NBT.TAG_COMPOUND));
-            perWorld.put(key, p);
         }
+        savedNumber = changeNumber = 0;
     }
 
     public void clear()
@@ -243,6 +246,9 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
 
     private void sendSync()
     {
+        if (ConfigData.COMMON.disableServerHello.get())
+            return;
+
         if (otherSideHasMod)
         {
             ImmutableList<Pair<ResourceLocation, PointInfo<?>>> points = perWorld
@@ -294,8 +300,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         if (world == null)
             return get(worldKey, null);
 
-        RegistryKey<DimensionType> dimTypeKey = getDimensionTypeKey(world);
-        return get(worldKey, dimTypeKey);
+        return get(world);
     }
 
     private static RegistryKey<DimensionType> getDimensionTypeKey(World world)
@@ -306,7 +311,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
 
     public WorldPoints get(RegistryKey<World> worldKey, @Nullable RegistryKey<DimensionType> dimensionTypeKey)
     {
-        return perWorld.computeIfAbsent(worldKey, worldKey1 -> new WorldPoints(worldKey1, dimensionTypeKey));
+        return perWorld.computeIfAbsent(Objects.requireNonNull(worldKey), worldKey1 -> new WorldPoints(worldKey1, dimensionTypeKey));
     }
 
     public static void handleRemoveWaypoint(ServerPlayerEntity sender, RemoveWaypoint removeWaypoint)
@@ -329,7 +334,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(points -> {
             if (packet.replaceAll)
             {
-                points.perWorld.clear();
+                points.perWorld.values().forEach(pt -> pt.points.entrySet().removeIf(kv -> kv.getValue().isServerManaged()));
             }
             else
             {
@@ -403,7 +408,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
                 point.tick(player);
             }
 
-            if (player.world.isRemote)
+            if (player.world.isRemote && player.world.getDimensionKey() == worldKey)
             {
                 PointInfo<?> closest = null;
                 double closestAngle = Double.POSITIVE_INFINITY;
@@ -411,6 +416,8 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
                 {
                     Vector3d direction = point.getPosition().subtract(player.getPositionVec());
                     Vector3d look = player.getLookVec();
+                    direction = direction.normalize();
+                    look = look.normalize();
                     double dot = direction.x * look.x + direction.z * look.z;
                     double m1 = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
                     double m2 = Math.sqrt(look.x * look.x + look.z * look.z);
@@ -463,7 +470,8 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
             {
                 changed.add(point);
             }
-            changeNumber++;
+            if (!point.isDynamic())
+                changeNumber++;
         }
 
         public void removePointRequest(PointInfo<?> point)
@@ -495,15 +503,18 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
                 {
                     removed.add(point);
                 }
-                changeNumber++;
+                if (!point.isDynamic())
+                    changeNumber++;
             }
         }
 
         public void clear()
         {
+            boolean nonDynamic = points.values().stream().anyMatch(point -> !point.isDynamic());
             removed.addAll(points.values());
             points.clear();
-            changeNumber++;
+            if (nonDynamic)
+                changeNumber++;
         }
 
         public void markDirty(PointInfo<?> point)
@@ -512,7 +523,8 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
             {
                 changed.add(point);
             }
-            changeNumber++;
+            if (!point.isDynamic())
+                changeNumber++;
         }
 
         public ListNBT serializeNBT()
@@ -559,7 +571,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         {
             for(PointInfo<?> p : w.getPoints())
             {
-                w.addPoint(p);
+                addPoint(p);
             }
         }
     }

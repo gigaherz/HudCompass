@@ -2,6 +2,7 @@ package dev.gigaherz.hudcompass;
 
 import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.client.HudOverlay;
+import dev.gigaherz.hudcompass.integrations.server.SpawnPointPoints;
 import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
 import dev.gigaherz.hudcompass.integrations.xaerominimap.XaeroMinimapIntegration;
 import dev.gigaherz.hudcompass.network.*;
@@ -10,9 +11,7 @@ import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
-import dev.gigaherz.hudcompass.waypoints.SpawnPointInfo;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
@@ -20,15 +19,17 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.network.NetworkDirection;
 import net.minecraftforge.fml.network.NetworkRegistry;
 import net.minecraftforge.fml.network.PacketDistributor;
 import net.minecraftforge.fml.network.simple.SimpleChannel;
@@ -55,10 +56,6 @@ public class HudCompass
             .networkProtocolVersion(() -> PROTOCOL_VERSION)
             .simpleChannel();
 
-    public static class X{
-
-    }
-
     public HudCompass()
     {
         instance = this;
@@ -71,20 +68,32 @@ public class HudCompass
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::clientSetup);
         modEventBus.addListener(this::loadComplete);
+        modEventBus.addListener(this::modConfig);
 
         MinecraftForge.EVENT_BUS.addListener(this::playerTickEvent);
         MinecraftForge.EVENT_BUS.addListener(this::playerLoggedIn);
 
-        if (ConfigData.enableVanillaMapIntegration)
-        {
-            VanillaMapPoints.init();
-        }
+        SpawnPointPoints.init();
+        VanillaMapPoints.init();
 
-        if (ConfigData.enableXaeroMinimapIntegration && ModList.get().isLoaded("xaerominimap"))
+        if (ModList.get().isLoaded("xaerominimap"))
         {
             XaeroMinimapIntegration.init();
         }
+
+        ModLoadingContext modLoadingContext = ModLoadingContext.get();
+        //modLoadingContext.registerConfig(ModConfig.Type.SERVER, ConfigData.SERVER_SPEC);
+        modLoadingContext.registerConfig(ModConfig.Type.CLIENT, ConfigData.CLIENT_SPEC);
+        modLoadingContext.registerConfig(ModConfig.Type.COMMON, ConfigData.COMMON_SPEC);
     }
+
+    public void modConfig(ModConfig.ModConfigEvent event)
+    {
+        ModConfig config = event.getConfig();
+        if (config.getSpec() == ConfigData.CLIENT_SPEC)
+            ConfigData.refreshClient();
+    }
+
 
     public static DeferredRegister<PointInfoType<?>> makeDeferredPOI()
     {
@@ -126,8 +135,7 @@ public class HudCompass
     public void pointInfoTypes(RegistryEvent.Register<PointInfoType<?>> event)
     {
         event.getRegistry().registerAll(
-                new PointInfoType<>(BasicWaypoint::new).setRegistryName("basic"),
-                new PointInfoType<>(() -> new SpawnPointInfo()).setRegistryName("spawn")
+                new PointInfoType<>(BasicWaypoint::new).setRegistryName("basic")
         );
     }
 
@@ -136,12 +144,12 @@ public class HudCompass
         PointsOfInterest.init();
 
         int messageNumber = 0;
-        channel.messageBuilder(AddWaypoint.class, messageNumber++).encoder(AddWaypoint::encode).decoder(AddWaypoint::new).consumer(AddWaypoint::handle).add();
-        channel.messageBuilder(RemoveWaypoint.class, messageNumber++).encoder(RemoveWaypoint::encode).decoder(RemoveWaypoint::new).consumer(RemoveWaypoint::handle).add();
-        channel.messageBuilder(ServerHello.class, messageNumber++).encoder(ServerHello::encode).decoder(ServerHello::new).consumer(ServerHello::handle).add();
-        channel.messageBuilder(ClientHello.class, messageNumber++).encoder(ClientHello::encode).decoder(ClientHello::new).consumer(ClientHello::handle).add();
-        channel.messageBuilder(SyncWaypointData.class, messageNumber++).encoder(SyncWaypointData::encode).decoder(SyncWaypointData::new).consumer(SyncWaypointData::handle).add();
-        channel.messageBuilder(UpdateWaypointsFromGui.class, messageNumber++).encoder(UpdateWaypointsFromGui::encode).decoder(UpdateWaypointsFromGui::new).consumer(UpdateWaypointsFromGui::handle).add();
+        channel.messageBuilder(AddWaypoint.class, messageNumber++, NetworkDirection.PLAY_TO_SERVER).encoder(AddWaypoint::encode).decoder(AddWaypoint::new).consumer(AddWaypoint::handle).add();
+        channel.messageBuilder(RemoveWaypoint.class, messageNumber++, NetworkDirection.PLAY_TO_SERVER).encoder(RemoveWaypoint::encode).decoder(RemoveWaypoint::new).consumer(RemoveWaypoint::handle).add();
+        channel.messageBuilder(ServerHello.class, messageNumber++, NetworkDirection.PLAY_TO_CLIENT).encoder(ServerHello::encode).decoder(ServerHello::new).consumer(ServerHello::handle).add();
+        channel.messageBuilder(ClientHello.class, messageNumber++, NetworkDirection.PLAY_TO_SERVER).encoder(ClientHello::encode).decoder(ClientHello::new).consumer(ClientHello::handle).add();
+        channel.messageBuilder(SyncWaypointData.class, messageNumber++, NetworkDirection.PLAY_TO_CLIENT).encoder(SyncWaypointData::encode).decoder(SyncWaypointData::new).consumer(SyncWaypointData::handle).add();
+        channel.messageBuilder(UpdateWaypointsFromGui.class, messageNumber++, NetworkDirection.PLAY_TO_SERVER).encoder(UpdateWaypointsFromGui::encode).decoder(UpdateWaypointsFromGui::new).consumer(UpdateWaypointsFromGui::handle).add();
         LOGGER.debug("Final message number: " + messageNumber);
     }
 
@@ -170,6 +178,9 @@ public class HudCompass
 
     public void playerLoggedIn(EntityJoinWorldEvent event)
     {
+        if (ConfigData.COMMON.disableServerHello.get())
+            return;
+
         Entity player = event.getEntity();
         if (player instanceof ServerPlayerEntity)
         {
