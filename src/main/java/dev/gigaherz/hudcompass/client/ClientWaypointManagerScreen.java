@@ -112,7 +112,7 @@ public class ClientWaypointManagerScreen extends Screen
 
         addButton(saveButton = new Button(8,height-28,120,20, new TranslationTextComponent("text.hudcompass.waypoint_editor.save"), (button) -> {
             scrollPanel.saveAll();
-            pois.sendUpdateFromGui(
+            pois.updateFromGui(
                     toAdd.stream().map(i -> Pair.<ResourceLocation, PointInfo<?>>of(i.worldItem.worldKey.getLocation(), i.pointInfo)).collect(ImmutableList.toImmutableList()),
                     toUpdate.stream().map(i -> Pair.<ResourceLocation, PointInfo<?>>of(i.worldItem.worldKey.getLocation(), i.pointInfo)).collect(ImmutableList.toImmutableList()),
                     toRemove.stream().map(i -> i.pointInfo.getInternalId()).collect(ImmutableList.toImmutableList())
@@ -390,7 +390,8 @@ public class ClientWaypointManagerScreen extends Screen
                     pointInfo.setPosition(new Vector3d(Double.parseDouble(xText), Double.parseDouble(yText), Double.parseDouble(zText)));
                 }
 
-                toUpdate.add(this);
+                if (!toAdd.contains(this))
+                    toUpdate.add(this);
             }
         }
     }

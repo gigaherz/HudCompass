@@ -262,7 +262,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         }
     }
 
-    public void sendUpdateFromGui(
+    private void sendUpdateFromGui(
             ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toAdd,
             ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toUpdate,
             ImmutableList<UUID> toRemove)
@@ -283,6 +283,20 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
             );
             points.get(sender.world).addPoint(waypoint);
         });
+    }
+
+    public void updateFromGui(
+            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toAdd,
+            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toUpdate,
+            ImmutableList<UUID> toRemove)
+    {
+        if (player.world.isRemote && otherSideHasMod)
+        {
+            sendUpdateFromGui(toAdd, toUpdate, toRemove);
+        }
+        else {
+            applyUpdatesFromGui(toAdd, toUpdate, toRemove);
+        }
     }
 
     public WorldPoints get(World world)
@@ -329,16 +343,21 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         return perWorld.values().stream().<PointInfo<?>>flatMap(world -> world.find(id).map(Stream::of).orElseGet(Stream::empty)).findAny();
     }
 
+    private void remove(UUID pt)
+    {
+        getAllWorlds().forEach(w -> w.removePoint(pt));
+    }
+
     public static void handleSync(PlayerEntity player, SyncWaypointData packet)
     {
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(points -> {
             if (packet.replaceAll)
             {
-                points.perWorld.values().forEach(pt -> pt.points.entrySet().removeIf(kv -> kv.getValue().isServerManaged()));
+                points.perWorld.values().forEach(pt -> pt.points.values().removeIf(PointInfo::isServerManaged));
             }
             else
             {
-                points.perWorld.values().forEach(pt -> pt.points.entrySet().removeIf(kv -> packet.pointsRemoved.contains(kv.getValue().getInternalId())));
+                points.perWorld.values().forEach(pt -> pt.points.keySet().removeAll(packet.pointsRemoved));
             }
             for(Pair<ResourceLocation, PointInfo<?>> pt : packet.pointsAddedOrUpdated)
             {
@@ -351,16 +370,27 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
     public static void handleUpdateFromGui(ServerPlayerEntity sender, UpdateWaypointsFromGui packet)
     {
         sender.getCapability(INSTANCE).ifPresent(points -> {
-            points.perWorld.values().forEach(pt -> pt.points.entrySet().removeIf(kv -> packet.pointsRemoved.contains(kv.getValue().getInternalId())));
-            for(Pair<ResourceLocation, PointInfo<?>> pt : packet.pointsAdded)
-            {
-                points.get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
-            }
-            for(Pair<ResourceLocation, PointInfo<?>> pt : packet.pointsUpdated)
-            {
-                points.get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
-            }
+            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsAdded = packet.pointsAdded;
+            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsUpdated = packet.pointsUpdated;
+            ImmutableList<UUID> pointsRemoved = packet.pointsRemoved;
+            points.applyUpdatesFromGui(pointsAdded, pointsUpdated, pointsRemoved);
         });
+    }
+
+    private void applyUpdatesFromGui(ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsAdded, ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsUpdated, ImmutableList<UUID> pointsRemoved)
+    {
+        for(UUID pt : pointsRemoved)
+        {
+            remove(pt);
+        }
+        for(Pair<ResourceLocation, PointInfo<?>> pt : pointsAdded)
+        {
+            get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
+        }
+        for(Pair<ResourceLocation, PointInfo<?>> pt : pointsUpdated)
+        {
+            get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
+        }
     }
 
     public static void remoteHello(@Nullable PlayerEntity player)

@@ -64,7 +64,7 @@ public class SpawnPointPoints
                 boolean enabled = ConfigData.COMMON.enableSpawnPointWaypoint.get();
                 boolean hasWaypoint = addon.waypoint != null;
                 boolean dimensionChanged = addon.spawnWorld != worldKey;
-                boolean positionChanged = Objects.equals(addon.spawnPosition, spawnPosition);
+                boolean positionChanged = !Objects.equals(addon.spawnPosition, spawnPosition);
                 boolean waypointChanged = dimensionChanged || positionChanged;
 
                 boolean hasBed = spawnPosition != null;
@@ -74,11 +74,13 @@ public class SpawnPointPoints
                     pois.get(addon.spawnWorld).removePoint(addon.waypoint);
                     addon.waypoint = null;
                     addon.spawnWorld = null;
+                    addon.spawnPosition = null;
                 }
 
                 if (enabled && hasBed && (!hasWaypoint || waypointChanged))
                 {
                     addon.spawnWorld = worldKey;
+                    addon.spawnPosition = spawnPosition;
                     addon.waypoint = new BasicWaypoint(BasicWaypoint.TYPE, Vector3d.copyCentered(spawnPosition), "Home", BasicIconData.mapMarker(8))
                             .dynamic();
                     pois.get(addon.spawnWorld).addPoint(addon.waypoint);
