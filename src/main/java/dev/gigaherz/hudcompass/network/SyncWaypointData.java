@@ -22,23 +22,22 @@ import java.util.function.Supplier;
 
 public class SyncWaypointData
 {
-    public final ListNBT points;
+    private PointsOfInterest points;
+    public PacketBuffer buffer;
 
-    public SyncWaypointData(ListNBT pointsData)
+    public SyncWaypointData(PointsOfInterest pointsData)
     {
         this.points = pointsData;
     }
 
     public SyncWaypointData(PacketBuffer buffer)
     {
-        points = buffer.readCompoundTag().getList("Points", Constants.NBT.TAG_COMPOUND);
+        this.buffer = new PacketBuffer(buffer.copy());
     }
 
     public void encode(PacketBuffer buffer)
     {
-        CompoundNBT tag = new CompoundNBT();
-        tag.put("Points", points);
-        buffer.writeCompoundTag(tag);
+        points.write(buffer);
     }
 
     public boolean handle(Supplier<NetworkEvent.Context> ctx)

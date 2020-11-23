@@ -85,7 +85,7 @@ public class ClientWaypointDatabase
                     pois.clear();
 
                     ListNBT list0 = tag.getList("Worlds", Constants.NBT.TAG_COMPOUND);
-                    pois.deserializeNBT(list0, false);
+                    pois.read(list0);
                 }
                 catch (IOException e)
                 {
@@ -126,7 +126,7 @@ public class ClientWaypointDatabase
 
                     CompoundNBT tag0 = new CompoundNBT();
 
-                    ListNBT list0 = pois.serializeNBT(false);
+                    ListNBT list0 = pois.write();
 
                     tag0.put("Worlds", list0);
 

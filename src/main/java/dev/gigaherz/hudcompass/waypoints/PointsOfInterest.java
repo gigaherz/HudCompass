@@ -18,6 +18,7 @@ import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.INBT;
 import net.minecraft.nbt.ListNBT;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Direction;
 import net.minecraft.util.RegistryKey;
@@ -72,7 +73,7 @@ public class PointsOfInterest
                     @Override
                     public INBT writeNBT(Capability capability, PointsOfInterest instance, Direction side)
                     {
-                        return instance.serializeNBT(false);
+                        return instance.write();
                     }
 
                     @Override
@@ -83,7 +84,7 @@ public class PointsOfInterest
                             HudCompass.LOGGER.error("Deserializing PointsOfInterest capability: stored nbt is not a List tag!");
                             return;
                         }
-                        instance.deserializeNBT((ListNBT) nbt, false);
+                        instance.read((ListNBT) nbt);
                     }
                 }, PointsOfInterest::new
         );
@@ -110,13 +111,13 @@ public class PointsOfInterest
                 @Override
                 public ListNBT serializeNBT()
                 {
-                    return poi.serializeNBT(false);
+                    return poi.write();
                 }
 
                 @Override
                 public void deserializeNBT(ListNBT nbt)
                 {
-                    poi.deserializeNBT(nbt, false);
+                    poi.read(nbt);
                 }
 
                 @Nonnull
@@ -182,7 +183,7 @@ public class PointsOfInterest
         //points.put(spawn.getInternalId(), spawn);
     }
 
-    public ListNBT serializeNBT(boolean forNetwork)
+    public ListNBT write()
     {
         ListNBT list = new ListNBT();
 
@@ -192,19 +193,38 @@ public class PointsOfInterest
             tag.putString("World", entry.getKey().getLocation().toString());
             if (entry.getValue().getDimensionTypeKey() != null)
                 tag.putString("DimensionKey", entry.getValue().getDimensionTypeKey().getLocation().toString());
-            tag.put("POIs", entry.getValue().serializeNBT(forNetwork));
+            tag.put("POIs", entry.getValue().write());
             list.add(tag);
         }
 
         return list;
     }
 
-    public void deserializeNBT(ListNBT nbt, boolean fromNetwork)
+    public void write(PacketBuffer buffer)
     {
-        if (fromNetwork)
-            perWorld.values().forEach(pt -> pt.points.values().removeIf(PointInfo::isServerManaged));
-        else
-            perWorld.clear();
+        buffer.writeVarInt(perWorld.size());
+        for (Map.Entry<RegistryKey<World>, WorldPoints> entry : perWorld.entrySet())
+        {
+            RegistryKey<World> key = entry.getKey();
+            WorldPoints value = entry.getValue();
+
+            buffer.writeResourceLocation(key.getLocation());
+            if (value.getDimensionTypeKey() != null)
+            {
+                buffer.writeBoolean(true);
+                buffer.writeResourceLocation(value.getDimensionTypeKey().getLocation());
+            }
+            else
+            {
+                buffer.writeBoolean(false);
+            }
+            value.write(buffer);
+        }
+    }
+
+    public void read(ListNBT nbt)
+    {
+        perWorld.clear();
         for (int i = 0; i < nbt.size(); i++)
         {
             CompoundNBT tag = nbt.getCompound(i);
@@ -213,7 +233,24 @@ public class PointsOfInterest
             if (tag.contains("DimensionKey", Constants.NBT.TAG_STRING))
                 dimType = RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, new ResourceLocation(tag.getString("DimensionKey")));
             WorldPoints p = get(key, dimType);
-            p.deserializeNBT(tag.getList("POIs", Constants.NBT.TAG_COMPOUND));
+            p.read(tag.getList("POIs", Constants.NBT.TAG_COMPOUND));
+        }
+        savedNumber = changeNumber = 0;
+    }
+
+    public void read(PacketBuffer buffer)
+    {
+        perWorld.values().forEach(pt -> pt.points.values().removeIf(PointInfo::isServerManaged));
+        int numWorlds = buffer.readVarInt();
+        for (int i = 0; i < numWorlds; i++)
+        {
+            RegistryKey<World> key = RegistryKey.getOrCreateKey(Registry.WORLD_KEY, buffer.readResourceLocation());
+            boolean hasDimensionType = buffer.readBoolean();
+            RegistryKey<DimensionType> dimType = hasDimensionType
+                    ? RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, buffer.readResourceLocation())
+                    : null;
+            WorldPoints p = get(key, dimType);
+            p.read(buffer);
         }
         savedNumber = changeNumber = 0;
     }
@@ -257,7 +294,7 @@ public class PointsOfInterest
         if (otherSideHasMod)
         {
             HudCompass.channel.send(PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player),
-                    new SyncWaypointData(serializeNBT(true))
+                    new SyncWaypointData(this)
             );
         }
     }
@@ -365,7 +402,7 @@ public class PointsOfInterest
     public static void handleSync(PlayerEntity player, SyncWaypointData packet)
     {
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(points -> {
-            points.deserializeNBT(packet.points, true);
+            points.read(packet.buffer);
         });
     }
 
@@ -559,26 +596,46 @@ public class PointsOfInterest
                 changeNumber++;
         }
 
-        public ListNBT serializeNBT(boolean forNetwork)
+        public ListNBT write()
         {
             ListNBT tag = new ListNBT();
 
             for (PointInfo<?> point : points.values())
             {
-                if (forNetwork || !point.isDynamic())
+                if (!point.isDynamic())
                     tag.add(PointInfoRegistry.serializePoint(point));
             }
 
             return tag;
         }
 
-        public void deserializeNBT(ListNBT nbt)
+        public void write(PacketBuffer buffer)
+        {
+            buffer.writeVarInt(points.size());
+            for (PointInfo<?> point : points.values())
+            {
+                PointInfoRegistry.serializePoint(point, buffer);
+            }
+        }
+
+        public void read(ListNBT nbt)
         {
             points.clear();
             for (int i = 0; i < nbt.size(); i++)
             {
                 CompoundNBT pointTag = nbt.getCompound(i);
                 PointInfo<?> point = PointInfoRegistry.deserializePoint(pointTag);
+                points.put(point.getInternalId(), point);
+            }
+        }
+
+        public void read(PacketBuffer buffer)
+        {
+            points.clear();
+            int numPoints = buffer.readVarInt();
+            for (int i = 0; i < numPoints; i++)
+            {
+                PointInfo<?> point = PointInfoRegistry.deserializePoint(buffer);
                 points.put(point.getInternalId(), point);
             }
         }
