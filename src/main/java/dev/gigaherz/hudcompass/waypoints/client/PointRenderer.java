@@ -19,7 +19,7 @@ public class PointRenderer
     public static void renderLabel(PointInfo<?> info, FontRenderer font, MatrixStack matrixStack, int x, int y, int alpha)
     {
         ITextComponent label = info.getLabel();
-        if (label != null)
+        if (label != null && label.getUnformattedComponentText().length() > 0)
         {
             HudOverlay.drawCenteredBoxedString(matrixStack, font, label, x, y, (alpha << 24) | 0xFFFFFF);
         }

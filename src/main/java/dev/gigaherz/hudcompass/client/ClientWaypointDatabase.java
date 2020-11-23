@@ -2,8 +2,6 @@ package dev.gigaherz.hudcompass.client;
 
 import com.google.common.io.Files;
 import dev.gigaherz.hudcompass.HudCompass;
-import dev.gigaherz.hudcompass.waypoints.PointInfo;
-import dev.gigaherz.hudcompass.waypoints.PointInfoRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.player.ClientPlayerEntity;
@@ -11,13 +9,7 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.network.NetworkManager;
-import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.Util;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.text.ChatType;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.TickEvent;
@@ -93,7 +85,7 @@ public class ClientWaypointDatabase
                     pois.clear();
 
                     ListNBT list0 = tag.getList("Worlds", Constants.NBT.TAG_COMPOUND);
-                    pois.deserializeNBT(list0);
+                    pois.deserializeNBT(list0, false);
                 }
                 catch (IOException e)
                 {
@@ -134,7 +126,7 @@ public class ClientWaypointDatabase
 
                     CompoundNBT tag0 = new CompoundNBT();
 
-                    ListNBT list0 = pois.serializeNBT();
+                    ListNBT list0 = pois.serializeNBT(false);
 
                     tag0.put("Worlds", list0);
 

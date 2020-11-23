@@ -22,6 +22,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.registry.DynamicRegistries;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.DimensionType;
@@ -147,24 +148,29 @@ public class ClientWaypointManagerScreen extends Screen
     {
         ClientPlayerEntity player = minecraft.player;
         Vector3d pos = player.getPositionVec();
-        if (player.world.getDimensionKey() != world.worldKey)
+        if (player.world.getDimensionKey() == world.worldKey)
         {
-            if (world.dimensionTypeKey != null)
-            {
-                DynamicRegistries dyn = player.connection.func_239165_n_();
-                DimensionType type = dyn.func_230520_a_().getOrThrow(world.dimensionTypeKey);
-                double scale = DimensionType.getCoordinateDifference(player.world.getDimensionType(), type);
-                pos = new Vector3d(pos.x * scale, pos.y, pos.z * scale);
-            }
-            else if (player.world.getDimensionKey() == World.THE_NETHER && world.worldKey != World.THE_NETHER)
-            {
-                pos = new Vector3d(pos.x*8, pos.y, pos.z*8);
-            }
-            else if (player.world.getDimensionKey() != World.THE_NETHER && world.worldKey == World.THE_NETHER)
-            {
-                pos = new Vector3d(pos.x/8, pos.y, pos.z/8);
-            }
+            return pos;
         }
+
+        if (world.dimensionTypeKey != null)
+        {
+            DynamicRegistries dyn = player.connection.func_239165_n_();
+            DimensionType type = dyn.func_230520_a_().getOrThrow(world.dimensionTypeKey);
+            double scale = DimensionType.getCoordinateDifference(player.world.getDimensionType(), type);
+            return new Vector3d(pos.x * scale, pos.y, pos.z * scale);
+        }
+
+        if (player.world.getDimensionKey() == World.THE_NETHER && world.worldKey != World.THE_NETHER)
+        {
+            return new Vector3d(pos.x*8, pos.y, pos.z*8);
+        }
+
+        if (player.world.getDimensionKey() != World.THE_NETHER && world.worldKey == World.THE_NETHER)
+        {
+            return new Vector3d(pos.x/8, pos.y, pos.z/8);
+        }
+
         return pos;
     }
 

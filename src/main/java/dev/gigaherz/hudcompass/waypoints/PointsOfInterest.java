@@ -32,7 +32,6 @@ import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -44,7 +43,7 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class PointsOfInterest implements INBTSerializable<ListNBT>
+public class PointsOfInterest
 {
     @Nonnull
     @CapabilityInject(PointsOfInterest.class)
@@ -73,7 +72,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
                     @Override
                     public INBT writeNBT(Capability capability, PointsOfInterest instance, Direction side)
                     {
-                        return instance.serializeNBT();
+                        return instance.serializeNBT(false);
                     }
 
                     @Override
@@ -84,7 +83,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
                             HudCompass.LOGGER.error("Deserializing PointsOfInterest capability: stored nbt is not a List tag!");
                             return;
                         }
-                        instance.deserializeNBT((ListNBT) nbt);
+                        instance.deserializeNBT((ListNBT) nbt, false);
                     }
                 }, PointsOfInterest::new
         );
@@ -111,13 +110,13 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
                 @Override
                 public ListNBT serializeNBT()
                 {
-                    return poi.serializeNBT();
+                    return poi.serializeNBT(false);
                 }
 
                 @Override
                 public void deserializeNBT(ListNBT nbt)
                 {
-                    poi.deserializeNBT(nbt);
+                    poi.deserializeNBT(nbt, false);
                 }
 
                 @Nonnull
@@ -152,7 +151,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
     {
         for(WorldPoints w : oldPois.getAllWorlds())
         {
-            get(w.worldKey).transferFrom(w);
+            get(w.worldKey, w.dimensionTypeKey).transferFrom(w);
         }
     }
 
@@ -183,8 +182,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         //points.put(spawn.getInternalId(), spawn);
     }
 
-    @Override
-    public ListNBT serializeNBT()
+    public ListNBT serializeNBT(boolean forNetwork)
     {
         ListNBT list = new ListNBT();
 
@@ -192,22 +190,29 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
         {
             CompoundNBT tag = new CompoundNBT();
             tag.putString("World", entry.getKey().getLocation().toString());
-            tag.put("POIs", entry.getValue().serializeNBT());
+            if (entry.getValue().getDimensionTypeKey() != null)
+                tag.putString("DimensionKey", entry.getValue().getDimensionTypeKey().getLocation().toString());
+            tag.put("POIs", entry.getValue().serializeNBT(forNetwork));
             list.add(tag);
         }
 
         return list;
     }
 
-    @Override
-    public void deserializeNBT(ListNBT nbt)
+    public void deserializeNBT(ListNBT nbt, boolean fromNetwork)
     {
-        perWorld.clear();
+        if (fromNetwork)
+            perWorld.values().forEach(pt -> pt.points.values().removeIf(PointInfo::isServerManaged));
+        else
+            perWorld.clear();
         for (int i = 0; i < nbt.size(); i++)
         {
             CompoundNBT tag = nbt.getCompound(i);
             RegistryKey<World> key = RegistryKey.getOrCreateKey(Registry.WORLD_KEY, new ResourceLocation(tag.getString("World")));
-            WorldPoints p = get(key);
+            RegistryKey<DimensionType> dimType = null;
+            if (tag.contains("DimensionKey", Constants.NBT.TAG_STRING))
+                dimType = RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, new ResourceLocation(tag.getString("DimensionKey")));
+            WorldPoints p = get(key, dimType);
             p.deserializeNBT(tag.getList("POIs", Constants.NBT.TAG_COMPOUND));
         }
         savedNumber = changeNumber = 0;
@@ -251,13 +256,8 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
 
         if (otherSideHasMod)
         {
-            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> points = perWorld
-                    .entrySet()
-                    .stream()
-                    .<Pair<ResourceLocation, PointInfo<?>>>flatMap(kv -> kv.getValue().points.values().stream().map(v -> Pair.of(kv.getKey().getLocation(), v)))
-                    .collect(ImmutableList.toImmutableList());
             HudCompass.channel.send(PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player),
-                    new SyncWaypointData(true, points, ImmutableList.of())
+                    new SyncWaypointData(serializeNBT(true))
             );
         }
     }
@@ -301,31 +301,45 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
 
     public WorldPoints get(World world)
     {
-        return get(world.getDimensionKey(), getDimensionTypeKey(world));
+        return getInternal(world.getDimensionKey(), () -> getDimensionTypeKey(world, null));
     }
 
     public WorldPoints get(RegistryKey<World> worldKey)
     {
-        MinecraftServer server = player.world.getServer();
-        if (server == null)
-            return get(worldKey, null);
-
-        World world = server.getWorld(worldKey);
-        if (world == null)
-            return get(worldKey, null);
-
-        return get(world);
-    }
-
-    private static RegistryKey<DimensionType> getDimensionTypeKey(World world)
-    {
-        DimensionType dimType = world.getDimensionType();
-        return RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, world.func_241828_r().func_230520_a_().getKey(dimType));
+        return get(worldKey, null);
     }
 
     public WorldPoints get(RegistryKey<World> worldKey, @Nullable RegistryKey<DimensionType> dimensionTypeKey)
     {
-        return perWorld.computeIfAbsent(Objects.requireNonNull(worldKey), worldKey1 -> new WorldPoints(worldKey1, dimensionTypeKey));
+        return getInternal(worldKey, () -> {
+            if (player.world.getDimensionKey() == worldKey)
+                return getDimensionTypeKey(player.world, dimensionTypeKey);
+
+            MinecraftServer server = player.world.getServer();
+            if (server == null)
+                return dimensionTypeKey;
+
+            World world = server.getWorld(worldKey);
+            if (world == null)
+                return dimensionTypeKey;
+
+            return getDimensionTypeKey(world, dimensionTypeKey);
+        });
+    }
+
+    @Nullable
+    private static RegistryKey<DimensionType> getDimensionTypeKey(World world, @Nullable RegistryKey<DimensionType> fallback)
+    {
+        DimensionType dimType = world.getDimensionType();
+        ResourceLocation key = world.func_241828_r().func_230520_a_().getKey(dimType);
+        if (key == null)
+            return fallback;
+        return RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, key);
+    }
+
+    private WorldPoints getInternal(RegistryKey<World> worldKey, Supplier<RegistryKey<DimensionType>> dimensionTypeKey)
+    {
+        return perWorld.computeIfAbsent(Objects.requireNonNull(worldKey), worldKey1 -> new WorldPoints(worldKey1, dimensionTypeKey.get()));
     }
 
     public static void handleRemoveWaypoint(ServerPlayerEntity sender, RemoveWaypoint removeWaypoint)
@@ -351,19 +365,7 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
     public static void handleSync(PlayerEntity player, SyncWaypointData packet)
     {
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(points -> {
-            if (packet.replaceAll)
-            {
-                points.perWorld.values().forEach(pt -> pt.points.values().removeIf(PointInfo::isServerManaged));
-            }
-            else
-            {
-                points.perWorld.values().forEach(pt -> pt.points.keySet().removeAll(packet.pointsRemoved));
-            }
-            for(Pair<ResourceLocation, PointInfo<?>> pt : packet.pointsAddedOrUpdated)
-            {
-                points.get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
-            }
-            points.listeners.forEach(Runnable::run);
+            points.deserializeNBT(packet.points, true);
         });
     }
 
@@ -557,13 +559,13 @@ public class PointsOfInterest implements INBTSerializable<ListNBT>
                 changeNumber++;
         }
 
-        public ListNBT serializeNBT()
+        public ListNBT serializeNBT(boolean forNetwork)
         {
             ListNBT tag = new ListNBT();
 
             for (PointInfo<?> point : points.values())
             {
-                if (!point.isDynamic())
+                if (forNetwork || !point.isDynamic())
                     tag.add(PointInfoRegistry.serializePoint(point));
             }
 
