@@ -12,6 +12,8 @@ import dev.gigaherz.hudcompass.network.AddWaypoint;
 import dev.gigaherz.hudcompass.network.RemoveWaypoint;
 import dev.gigaherz.hudcompass.network.SyncWaypointData;
 import dev.gigaherz.hudcompass.network.UpdateWaypointsFromGui;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
@@ -399,10 +401,10 @@ public class PointsOfInterest
         getAllWorlds().forEach(w -> w.removePoint(pt));
     }
 
-    public static void handleSync(PlayerEntity player, SyncWaypointData packet)
+    public static void handleSync(PlayerEntity player, byte[] packet)
     {
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(points -> {
-            points.read(packet.buffer);
+            points.read(new PacketBuffer(Unpooled.wrappedBuffer(packet)));
         });
     }
 

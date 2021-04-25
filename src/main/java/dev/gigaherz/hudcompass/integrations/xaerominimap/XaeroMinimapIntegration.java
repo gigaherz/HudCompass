@@ -14,6 +14,7 @@ import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.client.renderer.IRenderTypeBuffer;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
@@ -37,7 +38,6 @@ import xaero.common.minimap.waypoints.WaypointSet;
 import xaero.common.minimap.waypoints.WaypointsManager;
 import xaero.minimap.XaeroMinimap;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -257,12 +257,14 @@ public class XaeroMinimapIntegration
             @Override
             public void renderIcon(XMIconData data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y)
             {
+                IRenderTypeBuffer.Impl impl = Minecraft.getInstance().getRenderTypeBuffers().getBufferSource();
                 matrixStack.push();
                 matrixStack.translate(0, 2.8f,0);
                 matrixStack.scale(7/9f, 7/9f, 7/9f);
                 XaeroMinimap.instance.getInterfaces().getMinimapInterface().getWaypointsGuiRenderer()
-                        .drawIconOnGUI(matrixStack, data.parent, XaeroMinimap.instance.getSettings(), x, y);
+                        .drawIconOnGUI(matrixStack, data.parent, XaeroMinimap.instance.getSettings(), x, y, impl);
                 matrixStack.pop();
+                impl.finish();
             }
         }
     }

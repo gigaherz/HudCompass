@@ -4,7 +4,7 @@ import net.minecraftforge.registries.ForgeRegistryEntry;
 
 import java.util.function.Supplier;
 
-public final class PointInfoType<T extends PointInfo> extends ForgeRegistryEntry<PointInfoType<?>>
+public final class PointInfoType<T extends PointInfo<T>> extends ForgeRegistryEntry<PointInfoType<?>>
 {
     private final Supplier<T> factory;
 

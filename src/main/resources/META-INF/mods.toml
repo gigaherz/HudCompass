@@ -28,3 +28,9 @@ See where you go
    versionRange="[1.16.3,1.17)"
    ordering="NONE"
    side="BOTH"
+[[dependencies.hudcompass]]
+   modId="xaerominimap"
+   mandatory=false
+   versionRange="[21.3.0,)"
+   ordering="NONE"
+   side="BOTH"

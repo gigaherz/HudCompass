@@ -164,7 +164,7 @@ public class VanillaMapPoints
 
         public MapBannerWaypoint(MapBanner banner, MapDecoration decoration)
         {
-            super(BANNER_TYPE.get(), true, banner.getName(), BasicIconData.mapMarker(decoration.getImage()));
+            super(BANNER_TYPE.get(), true, banner.getName(), BasicIconData.mapMarker(decoration.getType().getIcon()));
             dynamic();
             this.banner = banner;
             this.position = Vector3d.copyCentered(banner.getPos());
@@ -232,7 +232,7 @@ public class VanillaMapPoints
 
         public MapDecorationWaypoint(MapData mapData, MapDecoration decoration)
         {
-            super(DECORATION_TYPE.get(), true, null, BasicIconData.mapMarker(decoration.getImage()));
+            super(DECORATION_TYPE.get(), true, null, BasicIconData.mapMarker(decoration.getType().getIcon()));
 
             dynamic();
             noVerticalDistance();

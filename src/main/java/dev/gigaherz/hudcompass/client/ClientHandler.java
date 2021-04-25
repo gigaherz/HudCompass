@@ -113,12 +113,12 @@ public class ClientHandler
         }
     }
 
-    public static void handleWaypointSync(SyncWaypointData packet)
+    public static void handleWaypointSync(byte[] bytes)
     {
         ClientPlayerEntity player = Minecraft.getInstance().player;
         if (player == null)
             return;
-        PointsOfInterest.handleSync(player, packet);
+        PointsOfInterest.handleSync(player, bytes);
     }
 
     public static void handleServerHello()

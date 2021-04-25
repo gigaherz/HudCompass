@@ -1,48 +1,39 @@
 package dev.gigaherz.hudcompass.network;
 
-import com.google.common.collect.ImmutableList;
-import com.mojang.datafixers.util.Pair;
 import dev.gigaherz.hudcompass.client.ClientHandler;
-import dev.gigaherz.hudcompass.waypoints.PointInfoRegistry;
-import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
+import io.netty.buffer.Unpooled;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.RegistryKey;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.World;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.network.NetworkEvent;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 public class SyncWaypointData
 {
-    private PointsOfInterest points;
-    public PacketBuffer buffer;
+    public byte[] bytes;
 
     public SyncWaypointData(PointsOfInterest pointsData)
     {
-        this.points = pointsData;
+        PacketBuffer temp = new PacketBuffer(Unpooled.buffer());
+        pointsData.write(temp);
+        bytes = new byte[temp.readableBytes()];
+        temp.readBytes(bytes, 0, bytes.length);
     }
 
     public SyncWaypointData(PacketBuffer buffer)
     {
-        this.buffer = new PacketBuffer(buffer.copy());
+        bytes = buffer.readByteArray();
     }
 
     public void encode(PacketBuffer buffer)
     {
-        points.write(buffer);
+        buffer.writeByteArray(bytes);
     }
 
     public boolean handle(Supplier<NetworkEvent.Context> ctx)
     {
-        ctx.get().enqueueWork(() -> ClientHandler.handleWaypointSync(this));
+        ctx.get().enqueueWork(() -> ClientHandler.handleWaypointSync(bytes));
         return true;
     }
 }
