@@ -67,6 +67,17 @@ public class HudOverlay extends AbstractGui
     boolean drawnThisFrame = false;
     boolean needsPop = false;
 
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void preOverlayHigh(RenderGameOverlayEvent.Pre event)
+    {
+        if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSHEALTH && !mc.gameSettings.hideGUI && !event.isCanceled())
+        {
+            RenderSystem.pushMatrix();
+            RenderSystem.translatef(0, 28, 0);
+            needsPop = true;
+        }
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public void preOverlay(RenderGameOverlayEvent.Pre event)
     {
@@ -75,13 +86,6 @@ public class HudOverlay extends AbstractGui
             drawnThisFrame = false;
             needsPop = false;
             return;
-        }
-
-        if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSHEALTH && !mc.gameSettings.hideGUI && !event.isCanceled())
-        {
-            RenderSystem.pushMatrix();
-            RenderSystem.translatef(0,28, 0);
-            needsPop = true;
         }
 
         if (mc.gameSettings.hideGUI || drawnThisFrame)

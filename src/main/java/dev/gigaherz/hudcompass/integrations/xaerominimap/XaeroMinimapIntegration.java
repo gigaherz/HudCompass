@@ -2,6 +2,7 @@ package dev.gigaherz.hudcompass.integrations.xaerominimap;
 
 import com.google.common.collect.Maps;
 import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.IVertexBuilder;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.IIconData;
@@ -33,6 +34,8 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.registries.DeferredRegister;
 import xaero.common.XaeroMinimapSession;
+import xaero.common.graphics.CustomRenderTypes;
+import xaero.common.minimap.render.MinimapRendererHelper;
 import xaero.common.minimap.waypoints.Waypoint;
 import xaero.common.minimap.waypoints.WaypointSet;
 import xaero.common.minimap.waypoints.WaypointsManager;
@@ -254,6 +257,8 @@ public class XaeroMinimapIntegration
 
         private static class XMWaypointRenderer implements IIconRenderer<XMIconData>
         {
+            private final MinimapRendererHelper renderHelper = new MinimapRendererHelper();
+
             @Override
             public void renderIcon(XMIconData data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y)
             {
@@ -262,7 +267,7 @@ public class XaeroMinimapIntegration
                 matrixStack.translate(0, 2.8f,0);
                 matrixStack.scale(7/9f, 7/9f, 7/9f);
                 XaeroMinimap.instance.getInterfaces().getMinimapInterface().getWaypointsGuiRenderer()
-                        .drawIconOnGUI(matrixStack, data.parent, XaeroMinimap.instance.getSettings(), x, y, impl);
+                        .drawIconOnGUI(matrixStack, renderHelper, data.parent, XaeroMinimap.instance.getSettings(), x, y, impl, impl.getBuffer(CustomRenderTypes.COLORED_WAYPOINTS_BGS));
                 matrixStack.pop();
                 impl.finish();
             }

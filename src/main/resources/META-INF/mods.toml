@@ -1,6 +1,7 @@
 modLoader="javafml"
 loaderVersion="[34,)"
 license="BSD (3 clause)"
+issueTrackerURL="https://github.com/gigaherz/HudCompass/issues"
 
 [[mods]]
 modId="hudcompass"
@@ -9,7 +10,6 @@ displayName="HUD Compass"
 logoFile="logo.png"
 credits="Thanks for this example mod goes to Java"
 authors="gigaherz"
-issueTrackerURL="https://github.com/gigaherz/HudCompass/issues"
 displayURL="https://github.com/gigaherz/HudCompass"
 #updateJSONURL="http://myurl.me/"
 description='''
@@ -31,6 +31,6 @@ See where you go
 [[dependencies.hudcompass]]
    modId="xaerominimap"
    mandatory=false
-   versionRange="[21.3.0,)"
+   versionRange="[21.12.5,)"
    ordering="NONE"
    side="BOTH"
