@@ -6,9 +6,9 @@ import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.fmllegacy.network.NetworkEvent;
 
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -26,7 +26,7 @@ public class UpdateWaypointsFromGui
         this.pointsRemoved = removed;
     }
 
-    public UpdateWaypointsFromGui(PacketBuffer buffer)
+    public UpdateWaypointsFromGui(FriendlyByteBuf buffer)
     {
         ImmutableList.Builder<Pair<ResourceLocation, PointInfo<?>>> toAdd = ImmutableList.builder();
         ImmutableList.Builder<Pair<ResourceLocation, PointInfo<?>>> toUpdate = ImmutableList.builder();
@@ -51,7 +51,7 @@ public class UpdateWaypointsFromGui
         int numberToRemove = buffer.readVarInt();
         for(int i=0;i<numberToRemove;i++)
         {
-            toRemove.add(buffer.readUniqueId());
+            toRemove.add(buffer.readUUID());
         }
 
         pointsAdded = toAdd.build();
@@ -59,7 +59,7 @@ public class UpdateWaypointsFromGui
         pointsRemoved = toRemove.build();
     }
 
-    public void encode(PacketBuffer buffer)
+    public void encode(FriendlyByteBuf buffer)
     {
         buffer.writeVarInt(pointsAdded.size());
         pointsAdded.forEach(pt -> {
@@ -74,7 +74,7 @@ public class UpdateWaypointsFromGui
         });
 
         buffer.writeVarInt(pointsRemoved.size());
-        pointsRemoved.forEach(buffer::writeUniqueId);
+        pointsRemoved.forEach(buffer::writeUUID);
     }
 
     public boolean handle(Supplier<NetworkEvent.Context> ctx)

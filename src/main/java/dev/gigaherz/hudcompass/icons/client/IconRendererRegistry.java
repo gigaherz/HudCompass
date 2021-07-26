@@ -1,13 +1,13 @@
 package dev.gigaherz.hudcompass.icons.client;
 
 import com.google.common.collect.Maps;
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -32,7 +32,7 @@ public class IconRendererRegistry
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public static void renderIcon(IIconData<?> data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y)
+    public static void renderIcon(IIconData<?> data, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y)
     {
         IIconRenderer renderer = REGISTRY.computeIfAbsent(data.getSerializer(), (key) -> {
             LOGGER.warn("Missing icon renderer for {}", data.getSerializer().getRegistryName());

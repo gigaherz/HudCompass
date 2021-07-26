@@ -3,8 +3,8 @@ package dev.gigaherz.hudcompass.network;
 import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import io.netty.buffer.Unpooled;
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.fmllegacy.network.NetworkEvent;
 
 import java.util.Arrays;
 import java.util.function.Supplier;
@@ -15,18 +15,18 @@ public class SyncWaypointData
 
     public SyncWaypointData(PointsOfInterest pointsData)
     {
-        PacketBuffer temp = new PacketBuffer(Unpooled.buffer());
+        FriendlyByteBuf temp = new FriendlyByteBuf(Unpooled.buffer());
         pointsData.write(temp);
         bytes = new byte[temp.readableBytes()];
         temp.readBytes(bytes, 0, bytes.length);
     }
 
-    public SyncWaypointData(PacketBuffer buffer)
+    public SyncWaypointData(FriendlyByteBuf buffer)
     {
         bytes = buffer.readByteArray();
     }
 
-    public void encode(PacketBuffer buffer)
+    public void encode(FriendlyByteBuf buffer)
     {
         buffer.writeByteArray(bytes);
     }

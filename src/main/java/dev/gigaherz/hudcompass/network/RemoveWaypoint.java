@@ -2,8 +2,8 @@ package dev.gigaherz.hudcompass.network;
 
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.fmllegacy.network.NetworkEvent;
 
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -22,14 +22,14 @@ public class RemoveWaypoint
         this.id = point;
     }
 
-    public RemoveWaypoint(PacketBuffer buffer)
+    public RemoveWaypoint(FriendlyByteBuf buffer)
     {
-        this.id = buffer.readUniqueId();
+        this.id = buffer.readUUID();
     }
 
-    public void encode(PacketBuffer buffer)
+    public void encode(FriendlyByteBuf buffer)
     {
-        buffer.writeUniqueId(id);
+        buffer.writeUUID(id);
     }
 
     public boolean handle(Supplier<NetworkEvent.Context> ctx)

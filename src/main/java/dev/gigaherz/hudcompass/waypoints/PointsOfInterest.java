@@ -14,21 +14,21 @@ import dev.gigaherz.hudcompass.network.SyncWaypointData;
 import dev.gigaherz.hudcompass.network.UpdateWaypointsFromGui;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.INBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.network.PacketBuffer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Direction;
-import net.minecraft.util.RegistryKey;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.DimensionType;
-import net.minecraft.world.World;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.Registry;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
@@ -38,7 +38,7 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.fml.network.PacketDistributor;
+import net.minecraftforge.fmllegacy.network.PacketDistributor;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -67,29 +67,7 @@ public class PointsOfInterest
 
     public static void init()
     {
-        CapabilityManager.INSTANCE.register(
-                PointsOfInterest.class,
-                new Capability.IStorage<PointsOfInterest>()
-                {
-                    @Nullable
-                    @Override
-                    public INBT writeNBT(Capability capability, PointsOfInterest instance, Direction side)
-                    {
-                        return instance.write();
-                    }
-
-                    @Override
-                    public void readNBT(Capability capability, PointsOfInterest instance, Direction side, INBT nbt)
-                    {
-                        if (!(nbt instanceof ListNBT))
-                        {
-                            HudCompass.LOGGER.error("Deserializing PointsOfInterest capability: stored nbt is not a List tag!");
-                            return;
-                        }
-                        instance.read((ListNBT) nbt);
-                    }
-                }, PointsOfInterest::new
-        );
+        CapabilityManager.INSTANCE.register(PointsOfInterest.class);
 
         MinecraftForge.EVENT_BUS.addGenericListener(Entity.class, PointsOfInterest::attachEvent);
         MinecraftForge.EVENT_BUS.addListener(PointsOfInterest::playerClone);
@@ -99,25 +77,25 @@ public class PointsOfInterest
     private static void attachEvent(AttachCapabilitiesEvent<Entity> event)
     {
         Entity entity = event.getObject();
-        if (entity instanceof PlayerEntity)
+        if (entity instanceof Player)
         {
-            event.addCapability(PROVIDER_KEY, new ICapabilitySerializable<ListNBT>()
+            event.addCapability(PROVIDER_KEY, new ICapabilitySerializable<ListTag>()
             {
                 private final PointsOfInterest poi = new PointsOfInterest();
                 private final LazyOptional<PointsOfInterest> poiSupplier = LazyOptional.of(() -> poi);
 
                 {
-                    poi.setPlayer((PlayerEntity)entity);
+                    poi.setPlayer((Player)entity);
                 }
 
                 @Override
-                public ListNBT serializeNBT()
+                public ListTag serializeNBT()
                 {
                     return poi.write();
                 }
 
                 @Override
-                public void deserializeNBT(ListNBT nbt)
+                public void deserializeNBT(ListTag nbt)
                 {
                     poi.read(nbt);
                 }
@@ -136,13 +114,13 @@ public class PointsOfInterest
 
     private static void playerClone(PlayerEvent.Clone event)
     {
-        PlayerEntity oldPlayer = event.getOriginal();
+        Player oldPlayer = event.getOriginal();
 
         // FIXME: workaround for a forge issue that seems to be reappearing too often
         // at this time it's only needed when returning from the end alive
         oldPlayer.revive();
 
-        PlayerEntity newPlayer = event.getPlayer();
+        Player newPlayer = event.getPlayer();
         newPlayer.getCapability(INSTANCE).ifPresent(newPois -> {
             oldPlayer.getCapability(INSTANCE).ifPresent(oldPois -> {
                 newPois.transferFrom(oldPois);
@@ -158,7 +136,7 @@ public class PointsOfInterest
         }
     }
 
-    public static void onTick(PlayerEntity player)
+    public static void onTick(Player player)
     {
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(PointsOfInterest::tick);
     }
@@ -171,9 +149,9 @@ public class PointsOfInterest
     private final Set<PointInfo<?>> changed = Sets.newHashSet();
     private final Set<PointInfo<?>> removed = Sets.newHashSet();
 
-    private final Map<RegistryKey<World>, WorldPoints> perWorld = Maps.newHashMap();
+    private final Map<ResourceKey<Level>, WorldPoints> perWorld = Maps.newHashMap();
 
-    private PlayerEntity player;
+    private Player player;
 
     public boolean otherSideHasMod = false;
 
@@ -185,16 +163,16 @@ public class PointsOfInterest
         //points.put(spawn.getInternalId(), spawn);
     }
 
-    public ListNBT write()
+    public ListTag write()
     {
-        ListNBT list = new ListNBT();
+        ListTag list = new ListTag();
 
-        for (Map.Entry<RegistryKey<World>, WorldPoints> entry : perWorld.entrySet())
+        for (Map.Entry<ResourceKey<Level>, WorldPoints> entry : perWorld.entrySet())
         {
-            CompoundNBT tag = new CompoundNBT();
-            tag.putString("World", entry.getKey().getLocation().toString());
+            CompoundTag tag = new CompoundTag();
+            tag.putString("World", entry.getKey().location().toString());
             if (entry.getValue().getDimensionTypeKey() != null)
-                tag.putString("DimensionKey", entry.getValue().getDimensionTypeKey().getLocation().toString());
+                tag.putString("DimensionKey", entry.getValue().getDimensionTypeKey().location().toString());
             tag.put("POIs", entry.getValue().write());
             list.add(tag);
         }
@@ -202,19 +180,19 @@ public class PointsOfInterest
         return list;
     }
 
-    public void write(PacketBuffer buffer)
+    public void write(FriendlyByteBuf buffer)
     {
         buffer.writeVarInt(perWorld.size());
-        for (Map.Entry<RegistryKey<World>, WorldPoints> entry : perWorld.entrySet())
+        for (Map.Entry<ResourceKey<Level>, WorldPoints> entry : perWorld.entrySet())
         {
-            RegistryKey<World> key = entry.getKey();
+            ResourceKey<Level> key = entry.getKey();
             WorldPoints value = entry.getValue();
 
-            buffer.writeResourceLocation(key.getLocation());
+            buffer.writeResourceLocation(key.location());
             if (value.getDimensionTypeKey() != null)
             {
                 buffer.writeBoolean(true);
-                buffer.writeResourceLocation(value.getDimensionTypeKey().getLocation());
+                buffer.writeResourceLocation(value.getDimensionTypeKey().location());
             }
             else
             {
@@ -224,32 +202,32 @@ public class PointsOfInterest
         }
     }
 
-    public void read(ListNBT nbt)
+    public void read(ListTag nbt)
     {
         perWorld.clear();
         for (int i = 0; i < nbt.size(); i++)
         {
-            CompoundNBT tag = nbt.getCompound(i);
-            RegistryKey<World> key = RegistryKey.getOrCreateKey(Registry.WORLD_KEY, new ResourceLocation(tag.getString("World")));
-            RegistryKey<DimensionType> dimType = null;
+            CompoundTag tag = nbt.getCompound(i);
+            ResourceKey<Level> key = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation(tag.getString("World")));
+            ResourceKey<DimensionType> dimType = null;
             if (tag.contains("DimensionKey", Constants.NBT.TAG_STRING))
-                dimType = RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, new ResourceLocation(tag.getString("DimensionKey")));
+                dimType = ResourceKey.create(Registry.DIMENSION_TYPE_REGISTRY, new ResourceLocation(tag.getString("DimensionKey")));
             WorldPoints p = get(key, dimType);
             p.read(tag.getList("POIs", Constants.NBT.TAG_COMPOUND));
         }
         savedNumber = changeNumber = 0;
     }
 
-    public void read(PacketBuffer buffer)
+    public void read(FriendlyByteBuf buffer)
     {
         perWorld.values().forEach(pt -> pt.points.values().removeIf(PointInfo::isServerManaged));
         int numWorlds = buffer.readVarInt();
         for (int i = 0; i < numWorlds; i++)
         {
-            RegistryKey<World> key = RegistryKey.getOrCreateKey(Registry.WORLD_KEY, buffer.readResourceLocation());
+            ResourceKey<Level> key = ResourceKey.create(Registry.DIMENSION_REGISTRY, buffer.readResourceLocation());
             boolean hasDimensionType = buffer.readBoolean();
-            RegistryKey<DimensionType> dimType = hasDimensionType
-                    ? RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, buffer.readResourceLocation())
+            ResourceKey<DimensionType> dimType = hasDimensionType
+                    ? ResourceKey.create(Registry.DIMENSION_TYPE_REGISTRY, buffer.readResourceLocation())
                     : null;
             WorldPoints p = get(key, dimType);
             p.read(buffer);
@@ -273,7 +251,7 @@ public class PointsOfInterest
         return targetted;
     }
 
-    public void setPlayer(PlayerEntity player)
+    public void setPlayer(Player player)
     {
         this.player = player;
     }
@@ -295,7 +273,7 @@ public class PointsOfInterest
 
         if (otherSideHasMod)
         {
-            HudCompass.channel.send(PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player),
+            HudCompass.channel.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) player),
                     new SyncWaypointData(this)
             );
         }
@@ -312,15 +290,15 @@ public class PointsOfInterest
         );
     }
 
-    public static void handleAddWaypoint(ServerPlayerEntity sender, AddWaypoint addWaypoint)
+    public static void handleAddWaypoint(ServerPlayer sender, AddWaypoint addWaypoint)
     {
         sender.getCapability(INSTANCE).ifPresent(points -> {
-            BasicWaypoint waypoint = new BasicWaypoint(new Vector3d(addWaypoint.x, addWaypoint.y, addWaypoint.z), addWaypoint.label,
+            BasicWaypoint waypoint = new BasicWaypoint(new Vec3(addWaypoint.x, addWaypoint.y, addWaypoint.z), addWaypoint.label,
                     addWaypoint.isMarker
                             ? BasicIconData.mapMarker(addWaypoint.iconIndex)
                             : BasicIconData.poi(addWaypoint.iconIndex)
             );
-            points.get(sender.world).addPoint(waypoint);
+            points.get(sender.level).addPoint(waypoint);
         });
     }
 
@@ -329,7 +307,7 @@ public class PointsOfInterest
             ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toUpdate,
             ImmutableList<UUID> toRemove)
     {
-        if (player.world.isRemote && otherSideHasMod)
+        if (player.level.isClientSide && otherSideHasMod)
         {
             sendUpdateFromGui(toAdd, toUpdate, toRemove);
         }
@@ -338,27 +316,27 @@ public class PointsOfInterest
         }
     }
 
-    public WorldPoints get(World world)
+    public WorldPoints get(Level world)
     {
-        return getInternal(world.getDimensionKey(), () -> getDimensionTypeKey(world, null));
+        return getInternal(world.dimension(), () -> getDimensionTypeKey(world, null));
     }
 
-    public WorldPoints get(RegistryKey<World> worldKey)
+    public WorldPoints get(ResourceKey<Level> worldKey)
     {
         return get(worldKey, null);
     }
 
-    public WorldPoints get(RegistryKey<World> worldKey, @Nullable RegistryKey<DimensionType> dimensionTypeKey)
+    public WorldPoints get(ResourceKey<Level> worldKey, @Nullable ResourceKey<DimensionType> dimensionTypeKey)
     {
         return getInternal(worldKey, () -> {
-            if (player.world.getDimensionKey() == worldKey)
-                return getDimensionTypeKey(player.world, dimensionTypeKey);
+            if (player.level.dimension() == worldKey)
+                return getDimensionTypeKey(player.level, dimensionTypeKey);
 
-            MinecraftServer server = player.world.getServer();
+            MinecraftServer server = player.level.getServer();
             if (server == null)
                 return dimensionTypeKey;
 
-            World world = server.getWorld(worldKey);
+            Level world = server.getLevel(worldKey);
             if (world == null)
                 return dimensionTypeKey;
 
@@ -367,21 +345,21 @@ public class PointsOfInterest
     }
 
     @Nullable
-    private static RegistryKey<DimensionType> getDimensionTypeKey(World world, @Nullable RegistryKey<DimensionType> fallback)
+    private static ResourceKey<DimensionType> getDimensionTypeKey(Level world, @Nullable ResourceKey<DimensionType> fallback)
     {
-        DimensionType dimType = world.getDimensionType();
-        ResourceLocation key = world.func_241828_r().func_230520_a_().getKey(dimType);
+        DimensionType dimType = world.dimensionType();
+        ResourceLocation key = world.registryAccess().registryOrThrow(Registry.DIMENSION_TYPE_REGISTRY).getKey(dimType);
         if (key == null)
             return fallback;
-        return RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, key);
+        return ResourceKey.create(Registry.DIMENSION_TYPE_REGISTRY, key);
     }
 
-    private WorldPoints getInternal(RegistryKey<World> worldKey, Supplier<RegistryKey<DimensionType>> dimensionTypeKey)
+    private WorldPoints getInternal(ResourceKey<Level> worldKey, Supplier<ResourceKey<DimensionType>> dimensionTypeKey)
     {
         return perWorld.computeIfAbsent(Objects.requireNonNull(worldKey), worldKey1 -> new WorldPoints(worldKey1, dimensionTypeKey.get()));
     }
 
-    public static void handleRemoveWaypoint(ServerPlayerEntity sender, RemoveWaypoint removeWaypoint)
+    public static void handleRemoveWaypoint(ServerPlayer sender, RemoveWaypoint removeWaypoint)
     {
         sender.getCapability(INSTANCE).ifPresent(points -> points
                 .find(removeWaypoint.id)
@@ -401,14 +379,14 @@ public class PointsOfInterest
         getAllWorlds().forEach(w -> w.removePoint(pt));
     }
 
-    public static void handleSync(PlayerEntity player, byte[] packet)
+    public static void handleSync(Player player, byte[] packet)
     {
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(points -> {
-            points.read(new PacketBuffer(Unpooled.wrappedBuffer(packet)));
+            points.read(new FriendlyByteBuf(Unpooled.wrappedBuffer(packet)));
         });
     }
 
-    public static void handleUpdateFromGui(ServerPlayerEntity sender, UpdateWaypointsFromGui packet)
+    public static void handleUpdateFromGui(ServerPlayer sender, UpdateWaypointsFromGui packet)
     {
         sender.getCapability(INSTANCE).ifPresent(points -> {
             ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsAdded = packet.pointsAdded;
@@ -426,20 +404,20 @@ public class PointsOfInterest
         }
         for(Pair<ResourceLocation, PointInfo<?>> pt : pointsAdded)
         {
-            get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
+            get(ResourceKey.create(Registry.DIMENSION_REGISTRY, pt.getFirst())).addPoint(pt.getSecond());
         }
         for(Pair<ResourceLocation, PointInfo<?>> pt : pointsUpdated)
         {
-            get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
+            get(ResourceKey.create(Registry.DIMENSION_REGISTRY, pt.getFirst())).addPoint(pt.getSecond());
         }
     }
 
-    public static void remoteHello(@Nullable PlayerEntity player)
+    public static void remoteHello(@Nullable Player player)
     {
         if (player == null) return;
         player.getCapability(INSTANCE).ifPresent(points -> {
             points.otherSideHasMod = true;
-            if (!player.world.isRemote)
+            if (!player.level.isClientSide)
                 points.sendInitialSync();
         });
     }
@@ -456,12 +434,12 @@ public class PointsOfInterest
 
     public class WorldPoints
     {
-        private final RegistryKey<World> worldKey;
+        private final ResourceKey<Level> worldKey;
         @Nullable
-        private final RegistryKey<DimensionType> dimensionTypeKey;
+        private final ResourceKey<DimensionType> dimensionTypeKey;
         private Map<UUID, PointInfo<?>> points = Maps.newHashMap();
 
-        public WorldPoints(RegistryKey<World> worldKey, @Nullable RegistryKey<DimensionType> dimensionTypeKey)
+        public WorldPoints(ResourceKey<Level> worldKey, @Nullable ResourceKey<DimensionType> dimensionTypeKey)
         {
             this.worldKey = worldKey;
             this.dimensionTypeKey = dimensionTypeKey;
@@ -479,14 +457,14 @@ public class PointsOfInterest
                 point.tick(player);
             }
 
-            if (player.world.isRemote && player.world.getDimensionKey() == worldKey)
+            if (player.level.isClientSide && player.level.dimension() == worldKey)
             {
                 PointInfo<?> closest = null;
                 double closestAngle = Double.POSITIVE_INFINITY;
                 for (PointInfo<?> point : points.values())
                 {
-                    Vector3d direction = point.getPosition().subtract(player.getPositionVec());
-                    Vector3d look = player.getLookVec();
+                    Vec3 direction = point.getPosition().subtract(player.position());
+                    Vec3 look = player.getLookAngle();
                     direction = direction.normalize();
                     look = look.normalize();
                     double dot = direction.x * look.x + direction.z * look.z;
@@ -510,7 +488,7 @@ public class PointsOfInterest
                 }
             }
 
-            if (!player.world.isRemote && (changed.size() > 0 || removed.size() > 0))
+            if (!player.level.isClientSide && (changed.size() > 0 || removed.size() > 0))
             {
                 sendSync();
                 changed.clear();
@@ -520,7 +498,7 @@ public class PointsOfInterest
 
         public void addPointRequest(PointInfo<?> point)
         {
-            if (otherSideHasMod && player.world.isRemote && point instanceof BasicWaypoint)
+            if (otherSideHasMod && player.level.isClientSide && point instanceof BasicWaypoint)
             {
                 HudCompass.channel.sendToServer(new AddWaypoint((BasicWaypoint) point));
             }
@@ -537,7 +515,7 @@ public class PointsOfInterest
             if (oldPoint != null) {
                 oldPoint.setOwner(null);
             }
-            if (!player.world.isRemote && otherSideHasMod)
+            if (!player.level.isClientSide && otherSideHasMod)
             {
                 changed.add(point);
             }
@@ -548,7 +526,7 @@ public class PointsOfInterest
         public void removePointRequest(PointInfo<?> point)
         {
             UUID id = point.getInternalId();
-            if (otherSideHasMod && player.world.isRemote)
+            if (otherSideHasMod && player.level.isClientSide)
             {
                 HudCompass.channel.sendToServer(new RemoveWaypoint(id));
             }
@@ -570,7 +548,7 @@ public class PointsOfInterest
             {
                 point.setOwner(null);
                 points.remove(point.getInternalId());
-                if (!player.world.isRemote && otherSideHasMod)
+                if (!player.level.isClientSide && otherSideHasMod)
                 {
                     removed.add(point);
                 }
@@ -590,7 +568,7 @@ public class PointsOfInterest
 
         public void markDirty(PointInfo<?> point)
         {
-            if (!player.world.isRemote && otherSideHasMod)
+            if (!player.level.isClientSide && otherSideHasMod)
             {
                 changed.add(point);
             }
@@ -598,9 +576,9 @@ public class PointsOfInterest
                 changeNumber++;
         }
 
-        public ListNBT write()
+        public ListTag write()
         {
-            ListNBT tag = new ListNBT();
+            ListTag tag = new ListTag();
 
             for (PointInfo<?> point : points.values())
             {
@@ -611,7 +589,7 @@ public class PointsOfInterest
             return tag;
         }
 
-        public void write(PacketBuffer buffer)
+        public void write(FriendlyByteBuf buffer)
         {
             buffer.writeVarInt(points.size());
             for (PointInfo<?> point : points.values())
@@ -620,18 +598,18 @@ public class PointsOfInterest
             }
         }
 
-        public void read(ListNBT nbt)
+        public void read(ListTag nbt)
         {
             points.clear();
             for (int i = 0; i < nbt.size(); i++)
             {
-                CompoundNBT pointTag = nbt.getCompound(i);
+                CompoundTag pointTag = nbt.getCompound(i);
                 PointInfo<?> point = PointInfoRegistry.deserializePoint(pointTag);
                 points.put(point.getInternalId(), point);
             }
         }
 
-        public void read(PacketBuffer buffer)
+        public void read(FriendlyByteBuf buffer)
         {
             points.clear();
             int numPoints = buffer.readVarInt();
@@ -642,13 +620,13 @@ public class PointsOfInterest
             }
         }
 
-        public RegistryKey<World> getWorldKey()
+        public ResourceKey<Level> getWorldKey()
         {
             return worldKey;
         }
 
         @Nullable
-        public RegistryKey<DimensionType> getDimensionTypeKey()
+        public ResourceKey<DimensionType> getDimensionTypeKey()
         {
             return dimensionTypeKey;
         }

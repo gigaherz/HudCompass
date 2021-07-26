@@ -1,8 +1,8 @@
 package dev.gigaherz.hudcompass.icons;
 
 import dev.gigaherz.hudcompass.HudCompass;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.PacketBuffer;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.registries.ObjectHolder;
 
 public class BasicIconData implements IIconData<BasicIconData>
@@ -45,14 +45,14 @@ public class BasicIconData implements IIconData<BasicIconData>
         public static final Serializer MAP_SERIALIZER = new Serializer();
 
         @Override
-        public CompoundNBT write(BasicIconData data, CompoundNBT tag)
+        public CompoundTag write(BasicIconData data, CompoundTag tag)
         {
             tag.putInt("Index", data.iconIndex);
             return tag;
         }
 
         @Override
-        public BasicIconData read(CompoundNBT tag)
+        public BasicIconData read(CompoundTag tag)
         {
             return new BasicIconData(
                     this,
@@ -61,13 +61,13 @@ public class BasicIconData implements IIconData<BasicIconData>
         }
 
         @Override
-        public void write(BasicIconData data, PacketBuffer buffer)
+        public void write(BasicIconData data, FriendlyByteBuf buffer)
         {
             buffer.writeInt(data.iconIndex);
         }
 
         @Override
-        public BasicIconData read(PacketBuffer buffer)
+        public BasicIconData read(FriendlyByteBuf buffer)
         {
             return new BasicIconData(
                     this,

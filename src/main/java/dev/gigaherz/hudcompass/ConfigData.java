@@ -124,6 +124,7 @@ public class ConfigData
     public static boolean alwaysShowFocusedLabel;
     public static boolean showAllLabelsOnSneak;
     public static boolean animateLabels;
+    public static DisplayWhen displayWhen;
 
     public static void refreshClient()
     {
@@ -131,6 +132,7 @@ public class ConfigData
         alwaysShowFocusedLabel = CLIENT.alwaysShowFocusedLabel.get();
         showAllLabelsOnSneak = CLIENT.showAllLabelsOnSneak.get();
         animateLabels = CLIENT.animateLabels.get();
+        displayWhen = CLIENT.displayWhen.get();
     }
 
 }

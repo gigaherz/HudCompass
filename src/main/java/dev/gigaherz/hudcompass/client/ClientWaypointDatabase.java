@@ -4,12 +4,12 @@ import com.google.common.io.Files;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.player.ClientPlayerEntity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.network.NetworkManager;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.network.Connection;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.TickEvent;
@@ -33,13 +33,13 @@ public class ClientWaypointDatabase
 
     private static Path getPath(Minecraft mc)
     {
-        if (mc.isIntegratedServerRunning())
+        if (mc.isLocalServer())
         {
-            return mc.getIntegratedServer().getDataDirectory().toPath().resolve("client_waypoints").resolve("waypoints.dat").toAbsolutePath();
+            return mc.getSingleplayerServer().getServerDirectory().toPath().resolve("client_waypoints").resolve("waypoints.dat").toAbsolutePath();
         }
         else
         {
-            NetworkManager networkManager = mc.player.connection.getNetworkManager();
+            Connection networkManager = mc.player.connection.getConnection();
             SocketAddress addr = networkManager.getRemoteAddress();
             String address;
             if (addr instanceof InetSocketAddress)
@@ -51,7 +51,7 @@ public class ClientWaypointDatabase
             {
                 address = addr.toString();
             }
-            ResourceLocation dim = mc.player.world.getDimensionKey().getLocation();
+            ResourceLocation dim = mc.player.level.dimension().location();
             String dimension = dim.getNamespace() + "_" + dim.getPath();
             return FMLPaths.GAMEDIR.get().resolve("server_waypoints").resolve(address).resolve(dimension).resolve("waypoints.dat").toAbsolutePath();
         }
@@ -80,11 +80,11 @@ public class ClientWaypointDatabase
             {
                 try
                 {
-                    CompoundNBT tag = CompressedStreamTools.read(file);
+                    CompoundTag tag = NbtIo.read(file);
 
                     pois.clear();
 
-                    ListNBT list0 = tag.getList("Worlds", Constants.NBT.TAG_COMPOUND);
+                    ListTag list0 = tag.getList("Worlds", Constants.NBT.TAG_COMPOUND);
                     pois.read(list0);
                 }
                 catch (IOException e)
@@ -124,13 +124,13 @@ public class ClientWaypointDatabase
                         file.getParentFile().mkdirs();
                     }
 
-                    CompoundNBT tag0 = new CompoundNBT();
+                    CompoundTag tag0 = new CompoundTag();
 
-                    ListNBT list0 = pois.write();
+                    ListTag list0 = pois.write();
 
                     tag0.put("Worlds", list0);
 
-                    CompressedStreamTools.write(tag0, file);
+                    NbtIo.write(tag0, file);
 
                     pois.savedNumber = pois.changeNumber;
 
@@ -157,7 +157,7 @@ public class ClientWaypointDatabase
     @SubscribeEvent
     public static void entityJoinWorld(EntityJoinWorldEvent event)
     {
-        if (event.getWorld().isRemote && event.getEntity() instanceof ClientPlayerEntity)
+        if (event.getWorld().isClientSide && event.getEntity() instanceof LocalPlayer)
         {
             populateFromDisk(Minecraft.getInstance());
         }

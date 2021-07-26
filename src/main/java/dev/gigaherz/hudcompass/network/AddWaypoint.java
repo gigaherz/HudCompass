@@ -3,8 +3,8 @@ package dev.gigaherz.hudcompass.network;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.fmllegacy.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
@@ -38,9 +38,9 @@ public class AddWaypoint
         this.iconIndex = data.iconIndex;
     }
 
-    public AddWaypoint(PacketBuffer buffer)
+    public AddWaypoint(FriendlyByteBuf buffer)
     {
-        this.label = buffer.readString(256);
+        this.label = buffer.readUtf(256);
         this.x = buffer.readDouble();
         this.y = buffer.readDouble();
         this.z = buffer.readDouble();
@@ -48,9 +48,9 @@ public class AddWaypoint
         this.iconIndex = buffer.readVarInt();
     }
 
-    public void encode(PacketBuffer buffer)
+    public void encode(FriendlyByteBuf buffer)
     {
-        buffer.writeString(label);
+        buffer.writeUtf(label);
         buffer.writeDouble(x);
         buffer.writeDouble(y);
         buffer.writeDouble(z);

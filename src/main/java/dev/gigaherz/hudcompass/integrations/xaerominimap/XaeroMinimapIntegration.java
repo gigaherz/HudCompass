@@ -1,7 +1,7 @@
 package dev.gigaherz.hudcompass.integrations.xaerominimap;
-
+/*
 import com.google.common.collect.Maps;
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.IVertexBuilder;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
@@ -14,16 +14,16 @@ import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.player.ClientPlayerEntity;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
@@ -100,7 +100,7 @@ public class XaeroMinimapIntegration
 
         public void updateWaypoints()
         {
-            final ClientPlayerEntity player = Minecraft.getInstance().player;
+            final LocalPlayer player = Minecraft.getInstance().player;
             if (player == null)
                 return;
 
@@ -148,13 +148,13 @@ public class XaeroMinimapIntegration
                 {
                     XMWaypoint way = new XMWaypoint(wp);
                     addon.waypoints.put(wp, way);
-                    pois.get(player.world).addPoint(way);
+                    pois.get(player.level).addPoint(way);
                 }
                 for(Waypoint wp : toRemove)
                 {
                     XMWaypoint way = addon.waypoints.get(wp);
                     addon.waypoints.remove(wp);
-                    pois.get(player.world).removePoint(way);
+                    pois.get(player.level).removePoint(way);
                 }
             });
         }
@@ -178,25 +178,25 @@ public class XaeroMinimapIntegration
             {
 
                 @Override
-                public CompoundNBT write(XMIconData data, CompoundNBT tag)
+                public CompoundTag write(XMIconData data, CompoundTag tag)
                 {
                     throw new IllegalStateException("Serialization not supported.");
                 }
 
                 @Override
-                public XMIconData read(CompoundNBT tag)
+                public XMIconData read(CompoundTag tag)
                 {
                     throw new IllegalStateException("Serialization not supported.");
                 }
 
                 @Override
-                public void write(XMIconData data, PacketBuffer buffer)
+                public void write(XMIconData data, FriendlyByteBuf buffer)
                 {
                     throw new IllegalStateException("Serialization not supported.");
                 }
 
                 @Override
-                public XMIconData read(PacketBuffer buffer)
+                public XMIconData read(FriendlyByteBuf buffer)
                 {
                     throw new IllegalStateException("Serialization not supported.");
                 }
@@ -214,42 +214,42 @@ public class XaeroMinimapIntegration
 
             public XMWaypoint(Waypoint way)
             {
-                super(TYPE.get(), true, new TranslationTextComponent(way.getName()), new XMIconData(way));
+                super(TYPE.get(), true, new TranslatableComponent(way.getName()), new XMIconData(way));
                 this.parent = way;
             }
 
             @Override
-            public Vector3d getPosition()
+            public Vec3 getPosition()
             {
-                return new Vector3d(parent.getX() + 0.5, parent.getY() + 0.5, parent.getZ() + 0.5);
+                return new Vec3(parent.getX() + 0.5, parent.getY() + 0.5, parent.getZ() + 0.5);
             }
 
             @Override
-            public ITextComponent getLabel()
+            public Component getLabel()
             {
-                return new TranslationTextComponent(parent.getName());
+                return new TranslatableComponent(parent.getName());
             }
 
             @Override
-            protected void serializeAdditional(CompoundNBT tag)
-            {
-                throw new IllegalStateException("Serialization not supported.");
-            }
-
-            @Override
-            protected void deserializeAdditional(CompoundNBT tag)
+            protected void serializeAdditional(CompoundTag tag)
             {
                 throw new IllegalStateException("Serialization not supported.");
             }
 
             @Override
-            protected void serializeAdditional(PacketBuffer tag)
+            protected void deserializeAdditional(CompoundTag tag)
             {
                 throw new IllegalStateException("Serialization not supported.");
             }
 
             @Override
-            protected void deserializeAdditional(PacketBuffer tag)
+            protected void serializeAdditional(FriendlyByteBuf tag)
+            {
+                throw new IllegalStateException("Serialization not supported.");
+            }
+
+            @Override
+            protected void deserializeAdditional(FriendlyByteBuf tag)
             {
                 throw new IllegalStateException("Serialization not supported.");
             }
@@ -260,17 +260,18 @@ public class XaeroMinimapIntegration
             private final MinimapRendererHelper renderHelper = new MinimapRendererHelper();
 
             @Override
-            public void renderIcon(XMIconData data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y)
+            public void renderIcon(XMIconData data, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y)
             {
-                IRenderTypeBuffer.Impl impl = Minecraft.getInstance().getRenderTypeBuffers().getBufferSource();
-                matrixStack.push();
+                MultiBufferSource.BufferSource impl = Minecraft.getInstance().renderBuffers().bufferSource();
+                matrixStack.pushPose();
                 matrixStack.translate(0, 2.8f,0);
                 matrixStack.scale(7/9f, 7/9f, 7/9f);
                 XaeroMinimap.instance.getInterfaces().getMinimapInterface().getWaypointsGuiRenderer()
                         .drawIconOnGUI(matrixStack, renderHelper, data.parent, XaeroMinimap.instance.getSettings(), x, y, impl, impl.getBuffer(CustomRenderTypes.COLORED_WAYPOINTS_BGS));
-                matrixStack.pop();
-                impl.finish();
+                matrixStack.popPose();
+                impl.endBatch();
             }
         }
     }
 }
+*/

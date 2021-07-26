@@ -1,12 +1,12 @@
 package dev.gigaherz.hudcompass.waypoints;
 
 import dev.gigaherz.hudcompass.icons.IIconData;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraftforge.registries.ObjectHolder;
 
 import javax.annotation.Nullable;
@@ -19,7 +19,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
 
     private String label;
 
-    private Vector3d position;
+    private Vec3 position;
 
     public BasicWaypoint()
     {
@@ -31,27 +31,27 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
         this(toVec3d(exactPosition), label, iconData);
     }
 
-    public BasicWaypoint(Vector3d exactPosition, @Nullable String label, IIconData<?> iconData)
+    public BasicWaypoint(Vec3 exactPosition, @Nullable String label, IIconData<?> iconData)
     {
         this(TYPE, exactPosition, label, iconData);
     }
 
-    public BasicWaypoint(PointInfoType<? extends BasicWaypoint> type, Vector3d exactPosition, @Nullable String label, IIconData<?> iconData)
+    public BasicWaypoint(PointInfoType<? extends BasicWaypoint> type, Vec3 exactPosition, @Nullable String label, IIconData<?> iconData)
     {
-        super(type, false, label == null ? null : new StringTextComponent(label), iconData);
+        super(type, false, label == null ? null : new TextComponent(label), iconData);
         this.position = exactPosition;
         this.label = label == null ? "" : label;
     }
 
     @Override
-    public Vector3d getPosition()
+    public Vec3 getPosition()
     {
         return position;
     }
 
-    public void setPosition(Vector3d position)
+    public void setPosition(Vec3 position)
     {
-        if (MathHelper.epsilonEquals(position.squareDistanceTo(position),0))
+        if (Mth.equal(position.distanceToSqr(position),0))
         {
             this.position = position;
             markDirty();
@@ -66,11 +66,11 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
     public void setLabelText(String label)
     {
         this.label = Objects.requireNonNull(label);
-        super.setLabel(label.length() > 0 ? new StringTextComponent(label) : null);
+        super.setLabel(label.length() > 0 ? new TextComponent(label) : null);
     }
 
     @Override
-    protected void serializeAdditional(CompoundNBT tag)
+    protected void serializeAdditional(CompoundTag tag)
     {
         tag.putDouble("X", position.x);
         tag.putDouble("Y", position.y);
@@ -79,9 +79,9 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
     }
 
     @Override
-    protected void deserializeAdditional(CompoundNBT tag)
+    protected void deserializeAdditional(CompoundTag tag)
     {
-        position = new Vector3d(
+        position = new Vec3(
                 tag.getDouble("X"),
                 tag.getDouble("Y"),
                 tag.getDouble("Z")
@@ -90,22 +90,22 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
     }
 
     @Override
-    protected void serializeAdditional(PacketBuffer buffer)
+    protected void serializeAdditional(FriendlyByteBuf buffer)
     {
         buffer.writeDouble(position.x);
         buffer.writeDouble(position.y);
         buffer.writeDouble(position.z);
-        buffer.writeString(label, 1024);
+        buffer.writeUtf(label, 1024);
     }
 
     @Override
-    protected void deserializeAdditional(PacketBuffer buffer)
+    protected void deserializeAdditional(FriendlyByteBuf buffer)
     {
-        position = new Vector3d(
+        position = new Vec3(
                 buffer.readDouble(),
                 buffer.readDouble(),
                 buffer.readDouble()
         );
-        label = buffer.readString(1024);
+        label = buffer.readUtf(1024);
     }
 }

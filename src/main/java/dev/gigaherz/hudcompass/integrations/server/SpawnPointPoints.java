@@ -6,13 +6,13 @@ import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.util.RegistryKey;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -46,18 +46,18 @@ public class SpawnPointPoints
         {
             counter = 0;
 
-            PlayerEntity player = event.player;
-            if (player.world.isRemote)
+            Player player = event.player;
+            if (player.level.isClientSide)
                 return;
 
-            ServerPlayerEntity serverPlayer = (ServerPlayerEntity)player;
+            ServerPlayer serverPlayer = (ServerPlayer)player;
 
             player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
 
                 SpawnPointAddon addon = pois.getOrCreateAddonData(ADDON_ID, SpawnPointAddon::new);
 
-                RegistryKey<World> worldKey = serverPlayer.func_241141_L_();
-                BlockPos spawnPosition = serverPlayer.func_241140_K_();
+                ResourceKey<Level> worldKey = serverPlayer.getRespawnDimension();
+                BlockPos spawnPosition = serverPlayer.getRespawnPosition();
 
                 boolean enabled = ConfigData.COMMON.enableSpawnPointWaypoint.get();
                 boolean hasWaypoint = addon.waypoint != null;
@@ -79,7 +79,7 @@ public class SpawnPointPoints
                 {
                     addon.spawnWorld = worldKey;
                     addon.spawnPosition = spawnPosition;
-                    addon.waypoint = new BasicWaypoint(BasicWaypoint.TYPE, Vector3d.copyCentered(spawnPosition), "Home", BasicIconData.mapMarker(8))
+                    addon.waypoint = new BasicWaypoint(BasicWaypoint.TYPE, Vec3.atCenterOf(spawnPosition), "Home", BasicIconData.mapMarker(8))
                             .dynamic();
                     pois.get(addon.spawnWorld).addPoint(addon.waypoint);
                 }
@@ -91,7 +91,7 @@ public class SpawnPointPoints
     {
         @Nullable
         public BasicWaypoint waypoint;
-        public RegistryKey<World> spawnWorld;
+        public ResourceKey<Level> spawnWorld;
         public BlockPos spawnPosition;
     }
 }

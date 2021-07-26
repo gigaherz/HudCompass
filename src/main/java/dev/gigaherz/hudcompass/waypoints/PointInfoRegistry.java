@@ -1,8 +1,8 @@
 package dev.gigaherz.hudcompass.waypoints;
 
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryManager;
 
@@ -14,7 +14,7 @@ public class PointInfoRegistry
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Nonnull
-    public static CompoundNBT serializePoint(@Nonnull PointInfo<?> iconData)
+    public static CompoundTag serializePoint(@Nonnull PointInfo<?> iconData)
     {
         PointInfoType type = iconData.getType();
         ResourceLocation typeId = type.getRegistryName();
@@ -22,14 +22,14 @@ public class PointInfoRegistry
         {
             throw new IllegalStateException(String.format("Serializer name is null %s", type.getClass().getName()));
         }
-        CompoundNBT tag = new CompoundNBT();
+        CompoundTag tag = new CompoundTag();
         tag.putString("Type", type.getRegistryName().toString());
         tag = iconData.write(tag);
         return tag;
     }
 
     @Nonnull
-    public static PointInfo<?> deserializePoint(CompoundNBT tag)
+    public static PointInfo<?> deserializePoint(CompoundTag tag)
     {
         ResourceLocation typeId = new ResourceLocation(tag.getString("Type"));
         PointInfoType<?> type = REGISTRY.getValue(typeId);
@@ -43,7 +43,7 @@ public class PointInfoRegistry
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public static void serializePoint(PointInfo<?> iconData, PacketBuffer buffer)
+    public static void serializePoint(PointInfo<?> iconData, FriendlyByteBuf buffer)
     {
         PointInfoType type = iconData.getType();
         buffer.writeRegistryIdUnsafe(REGISTRY, type);
@@ -51,7 +51,7 @@ public class PointInfoRegistry
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public static void serializePointWithoutId(PointInfo<?> iconData, PacketBuffer buffer)
+    public static void serializePointWithoutId(PointInfo<?> iconData, FriendlyByteBuf buffer)
     {
         PointInfoType type = iconData.getType();
         buffer.writeRegistryIdUnsafe(REGISTRY, type);
@@ -59,7 +59,7 @@ public class PointInfoRegistry
     }
 
     @Nonnull
-    public static PointInfo<?> deserializePoint(PacketBuffer buffer)
+    public static PointInfo<?> deserializePoint(FriendlyByteBuf buffer)
     {
         PointInfoType<?> serializer = buffer.readRegistryIdUnsafe(REGISTRY);
         if (serializer == null)
@@ -72,7 +72,7 @@ public class PointInfoRegistry
     }
 
     @Nonnull
-    public static PointInfo<?> deserializePointWithoutId(PacketBuffer buffer)
+    public static PointInfo<?> deserializePointWithoutId(FriendlyByteBuf buffer)
     {
         PointInfoType<?> serializer = buffer.readRegistryIdUnsafe(REGISTRY);
         if (serializer == null)

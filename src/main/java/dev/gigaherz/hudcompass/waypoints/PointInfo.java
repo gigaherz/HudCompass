@@ -2,12 +2,12 @@ package dev.gigaherz.hudcompass.waypoints;
 
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataRegistry;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nullable;
@@ -15,15 +15,15 @@ import java.util.UUID;
 
 public abstract class PointInfo<T extends PointInfo<T>>
 {
-    public static Vector3d toVec3d(BlockPos pos)
+    public static Vec3 toVec3d(BlockPos pos)
     {
-        return new Vector3d(pos.getX()+0.5,pos.getY()+0.5,pos.getZ()+0.5);
+        return new Vec3(pos.getX()+0.5,pos.getY()+0.5,pos.getZ()+0.5);
     }
 
     private final PointInfoType<? extends T> type;
     private PointsOfInterest.WorldPoints owner;
     private UUID internalId;
-    private ITextComponent label;
+    private Component label;
     private IIconData<?> iconData;
     private boolean displayVerticalDistance = true;
     private boolean isServerProvided = true; // not used in the server
@@ -41,7 +41,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
     }
 
     /* For CLIENT side use */
-    public PointInfo(PointInfoType<? extends T> type, boolean isDynamic, @Nullable ITextComponent label, IIconData<?> iconData)
+    public PointInfo(PointInfoType<? extends T> type, boolean isDynamic, @Nullable Component label, IIconData<?> iconData)
     {
         this(type, isDynamic);
         this.label = label;
@@ -67,15 +67,15 @@ public abstract class PointInfo<T extends PointInfo<T>>
         internalId = uuid;
     }
 
-    public abstract Vector3d getPosition();
+    public abstract Vec3 getPosition();
 
     @Nullable
-    public ITextComponent getLabel()
+    public Component getLabel()
     {
         return this.label;
     }
 
-    public void setLabel(@Nullable ITextComponent text)
+    public void setLabel(@Nullable Component text)
     {
         this.label = text;
     }
@@ -99,7 +99,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
         return (T) this;
     }
 
-    public boolean displayVerticalDistance(PlayerEntity player)
+    public boolean displayVerticalDistance(Player player)
     {
         return displayVerticalDistance;
     }
@@ -119,7 +119,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
         return isDynamic;
     }
 
-    public void tick(PlayerEntity player)
+    public void tick(Player player)
     {
     }
 
@@ -136,21 +136,21 @@ public abstract class PointInfo<T extends PointInfo<T>>
         }
     }
 
-    public final CompoundNBT write(CompoundNBT tag)
+    public final CompoundTag write(CompoundTag tag)
     {
         tag.putString("ID", internalId.toString());
-        if (label != null) tag.putString("Label", ITextComponent.Serializer.toJson(label));
+        if (label != null) tag.putString("Label", Component.Serializer.toJson(label));
         tag.put("Icon", IconDataRegistry.serializeIcon(iconData));
         tag.putBoolean("DisplayVerticalDistance", displayVerticalDistance);
         serializeAdditional(tag);
         return tag;
     }
 
-    public final void read(CompoundNBT tag)
+    public final void read(CompoundTag tag)
     {
         internalId = UUID.fromString(tag.getString("ID"));
         if (tag.contains("Label", Constants.NBT.TAG_STRING))
-            label = ITextComponent.Serializer.getComponentFromJson(tag.getString("Label"));
+            label = Component.Serializer.fromJson(tag.getString("Label"));
         else
             label = null;
         iconData = IconDataRegistry.deserializeIcon(tag.getCompound("Icon"));
@@ -158,35 +158,35 @@ public abstract class PointInfo<T extends PointInfo<T>>
         deserializeAdditional(tag);
     }
 
-    public final void writeToPacket(PacketBuffer buffer)
+    public final void writeToPacket(FriendlyByteBuf buffer)
     {
-        buffer.writeUniqueId(internalId);
+        buffer.writeUUID(internalId);
         writeToPacketWithoutId(buffer);
     }
 
-    public final void writeToPacketWithoutId(PacketBuffer buffer)
+    public final void writeToPacketWithoutId(FriendlyByteBuf buffer)
     {
         boolean hasLabel = label != null;
         buffer.writeBoolean(hasLabel);
         if (hasLabel)
-            buffer.writeTextComponent(label);
+            buffer.writeComponent(label);
         IconDataRegistry.serializeIcon(iconData, buffer);
         buffer.writeBoolean(displayVerticalDistance);
         buffer.writeBoolean(isDynamic);
         serializeAdditional(buffer);
     }
 
-    public final void readFromPacket(PacketBuffer buffer)
+    public final void readFromPacket(FriendlyByteBuf buffer)
     {
-        internalId = buffer.readUniqueId();
+        internalId = buffer.readUUID();
         readFromPacketWithoutId(buffer);
     }
 
-    public final void readFromPacketWithoutId(PacketBuffer buffer)
+    public final void readFromPacketWithoutId(FriendlyByteBuf buffer)
     {
         boolean hasLabel = buffer.readBoolean();
         if (hasLabel)
-            label = buffer.readTextComponent();
+            label = buffer.readComponent();
         else
             label = null;
         iconData = IconDataRegistry.deserializeIcon(buffer);
@@ -195,8 +195,8 @@ public abstract class PointInfo<T extends PointInfo<T>>
         deserializeAdditional(buffer);
     }
 
-    protected abstract void serializeAdditional(CompoundNBT tag);
-    protected abstract void deserializeAdditional(CompoundNBT tag);
-    protected abstract void serializeAdditional(PacketBuffer tag);
-    protected abstract void deserializeAdditional(PacketBuffer tag);
+    protected abstract void serializeAdditional(CompoundTag tag);
+    protected abstract void deserializeAdditional(CompoundTag tag);
+    protected abstract void serializeAdditional(FriendlyByteBuf tag);
+    protected abstract void deserializeAdditional(FriendlyByteBuf tag);
 }

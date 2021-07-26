@@ -1,11 +1,13 @@
 package dev.gigaherz.hudcompass.icons.client;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
-import net.minecraft.client.gui.AbstractGui;
+import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.resources.ResourceLocation;
 
 public class BasicIconRenderer implements IIconRenderer<BasicIconData>
 {
@@ -34,11 +36,13 @@ public class BasicIconRenderer implements IIconRenderer<BasicIconData>
         this.iconsPerCol = texH / iconH;
     }
 
-    public void renderIcon(BasicIconData data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y)
+    public void renderIcon(BasicIconData data, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y)
     {
-        textureManager.bindTexture(texture);
+        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        RenderSystem.setShaderTexture(0, texture);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         int indexX = data.iconIndex % iconsPerRow;
         int indexY = data.iconIndex / iconsPerCol;
-        AbstractGui.blit(matrixStack, x - iconW / 2, y - iconH / 2, indexX * iconW, indexY * iconH, iconW, iconH, texW, texH);
+        GuiComponent.blit(matrixStack, x - iconW / 2, y - iconH / 2, indexX * iconW, indexY * iconH, iconW, iconH, texW, texH);
     }
 }

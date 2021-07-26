@@ -8,22 +8,22 @@ import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.FilledMapItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.storage.MapBanner;
-import net.minecraft.world.storage.MapData;
-import net.minecraft.world.storage.MapDecoration;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.MapItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.saveddata.maps.MapBanner;
+import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fmllegacy.RegistryObject;
 import net.minecraftforge.registries.DeferredRegister;
 
 import javax.annotation.Nonnull;
@@ -68,21 +68,21 @@ public class VanillaMapPoints
         {
             counter = 0;
 
-            PlayerEntity player = event.player;
-            if (player.world.isRemote)
+            Player player = event.player;
+            if (player.level.isClientSide)
                 return;
 
             player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-                PointsOfInterest.WorldPoints worldPoints = pois.get(player.world);
+                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level);
 
                 VanillaMapData addon = pois.getOrCreateAddonData(ADDON_ID, VanillaMapData::new);
 
-                Set<MapData> seenMaps = getMapData(player, worldPoints, addon);
+                Set<MapItemSavedData> seenMaps = getMapData(player, worldPoints, addon);
 
-                Set<MapData> toRemove = new HashSet<>(addon.mapDecorations.keySet());
+                Set<MapItemSavedData> toRemove = new HashSet<>(addon.mapDecorations.keySet());
                 toRemove.removeAll(seenMaps);
 
-                for (MapData remove : toRemove)
+                for (MapItemSavedData remove : toRemove)
                 {
                     Map<MapDecoration, PointInfo<?>> map = addon.mapDecorations.get(remove);
 
@@ -98,25 +98,25 @@ public class VanillaMapPoints
     }
 
     @Nonnull
-    private Set<MapData> getMapData(PlayerEntity player, PointsOfInterest.WorldPoints worldPoints, VanillaMapData addon)
+    private Set<MapItemSavedData> getMapData(Player player, PointsOfInterest.WorldPoints worldPoints, VanillaMapData addon)
     {
         if (!ConfigData.COMMON.enableVanillaMapIntegration.get())
             return Collections.emptySet();
 
-        Set<MapData> seenMaps = Sets.newHashSet();
-        for(int slot = 0; slot < player.inventory.getSizeInventory(); slot++)
+        Set<MapItemSavedData> seenMaps = Sets.newHashSet();
+        for(int slot = 0; slot < player.getInventory().getContainerSize(); slot++)
         {
-            ItemStack stack = player.inventory.getStackInSlot(slot);
-            MapData mapData = FilledMapItem.getMapData(stack, player.world);
+            ItemStack stack = player.getInventory().getItem(slot);
+            MapItemSavedData mapData = MapItem.getSavedData(stack, player.level);
             if (mapData != null && !seenMaps.contains(mapData) && mapData.dimension == worldPoints.getWorldKey())
             {
                 seenMaps.add(mapData);
 
                 Map<MapDecoration, PointInfo<?>> decorationPointInfoMap = addon.mapDecorations.computeIfAbsent(mapData, k -> Maps.newHashMap());
 
-                for(MapBanner banner : mapData.banners.values())
+                for(MapBanner banner : mapData.bannerMarkers.values())
                 {
-                    MapDecoration decoration = mapData.mapDecorations.get(banner.getMapDecorationId());
+                    MapDecoration decoration = mapData.decorations.get(banner.getId());
                     if (!decorationPointInfoMap.containsKey(decoration))
                     {
                         MapBannerWaypoint wp = new MapBannerWaypoint(banner, decoration);
@@ -125,7 +125,7 @@ public class VanillaMapPoints
                     }
                 }
 
-                for(Map.Entry<String, MapDecoration> kvp : mapData.mapDecorations.entrySet())
+                for(Map.Entry<String, MapDecoration> kvp : mapData.decorations.entrySet())
                 {
                     String decorationId = kvp.getKey();
                     MapDecoration decoration = kvp.getValue();
@@ -145,7 +145,7 @@ public class VanillaMapPoints
                 }
 
                 Set<MapDecoration> toRemove = new HashSet<>(decorationPointInfoMap.keySet());
-                toRemove.removeAll(mapData.mapDecorations.values());
+                toRemove.removeAll(mapData.decorations.values());
 
                 for(MapDecoration remove : toRemove)
                 {
@@ -160,14 +160,14 @@ public class VanillaMapPoints
     public static class MapBannerWaypoint extends PointInfo<MapBannerWaypoint>
     {
         private final MapBanner banner;
-        private Vector3d position;
+        private Vec3 position;
 
         public MapBannerWaypoint(MapBanner banner, MapDecoration decoration)
         {
             super(BANNER_TYPE.get(), true, banner.getName(), BasicIconData.mapMarker(decoration.getType().getIcon()));
             dynamic();
             this.banner = banner;
-            this.position = Vector3d.copyCentered(banner.getPos());
+            this.position = Vec3.atCenterOf(banner.getPos());
         }
 
         public MapBannerWaypoint()
@@ -183,13 +183,13 @@ public class VanillaMapPoints
         }
 
         @Override
-        public Vector3d getPosition()
+        public Vec3 getPosition()
         {
             return position;
         }
 
         @Override
-        protected void serializeAdditional(CompoundNBT tag)
+        protected void serializeAdditional(CompoundTag tag)
         {
             tag.putDouble("X", position.x);
             tag.putDouble("Y", position.y);
@@ -197,9 +197,9 @@ public class VanillaMapPoints
         }
 
         @Override
-        protected void deserializeAdditional(CompoundNBT tag)
+        protected void deserializeAdditional(CompoundTag tag)
         {
-            position = new Vector3d(
+            position = new Vec3(
                     tag.getDouble("X"),
                     tag.getDouble("Y"),
                     tag.getDouble("Z")
@@ -207,7 +207,7 @@ public class VanillaMapPoints
         }
 
         @Override
-        protected void serializeAdditional(PacketBuffer buffer)
+        protected void serializeAdditional(FriendlyByteBuf buffer)
         {
             buffer.writeDouble(position.x);
             buffer.writeDouble(position.y);
@@ -215,9 +215,9 @@ public class VanillaMapPoints
         }
 
         @Override
-        protected void deserializeAdditional(PacketBuffer buffer)
+        protected void deserializeAdditional(FriendlyByteBuf buffer)
         {
-            position = new Vector3d(
+            position = new Vec3(
                     buffer.readDouble(),
                     buffer.readDouble(),
                     buffer.readDouble()
@@ -228,9 +228,9 @@ public class VanillaMapPoints
     public static class MapDecorationWaypoint extends PointInfo<MapDecorationWaypoint>
     {
         private final MapDecoration decoration;
-        private Vector3d position;
+        private Vec3 position;
 
-        public MapDecorationWaypoint(MapData mapData, MapDecoration decoration)
+        public MapDecorationWaypoint(MapItemSavedData mapData, MapDecoration decoration)
         {
             super(DECORATION_TYPE.get(), true, null, BasicIconData.mapMarker(decoration.getType().getIcon()));
 
@@ -241,11 +241,11 @@ public class VanillaMapPoints
             float decoZ =(decoration.getY()-0.5f)*0.5f;
 
             int scale = 1<<mapData.scale;
-            float worldX = mapData.xCenter + decoX * scale;
-            float worldZ = mapData.zCenter + decoZ * scale;
+            float worldX = mapData.x + decoX * scale;
+            float worldZ = mapData.z + decoZ * scale;
 
             this.decoration = decoration;
-            this.position = new Vector3d(worldX, 0, worldZ);
+            this.position = new Vec3(worldX, 0, worldZ);
         }
 
         public MapDecorationWaypoint()
@@ -261,13 +261,13 @@ public class VanillaMapPoints
         }
 
         @Override
-        public Vector3d getPosition()
+        public Vec3 getPosition()
         {
             return position;
         }
 
         @Override
-        protected void serializeAdditional(CompoundNBT tag)
+        protected void serializeAdditional(CompoundTag tag)
         {
             tag.putDouble("X", position.x);
             tag.putDouble("Y", position.y);
@@ -275,9 +275,9 @@ public class VanillaMapPoints
         }
 
         @Override
-        protected void deserializeAdditional(CompoundNBT tag)
+        protected void deserializeAdditional(CompoundTag tag)
         {
-            position = new Vector3d(
+            position = new Vec3(
                     tag.getDouble("X"),
                     tag.getDouble("Y"),
                     tag.getDouble("Z")
@@ -285,7 +285,7 @@ public class VanillaMapPoints
         }
 
         @Override
-        protected void serializeAdditional(PacketBuffer buffer)
+        protected void serializeAdditional(FriendlyByteBuf buffer)
         {
             buffer.writeDouble(position.x);
             buffer.writeDouble(position.y);
@@ -293,9 +293,9 @@ public class VanillaMapPoints
         }
 
         @Override
-        protected void deserializeAdditional(PacketBuffer buffer)
+        protected void deserializeAdditional(FriendlyByteBuf buffer)
         {
-            position = new Vector3d(
+            position = new Vec3(
                     buffer.readDouble(),
                     buffer.readDouble(),
                     buffer.readDouble()
@@ -305,6 +305,6 @@ public class VanillaMapPoints
 
     private class VanillaMapData
     {
-        public Map<MapData, Map<MapDecoration, PointInfo<?>>> mapDecorations = Maps.newHashMap();
+        public Map<MapItemSavedData, Map<MapDecoration, PointInfo<?>>> mapDecorations = Maps.newHashMap();
     }
 }

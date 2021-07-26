@@ -1,8 +1,8 @@
 package dev.gigaherz.hudcompass.network;
 
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.fmllegacy.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
@@ -13,11 +13,11 @@ public class ClientHello
     {
     }
 
-    public ClientHello(PacketBuffer buffer)
+    public ClientHello(FriendlyByteBuf buffer)
     {
     }
 
-    public void encode(PacketBuffer buffer)
+    public void encode(FriendlyByteBuf buffer)
     {
     }
 

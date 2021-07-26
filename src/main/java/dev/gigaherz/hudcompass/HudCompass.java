@@ -6,14 +6,13 @@ import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import dev.gigaherz.hudcompass.integrations.server.SpawnPointPoints;
 import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
-import dev.gigaherz.hudcompass.integrations.xaerominimap.XaeroMinimapIntegration;
 import dev.gigaherz.hudcompass.network.*;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
@@ -21,20 +20,21 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.fml.ExtensionPoint;
+import net.minecraftforge.fml.IExtensionPoint;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.network.FMLNetworkConstants;
-import net.minecraftforge.fml.network.NetworkDirection;
-import net.minecraftforge.fml.network.NetworkRegistry;
-import net.minecraftforge.fml.network.PacketDistributor;
-import net.minecraftforge.fml.network.simple.SimpleChannel;
+import net.minecraftforge.fmllegacy.network.FMLNetworkConstants;
+import net.minecraftforge.fmllegacy.network.NetworkDirection;
+import net.minecraftforge.fmllegacy.network.NetworkRegistry;
+import net.minecraftforge.fmllegacy.network.PacketDistributor;
+import net.minecraftforge.fmllegacy.network.simple.SimpleChannel;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryBuilder;
 import org.apache.commons.lang3.tuple.Pair;
@@ -81,10 +81,10 @@ public class HudCompass
         SpawnPointPoints.init();
         VanillaMapPoints.init();
 
-        if (ModList.get().isLoaded("xaerominimap"))
+        /*if (ModList.get().isLoaded("xaerominimap"))
         {
             XaeroMinimapIntegration.init();
-        }
+        }*/
 
         ModLoadingContext modLoadingContext = ModLoadingContext.get();
         //modLoadingContext.registerConfig(ModConfig.Type.SERVER, ConfigData.SERVER_SPEC);
@@ -92,10 +92,10 @@ public class HudCompass
         modLoadingContext.registerConfig(ModConfig.Type.COMMON, ConfigData.COMMON_SPEC);
 
         //Make sure the mod being absent on the other network side does not cause the client to display the server as incompatible
-        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.DISPLAYTEST, () -> Pair.of(() -> FMLNetworkConstants.IGNORESERVERONLY, (a, b) -> true));
+        ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> "", (a, b) -> true));
     }
 
-    public void modConfig(ModConfig.ModConfigEvent event)
+    public void modConfig(ModConfigEvent event)
     {
         ModConfig config = event.getConfig();
         if (config.getSpec() == ConfigData.CLIENT_SPEC)
@@ -176,10 +176,10 @@ public class HudCompass
 
     public void playerTickEvent(TickEvent.PlayerTickEvent event)
     {
-        if (!(event.player instanceof ServerPlayerEntity))
+        if (!(event.player instanceof ServerPlayer))
             return;
 
-        ServerPlayerEntity player = (ServerPlayerEntity)event.player;
+        ServerPlayer player = (ServerPlayer)event.player;
 
         PointsOfInterest.onTick(player);
     }
@@ -190,9 +190,9 @@ public class HudCompass
             return;
 
         Entity player = event.getEntity();
-        if (player instanceof ServerPlayerEntity)
+        if (player instanceof ServerPlayer)
         {
-            channel.send(PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player), new ServerHello());
+            channel.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) player), new ServerHello());
         }
     }
 
