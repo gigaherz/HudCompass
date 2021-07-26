@@ -43,6 +43,7 @@ public class ConfigData
         public final ForgeConfigSpec.BooleanValue showAllLabelsOnSneak;
         public final ForgeConfigSpec.BooleanValue animateLabels;
         public final ForgeConfigSpec.BooleanValue enableXaeroMinimapIntegration;
+        public final ForgeConfigSpec.EnumValue<DisplayWhen> displayWhen;
 
         ClientConfig(ForgeConfigSpec.Builder builder)
         {
@@ -61,14 +62,27 @@ public class ConfigData
                     .define("showAllLabelsOnSneak", true);
             animateLabels = builder
                     .comment("If set to FALSE, support for sewing recipes will not be enabled regardless of the mod's presence.")
-                    .translation("text.hudcompass.config.disable_anvil_update")
+                    .translation("text.hudcompass.config.animate_labels")
                     .define("animateLabels", true);
+            displayWhen = builder
+                    .comment("Choose when the compass is visible.",
+                             " - HAS_COMPASS: Only display HUD if a compass is in the inventory.",
+                             " - HOLDING_COMPASS: Only display HUD if a compass is in the hand.")
+                    .translation("text.hudcompass.config.display_when")
+                    .defineEnum("displayWhen", DisplayWhen.ALWAYS);
             enableXaeroMinimapIntegration = builder
                     .comment("If set to FALSE, Xaero Minimap waypoints won't be displayed in the compass.")
                     .translation("text.hudcompass.config.enable_xaero_minimap")
                     .define("enableXaeroMinimapIntegration", true);
             builder.pop();
         }
+    }
+
+    public enum DisplayWhen
+    {
+        HOLDING_COMPASS,
+        HAS_COMPASS,
+        ALWAYS
     }
 
     public static class CommonConfig
