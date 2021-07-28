@@ -1,7 +1,6 @@
 package dev.gigaherz.hudcompass.client;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.gigaherz.hudcompass.ConfigData;
@@ -15,11 +14,16 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.Tag;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import com.mojang.math.Matrix4f;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.network.chat.Component;
@@ -32,8 +36,6 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import org.lwjgl.opengl.GL11;
 
 import java.util.List;
 import java.util.Set;
@@ -64,10 +66,10 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
 
     boolean needsPop = false;
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void preOverlayHigh(RenderGameOverlayEvent.PreLayer event)
     {
-        if (event.getOverlay() == ForgeIngameGui.BOSS_HEALTH_ELEMENT && !mc.options.hideGui && !event.isCanceled())
+        if (event.getOverlay() == ForgeIngameGui.BOSS_HEALTH_ELEMENT && !mc.options.hideGui && canRender())
         {
             PoseStack matrixStack = event.getMatrixStack();
             matrixStack.pushPose();
@@ -99,6 +101,8 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
     @Override
     public void render(ForgeIngameGui gui, PoseStack matrixStack, float partialTicks, int width, int height)
     {
+        if (!canRender()) return;
+
         float elapsed = mc.getDeltaFrameTime();
 
         if (mc.isPaused())
@@ -152,6 +156,40 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
                 drawPoi(player, matrixStack, yaw0, angleYd.x, angleYd.y, xPos, point, point == pts.getTargetted(), elapsed0);
             }
         });
+    }
+
+    private boolean canRender()
+    {
+        if (mc.player == null) return false;
+
+        return switch (ConfigData.displayWhen)
+                {
+                    case ALWAYS -> true;
+                    case HAS_COMPASS -> findCompassInInventory();
+                    case HOLDING_COMPASS -> findCompassInHands();
+                };
+    }
+
+    private static final Tag.Named<Item> MAKES_HUDCOMPASS_VISIBLE = ItemTags.createOptional( new ResourceLocation("hudcompass:makes_hudcompass_visible"), Set.of(() -> Items.COMPASS));
+    private boolean findCompassInHands()
+    {
+        if (mc.player == null) return false;
+
+        return mc.player.getMainHandItem().is(MAKES_HUDCOMPASS_VISIBLE)
+                || mc.player.getOffhandItem().is(MAKES_HUDCOMPASS_VISIBLE);
+    }
+
+    private boolean findCompassInInventory()
+    {
+        if (mc.player == null) return false;
+
+        Inventory inv = mc.player.getInventory();
+        for(int i=0;i<inv.getContainerSize();i++)
+        {
+            if (inv.getItem(i).is(MAKES_HUDCOMPASS_VISIBLE))
+                return true;
+        }
+        return false;
     }
 
     private Vec2 angleFromPoint(Vec3 position, double playerPosX, double playerPosY, double playerPosZ)
@@ -281,6 +319,8 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
     private static void fillRect(PoseStack matrixStack, float x0, float y0, float x1, float y1, int color)
     {
         RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableTexture();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 
@@ -290,7 +330,6 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         int b = (color & 255);
         Tesselator tess = Tesselator.getInstance();
         BufferBuilder builder = tess.getBuilder();
-        RenderSystem.disableTexture();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         Matrix4f matrix = matrixStack.last().pose();
         builder.vertex(matrix, x0, y1, 0.0f).color(r, g, b, a).endVertex();
@@ -304,6 +343,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
     private static void blitRect(PoseStack matrixStack, float x0, float y0, float xt, float yt, float width, float height, int tWidth, int tHeight, ResourceLocation texture)
     {
         RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderTexture(0, texture);
