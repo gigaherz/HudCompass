@@ -10,7 +10,6 @@ import dev.gigaherz.hudcompass.network.*;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
@@ -21,7 +20,6 @@ import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.IExtensionPoint;
-import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
@@ -30,18 +28,15 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fmllegacy.network.FMLNetworkConstants;
 import net.minecraftforge.fmllegacy.network.NetworkDirection;
 import net.minecraftforge.fmllegacy.network.NetworkRegistry;
 import net.minecraftforge.fmllegacy.network.PacketDistributor;
 import net.minecraftforge.fmllegacy.network.simple.SimpleChannel;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryBuilder;
-import org.apache.commons.lang3.tuple.Pair;
+import net.minecraftforge.registries.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 @Mod(HudCompass.MODID)
 public class HudCompass
@@ -52,10 +47,26 @@ public class HudCompass
 
     public static final Logger LOGGER = LogManager.getLogger(MODID);
 
-    public static final String CHANNEL = "main";
+    private static class Generify
+    {
+        @SuppressWarnings("unchecked")
+        public static <T extends IForgeRegistryEntry<T>> Class<T> from(Class<? super T> cls)
+        {
+            return (Class<T>) cls;
+        }
+    }
+
+    public static final DeferredRegister<PointInfoType<?>> POINT_INFO_TYPES = DeferredRegister.create(Generify.<PointInfoType<?>>from(PointInfoType.class), MODID);
+    public static final DeferredRegister<IconDataSerializer<?>> ICON_DATA_SERIALIZERS = DeferredRegister.create(Generify.<IconDataSerializer<?>>from(IconDataSerializer.class), MODID);
+
+    public static final Supplier<IForgeRegistry<PointInfoType<?>>> POINT_INFO_TYPES_REGISTRY = POINT_INFO_TYPES
+            .makeRegistry("point_info_types", () -> new RegistryBuilder<PointInfoType<?>>().disableSaving());
+    public static final Supplier<IForgeRegistry<IconDataSerializer<?>>> ICON_DATA_SERIALIZERS_REGISTRY = ICON_DATA_SERIALIZERS
+            .makeRegistry("icon_data_serializers", () -> new RegistryBuilder<IconDataSerializer<?>>().disableSaving());
+
     private static final String PROTOCOL_VERSION = "1.1";
     public static SimpleChannel channel = NetworkRegistry.ChannelBuilder
-            .named(new ResourceLocation(MODID, CHANNEL))
+            .named(new ResourceLocation(MODID, "main"))
             .clientAcceptedVersions((v) -> PROTOCOL_VERSION.equals(v) || NetworkRegistry.ABSENT.equals(v) || NetworkRegistry.ACCEPTVANILLA.equals(v))
             .serverAcceptedVersions((v) -> PROTOCOL_VERSION.equals(v) || NetworkRegistry.ABSENT.equals(v) || NetworkRegistry.ACCEPTVANILLA.equals(v))
             .networkProtocolVersion(() -> PROTOCOL_VERSION)
@@ -67,13 +78,15 @@ public class HudCompass
 
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        modEventBus.addListener(this::newRegistry);
         modEventBus.addGenericListener(IconDataSerializer.class, this::iconDataSerializers);
         modEventBus.addGenericListener(PointInfoType.class, this::pointInfoTypes);
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::clientSetup);
         modEventBus.addListener(this::loadComplete);
         modEventBus.addListener(this::modConfig);
+
+        POINT_INFO_TYPES.register(modEventBus);
+        ICON_DATA_SERIALIZERS.register(modEventBus);
 
         MinecraftForge.EVENT_BUS.addListener(this::playerTickEvent);
         MinecraftForge.EVENT_BUS.addListener(this::playerLoggedIn);
@@ -100,36 +113,6 @@ public class HudCompass
         ModConfig config = event.getConfig();
         if (config.getSpec() == ConfigData.CLIENT_SPEC)
             ConfigData.refreshClient();
-    }
-
-
-    public static DeferredRegister<PointInfoType<?>> makeDeferredPOI()
-    {
-        //noinspection unchecked
-        return (DeferredRegister<PointInfoType<?>>)(Object)
-                DeferredRegister.create(PointInfoType.class, MODID);
-    }
-
-    public static DeferredRegister<IconDataSerializer<?>> makeDeferredIDS()
-    {
-        //noinspection unchecked
-        return (DeferredRegister<IconDataSerializer<?>>)(Object)
-                DeferredRegister.create(IconDataSerializer.class, MODID);
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public void newRegistry(RegistryEvent.NewRegistry event)
-    {
-        new RegistryBuilder()
-                .setName(HudCompass.location("icon_data_serializers"))
-                .setType(IconDataSerializer.class)
-                .disableSaving()
-                .create();
-        new RegistryBuilder()
-                .setName(HudCompass.location("point_info_serializers"))
-                .setType(PointInfoType.class)
-                .disableSaving()
-                .create();
     }
 
     public void iconDataSerializers(RegistryEvent.Register<IconDataSerializer<?>> event)
@@ -176,10 +159,8 @@ public class HudCompass
 
     public void playerTickEvent(TickEvent.PlayerTickEvent event)
     {
-        if (!(event.player instanceof ServerPlayer))
+        if (!(event.player instanceof ServerPlayer player))
             return;
-
-        ServerPlayer player = (ServerPlayer)event.player;
 
         PointsOfInterest.onTick(player);
     }
@@ -189,10 +170,9 @@ public class HudCompass
         if (ConfigData.COMMON.disableServerHello.get())
             return;
 
-        Entity player = event.getEntity();
-        if (player instanceof ServerPlayer)
+        if (event.getEntity() instanceof ServerPlayer sp && channel.isRemotePresent(sp.connection.getConnection()))
         {
-            channel.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) player), new ServerHello());
+            channel.send(PacketDistributor.PLAYER.with(() -> sp), new ServerHello());
         }
     }
 

@@ -28,14 +28,8 @@ public class SpawnPointPoints
 
     private static final ResourceLocation ADDON_ID = HudCompass.location("spawn_point");
 
-    private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.makeDeferredPOI();
-
     public static void init()
     {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-
-        PIT.register(modEventBus);
-
         MinecraftForge.EVENT_BUS.addListener(INSTANCE::playerTick);
     }
 

@@ -1,33 +1,31 @@
 package dev.gigaherz.hudcompass.client;
 
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.vertex.*;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.*;
+import com.mojang.math.Matrix4f;
 import dev.gigaherz.hudcompass.ConfigData;
-import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.client.PointRenderer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.Tag;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
-import com.mojang.math.Matrix4f;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.gui.ForgeIngameGui;
 import net.minecraftforge.client.gui.IIngameOverlay;
@@ -35,12 +33,10 @@ import net.minecraftforge.client.gui.OverlayRegistry;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 import java.util.List;
 import java.util.Set;
 
-@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus= Mod.EventBusSubscriber.Bus.MOD)
 public class HudOverlay extends GuiComponent implements IIngameOverlay
 {
     public static final ResourceLocation LOCATION_MAP_ICONS = new ResourceLocation("minecraft", "textures/map/map_icons.png");
@@ -50,9 +46,11 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
     private final Font font;
     private final TextureManager textureManager;
 
+    private static final HudOverlay INSTANCE = new HudOverlay();
+
     public static void init()
     {
-        MinecraftForge.EVENT_BUS.register(new HudOverlay());
+        MinecraftForge.EVENT_BUS.register(INSTANCE);
     }
 
     private HudOverlay()
@@ -102,6 +100,8 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
     public void render(ForgeIngameGui gui, PoseStack matrixStack, float partialTicks, int width, int height)
     {
         if (!canRender()) return;
+
+        if (mc.player == null) return;
 
         float elapsed = mc.getDeltaFrameTime();
 
@@ -285,22 +285,22 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
 
             if (point.displayVerticalDistance(player))
             {
-                if (yDelta >= 2) drawAboveArrow(matrixStack, nPos, yDelta);
-                if (yDelta <= -2) drawBelowArrow(matrixStack, nPos, yDelta);
+                if (yDelta >= 2) drawAboveArrow(matrixStack, yDelta);
+                if (yDelta <= -2) drawBelowArrow(matrixStack, yDelta);
             }
 
             matrixStack.popPose();
         }
     }
 
-    private void drawAboveArrow(PoseStack matrixStack, float nPos, float yDelta)
+    private void drawAboveArrow(PoseStack matrixStack, float yDelta)
     {
         int x = yDelta > 10 ? 8 : 0;
         int y = 0;
         blitRect(matrixStack, -4.5f, 4, x, y, 8, 8, 128, 128, LOCATION_POI_ICONS);
     }
 
-    private void drawBelowArrow(PoseStack matrixStack, float nPos, float yDelta)
+    private void drawBelowArrow(PoseStack matrixStack, float yDelta)
     {
         int x = yDelta < -10 ? 24 : 16;
         int y = 0;

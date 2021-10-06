@@ -39,7 +39,7 @@ public class VanillaMapPoints
 
     private static final ResourceLocation ADDON_ID = HudCompass.location("vanilla_map");
 
-    private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.makeDeferredPOI();
+    private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.POINT_INFO_TYPES;
     public static final RegistryObject<PointInfoType<MapDecorationWaypoint>> DECORATION_TYPE = PIT.register("map_decoration", () -> new PointInfoType<>(MapDecorationWaypoint::new));
     public static final RegistryObject<PointInfoType<MapBannerWaypoint>> BANNER_TYPE = PIT.register("map_banner", () -> new PointInfoType<>(MapBannerWaypoint::new));
 
@@ -48,9 +48,6 @@ public class VanillaMapPoints
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         modEventBus.addListener(INSTANCE::clientSetup);
-
-        PIT.register(modEventBus);
-        //IDS.register(modEventBus);
 
         //MinecraftForge.EVENT_BUS.addListener(INSTANCE::clientTick);
         MinecraftForge.EVENT_BUS.addListener(INSTANCE::playerTick);
