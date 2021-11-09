@@ -103,6 +103,13 @@ public class HudOverlay extends AbstractGui
         if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSHEALTH && needsPop)
         {
             RenderSystem.popMatrix();
+            needsPop = false;
+        }
+
+        if (event.getType() == RenderGameOverlayEvent.ElementType.ALL && needsPop)
+        {
+            RenderSystem.popMatrix();
+            needsPop = false;
         }
 
         if (mc.gameSettings.hideGUI || drawnThisFrame)
