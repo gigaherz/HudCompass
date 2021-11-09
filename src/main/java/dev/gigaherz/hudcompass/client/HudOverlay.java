@@ -17,6 +17,12 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.Item;
+import net.minecraft.item.Items;
+import net.minecraft.tags.ITag;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.Tag;
 import net.minecraft.util.IReorderingProcessor;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
@@ -70,7 +76,7 @@ public class HudOverlay extends AbstractGui
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void preOverlayHigh(RenderGameOverlayEvent.Pre event)
     {
-        if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSHEALTH && !mc.gameSettings.hideGUI && !event.isCanceled())
+        if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSHEALTH && !mc.gameSettings.hideGUI && canRender())
         {
             RenderSystem.pushMatrix();
             RenderSystem.translatef(0, 28, 0);
@@ -123,6 +129,10 @@ public class HudOverlay extends AbstractGui
 
     private void renderCompass(MatrixStack matrixStack)
     {
+        if(!canRender()) return;
+
+        if (mc.player == null) return;
+
         float partialTicks = 0;
         float elapsed = 0;
 
@@ -180,6 +190,47 @@ public class HudOverlay extends AbstractGui
         });
 
         drawnThisFrame = true;
+    }
+
+    private boolean canRender()
+    {
+        if (mc.player == null) return false;
+
+        switch (ConfigData.displayWhen)
+        {
+            case NEVER:
+                return false;
+            case ALWAYS:
+                return true;
+            case HAS_COMPASS:
+                return findCompassInInventory();
+            case HOLDING_COMPASS:
+                return findCompassInHands();
+            default:
+                throw new IllegalArgumentException();
+        }
+    }
+
+    private static final ITag.INamedTag<Item> MAKES_HUDCOMPASS_VISIBLE = ItemTags.createOptional( new ResourceLocation("hudcompass:makes_hudcompass_visible"), Sets.newHashSet(() -> Items.COMPASS));
+    private boolean findCompassInHands()
+    {
+        if (mc.player == null) return false;
+
+        return mc.player.getHeldItemMainhand().getItem().isIn(MAKES_HUDCOMPASS_VISIBLE)
+                || mc.player.getHeldItemOffhand().getItem().isIn(MAKES_HUDCOMPASS_VISIBLE);
+    }
+
+    private boolean findCompassInInventory()
+    {
+        if (mc.player == null) return false;
+
+        PlayerInventory inv = mc.player.inventory;
+        for(int i=0;i<inv.getSizeInventory();i++)
+        {
+            if (inv.getStackInSlot(i).getItem().isIn(MAKES_HUDCOMPASS_VISIBLE))
+                return true;
+        }
+        return false;
     }
 
     private Vector2f angleFromPoint(Vector3d position, double playerPosX, double playerPosY, double playerPosZ)

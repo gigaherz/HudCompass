@@ -66,9 +66,10 @@ public class ConfigData
                     .define("animateLabels", true);
             displayWhen = builder
                     .comment("Choose when the compass is visible.",
-                             " - HAS_COMPASS: Only display HUD if a compass is in the inventory.",
-                             " - HOLDING_COMPASS: Only display HUD if a compass is in the hand.")
-                    .translation("text.hudcompass.config.display_when")
+                            " - NEVER: Don't display the compass (the mod remains active, just doesn't render).",
+                            " - HAS_COMPASS: Only display HUD if a compass is in the inventory.",
+                            " - HOLDING_COMPASS: Only display HUD if a compass is in the hand.",
+                            " - ALWAYS: Always display the compass (default).")
                     .defineEnum("displayWhen", DisplayWhen.ALWAYS);
             enableXaeroMinimapIntegration = builder
                     .comment("If set to FALSE, Xaero Minimap waypoints won't be displayed in the compass.")
@@ -80,6 +81,7 @@ public class ConfigData
 
     public enum DisplayWhen
     {
+        NEVER,
         HOLDING_COMPASS,
         HAS_COMPASS,
         ALWAYS
@@ -124,6 +126,7 @@ public class ConfigData
     public static boolean alwaysShowFocusedLabel;
     public static boolean showAllLabelsOnSneak;
     public static boolean animateLabels;
+    public static DisplayWhen displayWhen;
 
     public static void refreshClient()
     {
@@ -131,6 +134,7 @@ public class ConfigData
         alwaysShowFocusedLabel = CLIENT.alwaysShowFocusedLabel.get();
         showAllLabelsOnSneak = CLIENT.showAllLabelsOnSneak.get();
         animateLabels = CLIENT.animateLabels.get();
+        displayWhen = CLIENT.displayWhen.get();
     }
 
 }
