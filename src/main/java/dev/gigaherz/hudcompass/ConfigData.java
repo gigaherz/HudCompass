@@ -66,8 +66,10 @@ public class ConfigData
                     .define("animateLabels", true);
             displayWhen = builder
                     .comment("Choose when the compass is visible.",
-                             " - HAS_COMPASS: Only display HUD if a compass is in the inventory.",
-                             " - HOLDING_COMPASS: Only display HUD if a compass is in the hand.")
+                            " - NEVER: Don't display the compass (the mod remains active, just doesn't render).",
+                            " - HAS_COMPASS: Only display HUD if a compass is in the inventory.",
+                            " - HOLDING_COMPASS: Only display HUD if a compass is in the hand.",
+                            " - ALWAYS: Always display the compass (default).")
                     .translation("text.hudcompass.config.display_when")
                     .defineEnum("displayWhen", DisplayWhen.ALWAYS);
             enableXaeroMinimapIntegration = builder
@@ -80,6 +82,7 @@ public class ConfigData
 
     public enum DisplayWhen
     {
+        NEVER,
         HOLDING_COMPASS,
         HAS_COMPASS,
         ALWAYS

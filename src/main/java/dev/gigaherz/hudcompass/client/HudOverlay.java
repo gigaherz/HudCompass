@@ -92,6 +92,18 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         {
             PoseStack matrixStack = event.getMatrixStack();
             matrixStack.popPose();
+            needsPop = false;
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void postOverlay(RenderGameOverlayEvent.Post event)
+    {
+        if (event.getType() == RenderGameOverlayEvent.ElementType.ALL && needsPop)
+        {
+            PoseStack matrixStack = event.getMatrixStack();
+            matrixStack.popPose();
+            needsPop = false;
         }
     }
 
@@ -164,6 +176,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
 
         return switch (ConfigData.displayWhen)
                 {
+                    case NEVER -> false;
                     case ALWAYS -> true;
                     case HAS_COMPASS -> findCompassInInventory();
                     case HOLDING_COMPASS -> findCompassInHands();

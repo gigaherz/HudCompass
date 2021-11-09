@@ -24,7 +24,7 @@ repositories {
     flatDir { dirs 'deps' }
 }
 
-version = "0.2.1"
+version = "0.2.2"
 group= "dev.gigaherz.hudcompass" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "HudCompass-UNKNOWN"
 
