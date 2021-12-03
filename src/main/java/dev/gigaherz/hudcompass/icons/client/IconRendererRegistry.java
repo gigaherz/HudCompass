@@ -22,8 +22,8 @@ public class IconRendererRegistry
     private static final BasicIconRenderer POI_RENDERER = registerRenderer(BasicIconData.POI_SERIALIZER, new BasicIconRenderer(HudOverlay.LOCATION_POI_ICONS, 128, 128, 8, 8));
     private static final BasicIconRenderer MAP_RENDERER = registerRenderer(BasicIconData.MAP_SERIALIZER, new BasicIconRenderer(HudOverlay.LOCATION_MAP_ICONS, 128, 128, 8, 8));
 
-    private static final IIconRenderer MISSING_ICON_RENDERER = (data, player, textureManager, matrixStack, x, y) ->
-            POI_RENDERER.renderIcon(BasicIconData.MISSING_ICON, player, textureManager, matrixStack, x, y);
+    private static final IIconRenderer MISSING_ICON_RENDERER = (data, player, textureManager, matrixStack, x, y, alpha) ->
+            POI_RENDERER.renderIcon(BasicIconData.MISSING_ICON, player, textureManager, matrixStack, x, y, alpha);
 
     public static <T extends IIconData<T>, R extends IIconRenderer<T>> R registerRenderer(IconDataSerializer<T> serializer, R renderer)
     {
@@ -32,13 +32,13 @@ public class IconRendererRegistry
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public static void renderIcon(IIconData<?> data, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y)
+    public static void renderIcon(IIconData<?> data, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y, int alpha)
     {
         IIconRenderer renderer = REGISTRY.computeIfAbsent(data.getSerializer(), (key) -> {
             LOGGER.warn("Missing icon renderer for {}", data.getSerializer().getRegistryName());
             return MISSING_ICON_RENDERER;
         });
 
-        renderer.renderIcon(data, player, textureManager, matrixStack, x, y);
+        renderer.renderIcon(data, player, textureManager, matrixStack, x, y, alpha);
     }
 }

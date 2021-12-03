@@ -12,13 +12,12 @@ import dev.gigaherz.hudcompass.network.AddWaypoint;
 import dev.gigaherz.hudcompass.network.RemoveWaypoint;
 import dev.gigaherz.hudcompass.network.SyncWaypointData;
 import dev.gigaherz.hudcompass.network.UpdateWaypointsFromGui;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
@@ -31,14 +30,13 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.capabilities.CapabilityManager;
+import net.minecraftforge.common.capabilities.CapabilityToken;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.fmllegacy.network.PacketDistributor;
+import net.minecraftforge.network.PacketDistributor;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -48,9 +46,7 @@ import java.util.stream.Stream;
 
 public class PointsOfInterest
 {
-    @Nonnull
-    @CapabilityInject(PointsOfInterest.class)
-    public static Capability<PointsOfInterest> INSTANCE = null; // assigned by forge
+    public static Capability<PointsOfInterest> INSTANCE = CapabilityManager.get(new CapabilityToken<>(){});
     private PointInfo<?> targetted;
 
     public int changeNumber;
@@ -67,8 +63,6 @@ public class PointsOfInterest
 
     public static void init()
     {
-        CapabilityManager.INSTANCE.register(PointsOfInterest.class);
-
         MinecraftForge.EVENT_BUS.addGenericListener(Entity.class, PointsOfInterest::attachEvent);
         MinecraftForge.EVENT_BUS.addListener(PointsOfInterest::playerClone);
     }
@@ -210,10 +204,10 @@ public class PointsOfInterest
             CompoundTag tag = nbt.getCompound(i);
             ResourceKey<Level> key = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation(tag.getString("World")));
             ResourceKey<DimensionType> dimType = null;
-            if (tag.contains("DimensionKey", Constants.NBT.TAG_STRING))
+            if (tag.contains("DimensionKey", Tag.TAG_STRING))
                 dimType = ResourceKey.create(Registry.DIMENSION_TYPE_REGISTRY, new ResourceLocation(tag.getString("DimensionKey")));
             WorldPoints p = get(key, dimType);
-            p.read(tag.getList("POIs", Constants.NBT.TAG_COMPOUND));
+            p.read(tag.getList("POIs", Tag.TAG_COMPOUND));
         }
         savedNumber = changeNumber = 0;
     }

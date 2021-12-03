@@ -2,7 +2,7 @@ package dev.gigaherz.hudcompass.network;
 
 import dev.gigaherz.hudcompass.client.ClientHandler;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.fmllegacy.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
 

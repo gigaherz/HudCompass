@@ -8,10 +8,10 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -84,7 +84,7 @@ public class ClientWaypointDatabase
 
                     pois.clear();
 
-                    ListTag list0 = tag.getList("Worlds", Constants.NBT.TAG_COMPOUND);
+                    ListTag list0 = tag.getList("Worlds", Tag.TAG_COMPOUND);
                     pois.read(list0);
                 }
                 catch (IOException e)

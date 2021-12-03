@@ -2,13 +2,12 @@ package dev.gigaherz.hudcompass.network;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
-import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fmllegacy.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 import java.util.UUID;
 import java.util.function.Supplier;

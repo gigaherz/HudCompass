@@ -12,9 +12,9 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.KeyMapping;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.client.ClientRegistry;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.fmlclient.registry.ClientRegistry;
 
 public class ClientHandler
 {

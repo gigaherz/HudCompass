@@ -150,6 +150,8 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         double playerPosY = Mth.lerp(partialTicks, mc.player.yo, mc.player.getY());
         double playerPosZ = Mth.lerp(partialTicks, mc.player.zo, mc.player.getZ());
 
+        var playerPosition = new Vec3(playerPosX, playerPosY, playerPosZ);
+
         final float yaw0 = yaw;
         final float elapsed0 = elapsed;
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(pts -> {
@@ -165,7 +167,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
             {
                 Vec3 position = point.getPosition();
                 Vec2 angleYd = angleFromPoint(position, playerPosX, playerPosY, playerPosZ);
-                drawPoi(player, matrixStack, yaw0, angleYd.x, angleYd.y, xPos, point, point == pts.getTargetted(), elapsed0);
+                drawPoi(player, matrixStack, yaw0, angleYd.x, angleYd.y, xPos, point, point == pts.getTargetted(), elapsed0, position.subtract(playerPosition));
             }
         });
     }
@@ -262,16 +264,30 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         RenderSystem.enableBlend();
     }
 
-    private void drawPoi(Player player, PoseStack matrixStack, float yaw, float angle, float yDelta, int xPos, PointInfo<?> point, boolean isTargetted, float elapsed)
+    private void drawPoi(Player player, PoseStack matrixStack, float yaw, float angle, float yDelta, int xPos, PointInfo<?> point, boolean isTargetted, float elapsed, Vec3 subtract)
     {
+        var fadeSqr = ConfigData.waypointViewDistance * ConfigData.waypointViewDistance;
+        double distance2 = subtract.lengthSqr();
+
+        if (distance2 > fadeSqr)
+        {
+            return;
+        }
+
+        double distance = Math.sqrt(distance2);
+
+        var distanceFade = 1 - Mth.clamp((distance - ConfigData.waypointFadeDistance) / (ConfigData.waypointViewDistance - ConfigData.waypointFadeDistance), 0, 1);
+
+        var alpha = (int)(255*distanceFade);
+
         float nDist = angleDistance(yaw, angle);
-        if (Math.abs(nDist) <= 90)
+        if (alpha > 0 && Math.abs(nDist) <= 90)
         {
             float nPos = xPos + nDist;
             matrixStack.pushPose();
             matrixStack.translate(nPos, 0, 0);
 
-            PointRenderer.renderIcon(point, player, textureManager, matrixStack, 0, 14);
+            PointRenderer.renderIcon(point, player, textureManager, matrixStack, 0, 14, alpha);
             boolean showLabel =
                     ConfigData.alwaysShowLabels ||
                     (ConfigData.alwaysShowFocusedLabel && isTargetted) ||
@@ -293,31 +309,33 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
                 point.fade = showLabel ? 255 : 0;
             }
 
-            if (point.fade > 3)
-                PointRenderer.renderLabel(point, font, matrixStack, 0, 20, (int)point.fade);
+            var pointFade = distanceFade * point.fade;
+
+            if (pointFade > 4)
+                PointRenderer.renderLabel(point, font, matrixStack, 0, 20, (int)pointFade);
 
             if (point.displayVerticalDistance(player))
             {
-                if (yDelta >= 2) drawAboveArrow(matrixStack, yDelta);
-                if (yDelta <= -2) drawBelowArrow(matrixStack, yDelta);
+                if (yDelta >= 2) drawAboveArrow(matrixStack, yDelta, alpha);
+                if (yDelta <= -2) drawBelowArrow(matrixStack, yDelta, alpha);
             }
 
             matrixStack.popPose();
         }
     }
 
-    private void drawAboveArrow(PoseStack matrixStack, float yDelta)
+    private void drawAboveArrow(PoseStack matrixStack, float yDelta, int alpha)
     {
         int x = yDelta > 10 ? 8 : 0;
         int y = 0;
-        blitRect(matrixStack, -4.5f, 4, x, y, 8, 8, 128, 128, LOCATION_POI_ICONS);
+        blitRect(matrixStack, -4.5f, 4, x, y, 8, 8, 128, 128, LOCATION_POI_ICONS, alpha);
     }
 
-    private void drawBelowArrow(PoseStack matrixStack, float yDelta)
+    private void drawBelowArrow(PoseStack matrixStack, float yDelta, int alpha)
     {
         int x = yDelta < -10 ? 24 : 16;
         int y = 0;
-        blitRect(matrixStack, -4.5f, 16, x, y, 8, 8, 128, 128, LOCATION_POI_ICONS);
+        blitRect(matrixStack, -4.5f, 16, x, y, 8, 8, 128, 128, LOCATION_POI_ICONS, alpha);
     }
 
     /**
@@ -353,12 +371,12 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         RenderSystem.enableTexture();
     }
 
-    private static void blitRect(PoseStack matrixStack, float x0, float y0, float xt, float yt, float width, float height, int tWidth, int tHeight, ResourceLocation texture)
+    private static void blitRect(PoseStack matrixStack, float x0, float y0, float xt, float yt, float width, float height, int tWidth, int tHeight, ResourceLocation texture, int alpha)
     {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha / 255.0f);
         RenderSystem.setShaderTexture(0, texture);
 
         float tx0 = xt / tWidth;

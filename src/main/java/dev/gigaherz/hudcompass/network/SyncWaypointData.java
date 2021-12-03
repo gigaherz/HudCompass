@@ -4,9 +4,8 @@ import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.fmllegacy.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 
-import java.util.Arrays;
 import java.util.function.Supplier;
 
 public class SyncWaypointData

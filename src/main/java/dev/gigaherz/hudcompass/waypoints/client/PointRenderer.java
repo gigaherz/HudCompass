@@ -11,9 +11,9 @@ import net.minecraft.network.chat.Component;
 
 public class PointRenderer
 {
-    public static void renderIcon(PointInfo<?> info, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y)
+    public static void renderIcon(PointInfo<?> info, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y, int alpha)
     {
-        IconRendererRegistry.renderIcon(info.getIconData(), player, textureManager, matrixStack, x, y);
+        IconRendererRegistry.renderIcon(info.getIconData(), player, textureManager, matrixStack, x, y, alpha);
     }
 
     public static void renderLabel(PointInfo<?> info, Font font, PoseStack matrixStack, int x, int y, int alpha)

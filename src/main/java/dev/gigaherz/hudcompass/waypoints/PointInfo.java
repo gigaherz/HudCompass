@@ -2,13 +2,13 @@ package dev.gigaherz.hudcompass.waypoints;
 
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataRegistry;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
@@ -149,7 +149,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
     public final void read(CompoundTag tag)
     {
         internalId = UUID.fromString(tag.getString("ID"));
-        if (tag.contains("Label", Constants.NBT.TAG_STRING))
+        if (tag.contains("Label", Tag.TAG_STRING))
             label = Component.Serializer.fromJson(tag.getString("Label"));
         else
             label = null;

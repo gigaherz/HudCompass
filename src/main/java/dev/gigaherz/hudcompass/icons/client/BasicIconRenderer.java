@@ -36,11 +36,11 @@ public class BasicIconRenderer implements IIconRenderer<BasicIconData>
         this.iconsPerCol = texH / iconH;
     }
 
-    public void renderIcon(BasicIconData data, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y)
+    public void renderIcon(BasicIconData data, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y, int alpha)
     {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderTexture(0, texture);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha / 255.0f);
         int indexX = data.iconIndex % iconsPerRow;
         int indexY = data.iconIndex / iconsPerCol;
         GuiComponent.blit(matrixStack, x - iconW / 2, y - iconH / 2, indexX * iconW, indexY * iconH, iconW, iconH, texW, texH);
