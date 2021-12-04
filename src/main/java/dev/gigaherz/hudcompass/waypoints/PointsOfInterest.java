@@ -29,10 +29,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.capabilities.CapabilityToken;
-import net.minecraftforge.common.capabilities.ICapabilitySerializable;
+import net.minecraftforge.common.capabilities.*;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -61,10 +58,12 @@ public class PointsOfInterest
         return (T) addonData.computeIfAbsent(addonId, key -> factory.get());
     }
 
-    public static void init()
+    public static void init(RegisterCapabilitiesEvent event)
     {
         MinecraftForge.EVENT_BUS.addGenericListener(Entity.class, PointsOfInterest::attachEvent);
         MinecraftForge.EVENT_BUS.addListener(PointsOfInterest::playerClone);
+
+        event.register(PointsOfInterest.class);
     }
 
     private static final ResourceLocation PROVIDER_KEY = HudCompass.location("poi_provider");

@@ -14,6 +14,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
@@ -84,6 +85,7 @@ public class HudCompass
         modEventBus.addListener(this::clientSetup);
         modEventBus.addListener(this::loadComplete);
         modEventBus.addListener(this::modConfig);
+        modEventBus.addListener(this::registerCapabilities);
 
         POINT_INFO_TYPES.register(modEventBus);
         ICON_DATA_SERIALIZERS.register(modEventBus);
@@ -130,10 +132,13 @@ public class HudCompass
         );
     }
 
+    public void registerCapabilities(RegisterCapabilitiesEvent event)
+    {
+        PointsOfInterest.init(event);
+    }
+
     public void commonSetup(FMLCommonSetupEvent event)
     {
-        PointsOfInterest.init();
-
         int messageNumber = 0;
         channel.messageBuilder(AddWaypoint.class, messageNumber++, NetworkDirection.PLAY_TO_SERVER).encoder(AddWaypoint::encode).decoder(AddWaypoint::new).consumer(AddWaypoint::handle).add();
         channel.messageBuilder(RemoveWaypoint.class, messageNumber++, NetworkDirection.PLAY_TO_SERVER).encoder(RemoveWaypoint::encode).decoder(RemoveWaypoint::new).consumer(RemoveWaypoint::handle).add();
