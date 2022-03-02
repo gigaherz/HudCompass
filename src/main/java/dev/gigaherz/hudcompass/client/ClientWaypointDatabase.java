@@ -42,9 +42,8 @@ public class ClientWaypointDatabase
             Connection networkManager = mc.player.connection.getConnection();
             SocketAddress addr = networkManager.getRemoteAddress();
             String address;
-            if (addr instanceof InetSocketAddress)
+            if (addr instanceof InetSocketAddress ip)
             {
-                InetSocketAddress ip = ((InetSocketAddress) addr);
                 address = ip.getHostString() + "_" + ip.getPort();
             }
             else

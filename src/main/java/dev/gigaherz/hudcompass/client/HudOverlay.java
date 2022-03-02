@@ -14,10 +14,12 @@ import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.Tag;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
@@ -185,7 +187,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
                 };
     }
 
-    private static final Tag.Named<Item> MAKES_HUDCOMPASS_VISIBLE = ItemTags.createOptional( new ResourceLocation("hudcompass:makes_hudcompass_visible"), Set.of(() -> Items.COMPASS));
+    private static final TagKey<Item> MAKES_HUDCOMPASS_VISIBLE = TagKey.create(Registry.ITEM_REGISTRY, new ResourceLocation("hudcompass:makes_hudcompass_visible"));
     private boolean findCompassInHands()
     {
         if (mc.player == null) return false;

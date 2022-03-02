@@ -1,11 +1,12 @@
 buildscript {
     repositories {
-        mavenLocal()
         maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.parchmentmc.org' }
         mavenCentral()
     }
     dependencies {
         classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
+        classpath 'org.parchmentmc:librarian:1.+'
     }
 }
 
@@ -14,8 +15,8 @@ plugins {
 }
 
 apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'org.parchmentmc.librarian.forgegradle'
 apply plugin: 'maven-publish'
-apply from: 'https://raw.githubusercontent.com/SizableShrimp/Forge-Class-Remapper/main/classremapper.gradle'
 
 repositories {
     maven {
@@ -24,7 +25,7 @@ repositories {
     flatDir { dirs 'deps' }
 }
 
-version = "0.3.1"
+version = "0.3.2"
 group= "dev.gigaherz.hudcompass" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "HudCompass-UNKNOWN"
 
@@ -35,7 +36,8 @@ project.afterEvaluate {
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 minecraft {
-    mappings channel: 'official', version: '1.18'
+    mappings channel: 'official', version: '1.18.2'
+    //mappings channel: 'parchment', version: '2021.12.13-nightly-SNAPSHOT-1.18.1'
 
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
@@ -85,7 +87,7 @@ minecraft {
 }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.18-38.0.4'
+    minecraft 'net.minecraftforge:forge:1.18.2-40.0.2'
     //compileOnly 'xaero:Xaeros_Minimap:21.3.0.2_Forge_1.16.5'
     //runtimeOnly fg.deobf('xaero:Xaeros_Minimap:20.25.1_Forge_1.16.3-deobf')
     //implementation 'xaero:Xaeros_Minimap:21.12.5-deobf'
