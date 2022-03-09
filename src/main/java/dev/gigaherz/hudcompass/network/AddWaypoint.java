@@ -4,6 +4,7 @@ import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.fml.network.NetworkEvent;
 
 import java.util.function.Supplier;
@@ -29,10 +30,11 @@ public class AddWaypoint
 
     public AddWaypoint(BasicWaypoint point)
     {
+        Vector3d position = point.getPosition();
         this.label = point.getLabelText();
-        this.x = point.getPosition().x;
-        this.y = point.getPosition().y;
-        this.z = point.getPosition().z;
+        this.x = position.x;
+        this.y = position.y;
+        this.z = position.z;
         BasicIconData data = (BasicIconData)point.getIconData();
         this.isMarker = data.getSerializer() == BasicIconData.Serializer.MAP_SERIALIZER;
         this.iconIndex = data.iconIndex;

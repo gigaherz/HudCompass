@@ -12,7 +12,6 @@ import dev.gigaherz.hudcompass.network.AddWaypoint;
 import dev.gigaherz.hudcompass.network.RemoveWaypoint;
 import dev.gigaherz.hudcompass.network.SyncWaypointData;
 import dev.gigaherz.hudcompass.network.UpdateWaypointsFromGui;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -387,7 +386,11 @@ public class PointsOfInterest
                 .find(removeWaypoint.id)
                 .ifPresent(pt -> {
             if (!pt.isDynamic())
-                pt.getOwner().removePoint(removeWaypoint.id);
+            {
+                WorldPoints owner = pt.getOwner();
+                if (owner != null)
+                    owner.removePoint(removeWaypoint.id);
+            }
         }));
     }
 
@@ -485,7 +488,7 @@ public class PointsOfInterest
                 double closestAngle = Double.POSITIVE_INFINITY;
                 for (PointInfo<?> point : points.values())
                 {
-                    Vector3d direction = point.getPosition().subtract(player.position());
+                    Vector3d direction = point.getPosition(player, 1.0f).subtract(player.position());
                     Vector3d look = player.getLookAngle();
                     direction = direction.normalize();
                     look = look.normalize();

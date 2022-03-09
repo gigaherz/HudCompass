@@ -2,7 +2,6 @@ package dev.gigaherz.hudcompass.network;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
-import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;

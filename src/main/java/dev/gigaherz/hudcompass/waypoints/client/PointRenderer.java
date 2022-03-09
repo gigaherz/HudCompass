@@ -11,15 +11,15 @@ import net.minecraft.util.text.ITextComponent;
 
 public class PointRenderer
 {
-    public static void renderIcon(PointInfo<?> info, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y)
+    public static void renderIcon(PointInfo<?> info, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y, int alpha)
     {
-        IconRendererRegistry.renderIcon(info.getIconData(), player, textureManager, matrixStack, x, y);
+        IconRendererRegistry.renderIcon(info.getIconData(), player, textureManager, matrixStack, x, y, alpha);
     }
 
     public static void renderLabel(PointInfo<?> info, FontRenderer font, MatrixStack matrixStack, int x, int y, int alpha)
     {
         ITextComponent label = info.getLabel();
-        if (label != null && label.getContents().length() > 0)
+        if (label != null && label.getString().length() > 0)
         {
             HudOverlay.drawCenteredBoxedString(matrixStack, font, label, x, y, (alpha << 24) | 0xFFFFFF);
         }

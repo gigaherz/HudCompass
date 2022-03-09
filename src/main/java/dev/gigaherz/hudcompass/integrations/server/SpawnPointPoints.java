@@ -3,6 +3,7 @@ package dev.gigaherz.hudcompass.integrations.server;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
+import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
@@ -28,20 +29,17 @@ public class SpawnPointPoints
 
     private static final ResourceLocation ADDON_ID = HudCompass.location("spawn_point");
 
-    private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.makeDeferredPOI();
-
     public static void init()
     {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-
-        PIT.register(modEventBus);
-
         MinecraftForge.EVENT_BUS.addListener(INSTANCE::playerTick);
     }
 
     private int counter = 0;
     private void playerTick(TickEvent.PlayerTickEvent event)
     {
+        if (event.phase != TickEvent.Phase.END)
+            return;
+
         if ((++counter) > 20)
         {
             counter = 0;

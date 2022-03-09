@@ -133,14 +133,10 @@ public class HudOverlay extends AbstractGui
 
         if (mc.player == null) return;
 
-        float partialTicks = 0;
-        float elapsed = 0;
+        boolean isPaused = mc.isPaused();
 
-        if (!mc.isPaused())
-        {
-            partialTicks = mc.getFrameTime();
-            elapsed = mc.getDeltaFrameTime();
-        }
+        float elapsed = isPaused ? 0 : mc.getDeltaFrameTime();
+        float partialTicks = isPaused ? 0 :  mc.getFrameTime();
 
         int xPos = mc.getWindow().getGuiScaledWidth() / 2;
         float yaw = MathHelper.lerp(partialTicks, mc.player.yHeadRotO, mc.player.yHeadRot) % 360;
@@ -170,22 +166,24 @@ public class HudOverlay extends AbstractGui
         double playerPosY = MathHelper.lerp(partialTicks, mc.player.yo, mc.player.getY());
         double playerPosZ = MathHelper.lerp(partialTicks, mc.player.zo, mc.player.getZ());
 
+        Vector3d playerPosition = new Vector3d(playerPosX, playerPosY, playerPosZ);
+
         final float yaw0 = yaw;
         final float elapsed0 = elapsed;
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(pts -> {
             List<PointInfo<?>> sortedPoints = Lists.newArrayList(pts.get(player.level).getPoints());
             sortedPoints.sort((a,b) -> {
-                Vector3d positionA = a.getPosition();
-                Vector3d positionB = b.getPosition();
+                Vector3d positionA = a.getPosition(player, partialTicks);
+                Vector3d positionB = b.getPosition(player, partialTicks);
                 float angleA = Math.abs(angleDistance(yaw0, angleFromPoint(positionA, playerPosX, playerPosY, playerPosZ).x));
                 float angleB = Math.abs(angleDistance(yaw0, angleFromPoint(positionB, playerPosX, playerPosY, playerPosZ).x));
                 return (int)Math.signum(angleB-angleA);
             });
             for (PointInfo<?> point : sortedPoints)
             {
-                Vector3d position = point.getPosition();
+                Vector3d position = point.getPosition(player, partialTicks);
                 Vector2f angleYd = angleFromPoint(position, playerPosX, playerPosY, playerPosZ);
-                drawPoi(player, matrixStack, yaw0, angleYd.x, angleYd.y, xPos, point, point == pts.getTargetted(), elapsed0);
+                drawPoi(player, matrixStack, yaw0, angleYd.x, angleYd.y, xPos, point, point == pts.getTargetted(), elapsed0, position.subtract(playerPosition));
             }
         });
 
@@ -290,16 +288,30 @@ public class HudOverlay extends AbstractGui
         RenderSystem.enableBlend();
     }
 
-    private void drawPoi(PlayerEntity player, MatrixStack matrixStack, float yaw, float angle, float yDelta, int xPos, PointInfo<?> point, boolean isTargetted, float elapsed)
+    private void drawPoi(PlayerEntity player, MatrixStack matrixStack, float yaw, float angle, float yDelta, int xPos, PointInfo<?> point, boolean isTargetted, float elapsed, Vector3d subtract)
     {
+        double fadeSqr = ConfigData.waypointViewDistance * ConfigData.waypointViewDistance;
+        double distance2 = subtract.lengthSqr();
+
+        if (distance2 > fadeSqr)
+        {
+            return;
+        }
+
+        double distance = Math.sqrt(distance2);
+
+        double distanceFade = 1 - MathHelper.clamp((distance - ConfigData.waypointFadeDistance) / (ConfigData.waypointViewDistance - ConfigData.waypointFadeDistance), 0, 1);
+
+        int alpha = (int)(255*distanceFade);
+
         float nDist = angleDistance(yaw, angle);
-        if (Math.abs(nDist) <= 90)
+        if (alpha > 0 && Math.abs(nDist) <= 90)
         {
             float nPos = xPos + nDist;
             matrixStack.pushPose();
             matrixStack.translate(nPos, 0, 0);
 
-            PointRenderer.renderIcon(point, player, textureManager, matrixStack, 0, 14);
+            PointRenderer.renderIcon(point, player, textureManager, matrixStack, 0, 14, alpha);
             boolean showLabel =
                     ConfigData.alwaysShowLabels ||
                     (ConfigData.alwaysShowFocusedLabel && isTargetted) ||

@@ -2,14 +2,12 @@ package dev.gigaherz.hudcompass.integrations.xaerominimap;
 
 import com.google.common.collect.Maps;
 import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.vertex.IVertexBuilder;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import dev.gigaherz.hudcompass.icons.client.IIconRenderer;
 import dev.gigaherz.hudcompass.icons.client.IconRendererRegistry;
-import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
@@ -65,8 +63,9 @@ public class XaeroMinimapIntegration
             private final Map<Waypoint, XMWaypoint> waypoints = Maps.newHashMap();
         }
 
-        private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.makeDeferredPOI();
-        private static final DeferredRegister<IconDataSerializer<?>> IDS = HudCompass.makeDeferredIDS();
+        private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.POINT_INFO_TYPES;
+        private static final DeferredRegister<IconDataSerializer<?>> IDS = HudCompass.ICON_DATA_SERIALIZERS;
+
         public static final RegistryObject<PointInfoType<XMWaypoint>> TYPE = PIT.register("xmwaypoints", () -> new PointInfoType<>(XMWaypoint::new));
         public static final RegistryObject<XMIconData.Serializer> ICON_DATA = IDS.register("xmwaypoints", XMIconData.Serializer::new);
 
@@ -225,6 +224,12 @@ public class XaeroMinimapIntegration
             }
 
             @Override
+            public Vector3d getPosition(PlayerEntity player, float partialTicks)
+            {
+                return getPosition();
+            }
+
+            @Override
             public ITextComponent getLabel()
             {
                 return new TranslationTextComponent(parent.getName());
@@ -260,7 +265,7 @@ public class XaeroMinimapIntegration
             private final MinimapRendererHelper renderHelper = new MinimapRendererHelper();
 
             @Override
-            public void renderIcon(XMIconData data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y)
+            public void renderIcon(XMIconData data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y, int alpha)
             {
                 IRenderTypeBuffer.Impl impl = Minecraft.getInstance().renderBuffers().bufferSource();
                 matrixStack.pushPose();

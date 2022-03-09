@@ -11,6 +11,7 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.UUID;
 
 public abstract class PointInfo<T extends PointInfo<T>>
@@ -21,8 +22,10 @@ public abstract class PointInfo<T extends PointInfo<T>>
     }
 
     private final PointInfoType<? extends T> type;
+    @Nullable
     private PointsOfInterest.WorldPoints owner;
     private UUID internalId;
+    @Nullable
     private ITextComponent label;
     private IIconData<?> iconData;
     private boolean displayVerticalDistance = true;
@@ -53,6 +56,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
         return type;
     }
 
+    @Nullable
     public final PointsOfInterest.WorldPoints getOwner()
     {
         return owner;
@@ -68,6 +72,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
     }
 
     public abstract Vector3d getPosition();
+    public abstract Vector3d getPosition(PlayerEntity player, float partialTicks);
 
     @Nullable
     public ITextComponent getLabel()
@@ -77,6 +82,8 @@ public abstract class PointInfo<T extends PointInfo<T>>
 
     public void setLabel(@Nullable ITextComponent text)
     {
+        if (!Objects.equals(label, text))
+            markDirty();
         this.label = text;
     }
 
@@ -123,7 +130,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
     {
     }
 
-    void setOwner(PointsOfInterest.WorldPoints owner)
+    void setOwner(@Nullable PointsOfInterest.WorldPoints owner)
     {
         this.owner = owner;
     }

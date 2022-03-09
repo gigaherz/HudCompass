@@ -1,6 +1,5 @@
 package dev.gigaherz.hudcompass;
 
-import com.google.common.collect.Lists;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -44,25 +43,23 @@ public class ConfigData
         public final ForgeConfigSpec.BooleanValue animateLabels;
         public final ForgeConfigSpec.BooleanValue enableXaeroMinimapIntegration;
         public final ForgeConfigSpec.EnumValue<DisplayWhen> displayWhen;
+        public final ForgeConfigSpec.DoubleValue waypointFadeDistance;
+        public final ForgeConfigSpec.DoubleValue waypointViewDistance;
 
         ClientConfig(ForgeConfigSpec.Builder builder)
         {
             builder.push("display");
             alwaysShowLabels = builder
                     .comment("If set to TRUE, the labels on the compass will always be visible, if FALSE (default), only the closest to the center of the compass will show the name.")
-                    .translation("text.hudcompass.config.always_show_labels")
                     .define("alwaysShowLabels", false);
             alwaysShowFocusedLabel = builder
                     .comment("If set to FALSE, the closest waypoint to the center of the compass will not show the label, and sneak will be required to display it.")
-                    .translation("text.hudcompass.config.always_show_focused_labels")
                     .define("alwaysShowFocusedLabel", true);
             showAllLabelsOnSneak = builder
                     .comment("If set to FALSE, sneaking will only show the closest waypoint to the center of the compass.")
-                    .translation("text.hudcompass.config.show_all_labels_on_sneak")
                     .define("showAllLabelsOnSneak", true);
             animateLabels = builder
                     .comment("If set to FALSE, support for sewing recipes will not be enabled regardless of the mod's presence.")
-                    .translation("text.hudcompass.config.animate_labels")
                     .define("animateLabels", true);
             displayWhen = builder
                     .comment("Choose when the compass is visible.",
@@ -70,11 +67,16 @@ public class ConfigData
                             " - HAS_COMPASS: Only display HUD if a compass is in the inventory.",
                             " - HOLDING_COMPASS: Only display HUD if a compass is in the hand.",
                             " - ALWAYS: Always display the compass (default).")
-                    .defineEnum("displayWhen", DisplayWhen.ALWAYS);
+                    .defineEnum("displayWhen", DisplayWhen.HOLDING_COMPASS);
             enableXaeroMinimapIntegration = builder
                     .comment("If set to FALSE, Xaero Minimap waypoints won't be displayed in the compass.")
-                    .translation("text.hudcompass.config.enable_xaero_minimap")
                     .define("enableXaeroMinimapIntegration", true);
+            waypointFadeDistance = builder
+                    .comment("Sets the distance at which waypoints start to fade. Meaningless if waypointViewDistance=0. If this value is >= waypointViewDistance, it will never fade.")
+                    .defineInRange("waypointFadeDistance", 195.0, 0.0, Double.MAX_VALUE);
+            waypointViewDistance = builder
+                    .comment("Sets the distance at which waypoints stop drawing. If set to 0, waypoints will never disappear.")
+                    .defineInRange("waypointViewDistance", 200.0, 0.0, Double.MAX_VALUE);
             builder.pop();
         }
     }
@@ -87,27 +89,38 @@ public class ConfigData
         ALWAYS
     }
 
+    public enum PlayerDisplay
+    {
+        NONE,
+        TEAM,
+        ALL
+    }
+
     public static class CommonConfig
     {
         public final ForgeConfigSpec.BooleanValue enableVanillaMapIntegration;
         public final ForgeConfigSpec.BooleanValue enableSpawnPointWaypoint;
         public final ForgeConfigSpec.BooleanValue disableServerHello;
+        public final ForgeConfigSpec.EnumValue<PlayerDisplay> playerDisplay;
 
         CommonConfig(ForgeConfigSpec.Builder builder)
         {
             builder.push("general");
             enableVanillaMapIntegration = builder
                     .comment("If set to FALSE, vanilla map waypoints won't be displayed in the compass.")
-                    .translation("text.hudcompass.config.enable_vanilla_map")
                     .define("enableVanillaMapIntegration", true);
             enableSpawnPointWaypoint = builder
                     .comment("If set to FALSE, the spawn point location will not be shown.")
-                    .translation("text.hudcompass.config.disable_anvil_update")
                     .define("enableXaeroMinimapIntegration", true);
             disableServerHello = builder
                     .comment("If set to TRUE, the server will not advertise itself to the clients, making them work in client-only mode.")
-                    .translation("text.hudcompass.config.disable_anvil_update")
                     .define("disableServerHello", false);
+            playerDisplay = builder
+                    .comment("Choose how the compass shows other players.",
+                            " - NONE: Don't display other players, ever.",
+                            " - TEAM (default): Only display players that are in the same team.",
+                            " - ALL: Display all players.")
+                    .defineEnum("playerDisplay", PlayerDisplay.TEAM);
             builder.pop();
         }
     }
@@ -127,6 +140,10 @@ public class ConfigData
     public static boolean showAllLabelsOnSneak;
     public static boolean animateLabels;
     public static DisplayWhen displayWhen;
+    public static double waypointViewDistance;
+    public static double waypointFadeDistance;
+
+    public static PlayerDisplay playerDisplay;
 
     public static void refreshClient()
     {
@@ -135,6 +152,12 @@ public class ConfigData
         showAllLabelsOnSneak = CLIENT.showAllLabelsOnSneak.get();
         animateLabels = CLIENT.animateLabels.get();
         displayWhen = CLIENT.displayWhen.get();
+        waypointFadeDistance = CLIENT.waypointFadeDistance.get();
+        waypointViewDistance = CLIENT.waypointViewDistance.get();
     }
 
+    public static void refreshCommon()
+    {
+        playerDisplay = COMMON.playerDisplay.get();
+    }
 }

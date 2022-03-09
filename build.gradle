@@ -25,7 +25,7 @@ repositories {
     flatDir { dirs 'deps' }
 }
 
-version = "0.1.6"
+version = "0.4.0"
 group= "dev.gigaherz.hudcompass" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "HudCompass-UNKNOWN"
 
@@ -52,6 +52,12 @@ minecraft {
                     source sourceSets.main
                 }
             }
+        }
+
+        client2 {
+            parent runs.client
+
+            args '--username', 'gigaherz', '--user', 'gigaherz', '--uuid', '67752848-2bae-4c88-ae42-150fab05fea8'
         }
 
         server {

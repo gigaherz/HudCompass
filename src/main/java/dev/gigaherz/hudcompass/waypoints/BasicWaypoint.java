@@ -1,6 +1,7 @@
 package dev.gigaherz.hudcompass.waypoints;
 
 import dev.gigaherz.hudcompass.icons.IIconData;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
@@ -45,6 +46,12 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
 
     @Override
     public Vector3d getPosition()
+    {
+        return position;
+    }
+
+    @Override
+    public Vector3d getPosition(PlayerEntity player, float partialTicks)
     {
         return position;
     }

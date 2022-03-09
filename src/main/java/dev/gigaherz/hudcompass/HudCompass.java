@@ -4,6 +4,7 @@ import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
+import dev.gigaherz.hudcompass.integrations.server.PlayerTracker;
 import dev.gigaherz.hudcompass.integrations.server.SpawnPointPoints;
 import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
 import dev.gigaherz.hudcompass.integrations.xaerominimap.XaeroMinimapIntegration;
@@ -36,12 +37,14 @@ import net.minecraftforge.fml.network.NetworkRegistry;
 import net.minecraftforge.fml.network.PacketDistributor;
 import net.minecraftforge.fml.network.simple.SimpleChannel;
 import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 @Mod(HudCompass.MODID)
 public class HudCompass
@@ -52,10 +55,26 @@ public class HudCompass
 
     public static final Logger LOGGER = LogManager.getLogger(MODID);
 
-    public static final String CHANNEL = "main";
+    private static class Generify
+    {
+        @SuppressWarnings("unchecked")
+        public static <T extends IForgeRegistryEntry<T>> Class<T> from(Class<? super T> cls)
+        {
+            return (Class<T>) cls;
+        }
+    }
+
+    public static final DeferredRegister<PointInfoType<?>> POINT_INFO_TYPES = DeferredRegister.create(Generify.<PointInfoType<?>>from(PointInfoType.class), MODID);
+    public static final DeferredRegister<IconDataSerializer<?>> ICON_DATA_SERIALIZERS = DeferredRegister.create(Generify.<IconDataSerializer<?>>from(IconDataSerializer.class), MODID);
+
+    public static final Supplier<IForgeRegistry<PointInfoType<?>>> POINT_INFO_TYPES_REGISTRY = POINT_INFO_TYPES
+            .makeRegistry("point_info_types", () -> new RegistryBuilder<PointInfoType<?>>().disableSaving());
+    public static final Supplier<IForgeRegistry<IconDataSerializer<?>>> ICON_DATA_SERIALIZERS_REGISTRY = ICON_DATA_SERIALIZERS
+            .makeRegistry("icon_data_serializers", () -> new RegistryBuilder<IconDataSerializer<?>>().disableSaving());
+
     private static final String PROTOCOL_VERSION = "1.1";
     public static SimpleChannel channel = NetworkRegistry.ChannelBuilder
-            .named(new ResourceLocation(MODID, CHANNEL))
+            .named(new ResourceLocation(MODID, "main"))
             .clientAcceptedVersions((v) -> PROTOCOL_VERSION.equals(v) || NetworkRegistry.ABSENT.equals(v) || NetworkRegistry.ACCEPTVANILLA.equals(v))
             .serverAcceptedVersions((v) -> PROTOCOL_VERSION.equals(v) || NetworkRegistry.ABSENT.equals(v) || NetworkRegistry.ACCEPTVANILLA.equals(v))
             .networkProtocolVersion(() -> PROTOCOL_VERSION)
@@ -67,7 +86,6 @@ public class HudCompass
 
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        modEventBus.addListener(this::newRegistry);
         modEventBus.addGenericListener(IconDataSerializer.class, this::iconDataSerializers);
         modEventBus.addGenericListener(PointInfoType.class, this::pointInfoTypes);
         modEventBus.addListener(this::commonSetup);
@@ -75,11 +93,15 @@ public class HudCompass
         modEventBus.addListener(this::loadComplete);
         modEventBus.addListener(this::modConfig);
 
+        POINT_INFO_TYPES.register(modEventBus);
+        ICON_DATA_SERIALIZERS.register(modEventBus);
+
         MinecraftForge.EVENT_BUS.addListener(this::playerTickEvent);
         MinecraftForge.EVENT_BUS.addListener(this::playerLoggedIn);
 
         SpawnPointPoints.init();
         VanillaMapPoints.init();
+        PlayerTracker.init();
 
         if (ModList.get().isLoaded("xaerominimap"))
         {
@@ -100,36 +122,8 @@ public class HudCompass
         ModConfig config = event.getConfig();
         if (config.getSpec() == ConfigData.CLIENT_SPEC)
             ConfigData.refreshClient();
-    }
-
-
-    public static DeferredRegister<PointInfoType<?>> makeDeferredPOI()
-    {
-        //noinspection unchecked
-        return (DeferredRegister<PointInfoType<?>>)(Object)
-                DeferredRegister.create(PointInfoType.class, MODID);
-    }
-
-    public static DeferredRegister<IconDataSerializer<?>> makeDeferredIDS()
-    {
-        //noinspection unchecked
-        return (DeferredRegister<IconDataSerializer<?>>)(Object)
-                DeferredRegister.create(IconDataSerializer.class, MODID);
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public void newRegistry(RegistryEvent.NewRegistry event)
-    {
-        new RegistryBuilder()
-                .setName(HudCompass.location("icon_data_serializers"))
-                .setType(IconDataSerializer.class)
-                .disableSaving()
-                .create();
-        new RegistryBuilder()
-                .setName(HudCompass.location("point_info_serializers"))
-                .setType(PointInfoType.class)
-                .disableSaving()
-                .create();
+        else if(config.getSpec() == ConfigData.COMMON_SPEC)
+            ConfigData.refreshCommon();
     }
 
     public void iconDataSerializers(RegistryEvent.Register<IconDataSerializer<?>> event)
@@ -176,6 +170,9 @@ public class HudCompass
 
     public void playerTickEvent(TickEvent.PlayerTickEvent event)
     {
+        if (event.phase != TickEvent.Phase.END)
+            return;
+
         if (!(event.player instanceof ServerPlayerEntity))
             return;
 

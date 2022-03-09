@@ -34,7 +34,7 @@ public class BasicIconRenderer implements IIconRenderer<BasicIconData>
         this.iconsPerCol = texH / iconH;
     }
 
-    public void renderIcon(BasicIconData data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y)
+    public void renderIcon(BasicIconData data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y, int alpha)
     {
         textureManager.bind(texture);
         int indexX = data.iconIndex % iconsPerRow;

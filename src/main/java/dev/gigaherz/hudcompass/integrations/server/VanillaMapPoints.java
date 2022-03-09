@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
+import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
@@ -39,7 +40,7 @@ public class VanillaMapPoints
 
     private static final ResourceLocation ADDON_ID = HudCompass.location("vanilla_map");
 
-    private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.makeDeferredPOI();
+    private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.POINT_INFO_TYPES;
     public static final RegistryObject<PointInfoType<MapDecorationWaypoint>> DECORATION_TYPE = PIT.register("map_decoration", () -> new PointInfoType<>(MapDecorationWaypoint::new));
     public static final RegistryObject<PointInfoType<MapBannerWaypoint>> BANNER_TYPE = PIT.register("map_banner", () -> new PointInfoType<>(MapBannerWaypoint::new));
 
@@ -48,9 +49,6 @@ public class VanillaMapPoints
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         modEventBus.addListener(INSTANCE::clientSetup);
-
-        PIT.register(modEventBus);
-        //IDS.register(modEventBus);
 
         //MinecraftForge.EVENT_BUS.addListener(INSTANCE::clientTick);
         MinecraftForge.EVENT_BUS.addListener(INSTANCE::playerTick);
@@ -64,6 +62,9 @@ public class VanillaMapPoints
     private int counter = 0;
     private void playerTick(TickEvent.PlayerTickEvent event)
     {
+        if (event.phase != TickEvent.Phase.END)
+            return;
+
         if ((++counter) > 20)
         {
             counter = 0;
@@ -189,6 +190,12 @@ public class VanillaMapPoints
         }
 
         @Override
+        public Vector3d getPosition(PlayerEntity player, float partialTicks)
+        {
+            return position;
+        }
+
+        @Override
         protected void serializeAdditional(CompoundNBT tag)
         {
             tag.putDouble("X", position.x);
@@ -262,6 +269,12 @@ public class VanillaMapPoints
 
         @Override
         public Vector3d getPosition()
+        {
+            return position;
+        }
+
+        @Override
+        public Vector3d getPosition(PlayerEntity player, float partialTicks)
         {
             return position;
         }

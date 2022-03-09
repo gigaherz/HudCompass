@@ -7,5 +7,5 @@ import net.minecraft.entity.player.PlayerEntity;
 
 public interface IIconRenderer<T extends IIconData<T>>
 {
-    void renderIcon(T data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y);
+    void renderIcon(T data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y, int alpha);
 }
