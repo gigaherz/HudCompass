@@ -36,6 +36,9 @@ public class SpawnPointPoints
     private int counter = 0;
     private void playerTick(TickEvent.PlayerTickEvent event)
     {
+        if (event.phase != TickEvent.Phase.END)
+            return;
+
         if ((++counter) > 20)
         {
             counter = 0;

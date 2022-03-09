@@ -89,11 +89,19 @@ public class ConfigData
         ALWAYS
     }
 
+    public enum PlayerDisplay
+    {
+        NONE,
+        TEAM,
+        ALL
+    }
+
     public static class CommonConfig
     {
         public final ForgeConfigSpec.BooleanValue enableVanillaMapIntegration;
         public final ForgeConfigSpec.BooleanValue enableSpawnPointWaypoint;
         public final ForgeConfigSpec.BooleanValue disableServerHello;
+        public final ForgeConfigSpec.EnumValue<PlayerDisplay> playerDisplay;
 
         CommonConfig(ForgeConfigSpec.Builder builder)
         {
@@ -107,6 +115,12 @@ public class ConfigData
             disableServerHello = builder
                     .comment("If set to TRUE, the server will not advertise itself to the clients, making them work in client-only mode.")
                     .define("disableServerHello", false);
+            playerDisplay = builder
+                    .comment("Choose how the compass shows other players.",
+                            " - NONE: Don't display other players, ever.",
+                            " - TEAM (default): Only display players that are in the same team.",
+                            " - ALL: Display all players.")
+                    .defineEnum("playerDisplay", PlayerDisplay.TEAM);
             builder.pop();
         }
     }
@@ -129,6 +143,8 @@ public class ConfigData
     public static double waypointViewDistance;
     public static double waypointFadeDistance;
 
+    public static PlayerDisplay playerDisplay;
+
     public static void refreshClient()
     {
         alwaysShowLabels = CLIENT.alwaysShowLabels.get();
@@ -140,4 +156,8 @@ public class ConfigData
         waypointViewDistance = CLIENT.waypointViewDistance.get();
     }
 
+    public static void refreshCommon()
+    {
+        playerDisplay = COMMON.playerDisplay.get();
+    }
 }

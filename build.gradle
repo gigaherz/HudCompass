@@ -25,7 +25,7 @@ repositories {
     flatDir { dirs 'deps' }
 }
 
-version = "0.3.2"
+version = "0.4.0"
 group= "dev.gigaherz.hudcompass" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "HudCompass-UNKNOWN"
 
@@ -36,8 +36,8 @@ project.afterEvaluate {
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 minecraft {
-    mappings channel: 'official', version: '1.18.2'
-    //mappings channel: 'parchment', version: '2021.12.13-nightly-SNAPSHOT-1.18.1'
+    //mappings channel: 'official', version: '1.18.2'
+    mappings channel: 'parchment', version: '1.18.1-2022.03.06-1.18.2'
 
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
@@ -54,6 +54,12 @@ minecraft {
                     source sourceSets.main
                 }
             }
+        }
+
+        client2 {
+            parent runs.client
+
+            args '--username', 'gigaherz', '--user', 'gigaherz', '--uuid', '67752848-2bae-4c88-ae42-150fab05fea8'
         }
 
         server {
@@ -87,7 +93,7 @@ minecraft {
 }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.18.2-40.0.2'
+    minecraft 'net.minecraftforge:forge:1.18.2-40.0.12'
     //compileOnly 'xaero:Xaeros_Minimap:21.3.0.2_Forge_1.16.5'
     //runtimeOnly fg.deobf('xaero:Xaeros_Minimap:20.25.1_Forge_1.16.3-deobf')
     //implementation 'xaero:Xaeros_Minimap:21.12.5-deobf'

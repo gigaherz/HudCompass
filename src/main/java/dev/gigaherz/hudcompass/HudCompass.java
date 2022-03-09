@@ -4,6 +4,7 @@ import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
+import dev.gigaherz.hudcompass.integrations.server.PlayerTracker;
 import dev.gigaherz.hudcompass.integrations.server.SpawnPointPoints;
 import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
 import dev.gigaherz.hudcompass.network.*;
@@ -95,6 +96,7 @@ public class HudCompass
 
         SpawnPointPoints.init();
         VanillaMapPoints.init();
+        PlayerTracker.init();
 
         /*if (ModList.get().isLoaded("xaerominimap"))
         {
@@ -115,6 +117,8 @@ public class HudCompass
         ModConfig config = event.getConfig();
         if (config.getSpec() == ConfigData.CLIENT_SPEC)
             ConfigData.refreshClient();
+        else if(config.getSpec() == ConfigData.COMMON_SPEC)
+            ConfigData.refreshCommon();
     }
 
     public void iconDataSerializers(RegistryEvent.Register<IconDataSerializer<?>> event)
@@ -164,6 +168,9 @@ public class HudCompass
 
     public void playerTickEvent(TickEvent.PlayerTickEvent event)
     {
+        if (event.phase != TickEvent.Phase.END)
+            return;
+
         if (!(event.player instanceof ServerPlayer player))
             return;
 

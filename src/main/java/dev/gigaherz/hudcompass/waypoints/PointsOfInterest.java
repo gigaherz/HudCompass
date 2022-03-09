@@ -358,13 +358,17 @@ public class PointsOfInterest
                 .find(removeWaypoint.id)
                 .ifPresent(pt -> {
             if (!pt.isDynamic())
-                pt.getOwner().removePoint(removeWaypoint.id);
+            {
+                var owner = pt.getOwner();
+                if (owner != null)
+                    owner.removePoint(removeWaypoint.id);
+            }
         }));
     }
 
     private Optional<PointInfo<?>> find(UUID id)
     {
-        return perWorld.values().stream().<PointInfo<?>>flatMap(world -> world.find(id).map(Stream::of).orElseGet(Stream::empty)).findAny();
+        return perWorld.values().stream().flatMap(world -> world.find(id).stream()).findAny();
     }
 
     private void remove(UUID pt)
@@ -456,7 +460,7 @@ public class PointsOfInterest
                 double closestAngle = Double.POSITIVE_INFINITY;
                 for (PointInfo<?> point : points.values())
                 {
-                    Vec3 direction = point.getPosition().subtract(player.position());
+                    Vec3 direction = point.getPosition(player, 1.0f).subtract(player.position());
                     Vec3 look = player.getLookAngle();
                     direction = direction.normalize();
                     look = look.normalize();

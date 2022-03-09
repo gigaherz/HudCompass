@@ -5,6 +5,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraftforge.registries.ObjectHolder;
@@ -45,6 +46,12 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
 
     @Override
     public Vec3 getPosition()
+    {
+        return position;
+    }
+
+    @Override
+    public Vec3 getPosition(Player player, float partialTicks)
     {
         return position;
     }

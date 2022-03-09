@@ -61,6 +61,9 @@ public class VanillaMapPoints
     private int counter = 0;
     private void playerTick(TickEvent.PlayerTickEvent event)
     {
+        if (event.phase != TickEvent.Phase.END)
+            return;
+
         if ((++counter) > 20)
         {
             counter = 0;
@@ -186,6 +189,12 @@ public class VanillaMapPoints
         }
 
         @Override
+        public Vec3 getPosition(Player player, float partialTicks)
+        {
+            return position;
+        }
+
+        @Override
         protected void serializeAdditional(CompoundTag tag)
         {
             tag.putDouble("X", position.x);
@@ -259,6 +268,12 @@ public class VanillaMapPoints
 
         @Override
         public Vec3 getPosition()
+        {
+            return position;
+        }
+
+        @Override
+        public Vec3 getPosition(Player player, float partialTicks)
         {
             return position;
         }

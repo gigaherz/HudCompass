@@ -44,6 +44,8 @@ public class IconDataRegistry
     public static void serializeIcon(IIconData<?> iconData, FriendlyByteBuf buffer)
     {
         IconDataSerializer serializer = iconData.getSerializer();
+        if (!REGISTRY.containsValue(serializer))
+            throw new IllegalStateException("Could not find serializer in the registry! Make sure it's registered.");
         buffer.writeRegistryIdUnsafe(REGISTRY, serializer);
         serializer.write(iconData, buffer);
     }

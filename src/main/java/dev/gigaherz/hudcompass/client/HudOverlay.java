@@ -17,15 +17,12 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.tags.Tag;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -37,7 +34,6 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.util.List;
-import java.util.Set;
 
 public class HudOverlay extends GuiComponent implements IIngameOverlay
 {
@@ -111,19 +107,17 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
 
 
     @Override
-    public void render(ForgeIngameGui gui, PoseStack matrixStack, float partialTicks, int width, int height)
+    public void render(ForgeIngameGui gui, PoseStack matrixStack, float _partialTicks, int width, int height)
     {
         if (!canRender()) return;
 
         if (mc.player == null) return;
 
-        float elapsed = mc.getDeltaFrameTime();
 
-        if (mc.isPaused())
-        {
-            partialTicks = 0;
-            elapsed = 0;
-        }
+        boolean isPaused = mc.isPaused();
+
+        float elapsed = isPaused ? 0 : mc.getDeltaFrameTime();
+        float partialTicks = isPaused ? 0 : _partialTicks;
 
         int xPos = mc.getWindow().getGuiScaledWidth() / 2;
         float yaw = Mth.lerp(partialTicks, mc.player.yHeadRotO, mc.player.yHeadRot) % 360;
@@ -159,15 +153,15 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(pts -> {
             List<PointInfo<?>> sortedPoints = Lists.newArrayList(pts.get(player.level).getPoints());
             sortedPoints.sort((a,b) -> {
-                Vec3 positionA = a.getPosition();
-                Vec3 positionB = b.getPosition();
+                Vec3 positionA = a.getPosition(player, partialTicks);
+                Vec3 positionB = b.getPosition(player, partialTicks);
                 float angleA = Math.abs(angleDistance(yaw0, angleFromPoint(positionA, playerPosX, playerPosY, playerPosZ).x));
                 float angleB = Math.abs(angleDistance(yaw0, angleFromPoint(positionB, playerPosX, playerPosY, playerPosZ).x));
                 return (int)Math.signum(angleB-angleA);
             });
             for (PointInfo<?> point : sortedPoints)
             {
-                Vec3 position = point.getPosition();
+                Vec3 position = point.getPosition(player, partialTicks);
                 Vec2 angleYd = angleFromPoint(position, playerPosX, playerPosY, playerPosZ);
                 drawPoi(player, matrixStack, yaw0, angleYd.x, angleYd.y, xPos, point, point == pts.getTargetted(), elapsed0, position.subtract(playerPosition));
             }
