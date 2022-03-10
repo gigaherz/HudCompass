@@ -33,13 +33,13 @@ public class ClientWaypointDatabase
 
     private static Path getPath(Minecraft mc)
     {
-        if (mc.isIntegratedServerRunning())
+        if (mc.isLocalServer())
         {
-            return mc.getIntegratedServer().getDataDirectory().toPath().resolve("client_waypoints").resolve("waypoints.dat").toAbsolutePath();
+            return mc.getSingleplayerServer().getServerDirectory().toPath().resolve("client_waypoints").resolve("waypoints.dat").toAbsolutePath();
         }
         else
         {
-            NetworkManager networkManager = mc.player.connection.getNetworkManager();
+            NetworkManager networkManager = mc.player.connection.getConnection();
             SocketAddress addr = networkManager.getRemoteAddress();
             String address;
             if (addr instanceof InetSocketAddress)
@@ -51,7 +51,7 @@ public class ClientWaypointDatabase
             {
                 address = addr.toString();
             }
-            ResourceLocation dim = mc.player.world.getDimensionKey().getLocation();
+            ResourceLocation dim = mc.player.level.dimension().location();
             String dimension = dim.getNamespace() + "_" + dim.getPath();
             return FMLPaths.GAMEDIR.get().resolve("server_waypoints").resolve(address).resolve(dimension).resolve("waypoints.dat").toAbsolutePath();
         }
@@ -157,7 +157,7 @@ public class ClientWaypointDatabase
     @SubscribeEvent
     public static void entityJoinWorld(EntityJoinWorldEvent event)
     {
-        if (event.getWorld().isRemote && event.getEntity() instanceof ClientPlayerEntity)
+        if (event.getWorld().isClientSide && event.getEntity() instanceof ClientPlayerEntity)
         {
             populateFromDisk(Minecraft.getInstance());
         }

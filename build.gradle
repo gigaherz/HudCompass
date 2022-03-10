@@ -1,11 +1,12 @@
 buildscript {
     repositories {
-        mavenLocal()
-        maven { url = 'http://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.parchmentmc.org' }
         mavenCentral()
     }
     dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
+        classpath 'org.parchmentmc:librarian:1.+'
     }
 }
 
@@ -14,6 +15,7 @@ plugins {
 }
 
 apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'org.parchmentmc.librarian.forgegradle'
 apply plugin: 'maven-publish'
 
 repositories {
@@ -31,14 +33,10 @@ project.afterEvaluate {
     archivesBaseName = "HudCompass-${project.MC_VERSION}"
 }
 
-sourceCompatibility = targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
-compileJava {
-    sourceCompatibility = targetCompatibility = '1.8'
-    options.compilerArgs.addAll(['--release', '8'])
-}
+java.toolchain.languageVersion = JavaLanguageVersion.of(8)
 
 minecraft {
-    mappings channel: 'snapshot', version: '20201028-1.16.3'
+    mappings channel: 'parchment', version: '2022.03.06-1.16.5'
 
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
@@ -90,8 +88,8 @@ dependencies {
     minecraft 'net.minecraftforge:forge:1.16.5-36.1.12'
     //compileOnly 'xaero:Xaeros_Minimap:21.3.0.2_Forge_1.16.5'
     //runtimeOnly fg.deobf('xaero:Xaeros_Minimap:20.25.1_Forge_1.16.3-deobf')
-    implementation 'xaero:Xaeros_Minimap:21.12.5-deobf'
-    //implementation fg.deobf('curse.maven:xaeros-minimap-263420:3375900')
+    //implementation 'xaero:Xaeros_Minimap:21.12.5-deobf'
+    implementation fg.deobf('curse.maven:xaeros-minimap-263420:3663012')
     //https://www.curseforge.com/minecraft/mc-mods/xaeros-minimap/files/3375900
 }
 

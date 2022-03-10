@@ -40,7 +40,7 @@ public class AddWaypoint
 
     public AddWaypoint(PacketBuffer buffer)
     {
-        this.label = buffer.readString(256);
+        this.label = buffer.readUtf(256);
         this.x = buffer.readDouble();
         this.y = buffer.readDouble();
         this.z = buffer.readDouble();
@@ -50,7 +50,7 @@ public class AddWaypoint
 
     public void encode(PacketBuffer buffer)
     {
-        buffer.writeString(label);
+        buffer.writeUtf(label);
         buffer.writeDouble(x);
         buffer.writeDouble(y);
         buffer.writeDouble(z);

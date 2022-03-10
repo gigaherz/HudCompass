@@ -56,7 +56,7 @@ public class HudOverlay extends AbstractGui
     private HudOverlay()
     {
         this.mc = Minecraft.getInstance();
-        this.font = mc.fontRenderer;
+        this.font = mc.font;
         this.textureManager = mc.textureManager;
     }
 
@@ -76,7 +76,7 @@ public class HudOverlay extends AbstractGui
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void preOverlayHigh(RenderGameOverlayEvent.Pre event)
     {
-        if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSHEALTH && !mc.gameSettings.hideGUI && canRender())
+        if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSHEALTH && !mc.options.hideGui && canRender())
         {
             RenderSystem.pushMatrix();
             RenderSystem.translatef(0, 28, 0);
@@ -94,7 +94,7 @@ public class HudOverlay extends AbstractGui
             return;
         }
 
-        if (mc.gameSettings.hideGUI || drawnThisFrame)
+        if (mc.options.hideGui || drawnThisFrame)
             return;
 
         if (NOT_BEFORE.contains(event.getType()))
@@ -118,7 +118,7 @@ public class HudOverlay extends AbstractGui
             needsPop = false;
         }
 
-        if (mc.gameSettings.hideGUI || drawnThisFrame)
+        if (mc.options.hideGui || drawnThisFrame)
             return;
 
         if (event.getType() == RenderGameOverlayEvent.ElementType.ALL)
@@ -136,14 +136,14 @@ public class HudOverlay extends AbstractGui
         float partialTicks = 0;
         float elapsed = 0;
 
-        if (!mc.isGamePaused())
+        if (!mc.isPaused())
         {
-            partialTicks = mc.getRenderPartialTicks();
-            elapsed = mc.getTickLength();
+            partialTicks = mc.getFrameTime();
+            elapsed = mc.getDeltaFrameTime();
         }
 
-        int xPos = mc.getMainWindow().getScaledWidth() / 2;
-        float yaw = MathHelper.lerp(partialTicks, mc.player.prevRotationYawHead, mc.player.rotationYawHead) % 360;
+        int xPos = mc.getWindow().getGuiScaledWidth() / 2;
+        float yaw = MathHelper.lerp(partialTicks, mc.player.yHeadRotO, mc.player.yHeadRot) % 360;
         //if (yaw > 180) yaw -= 360;
         if (yaw < 0) yaw += 360;
 
@@ -166,14 +166,14 @@ public class HudOverlay extends AbstractGui
         fillRect(matrixStack, xPos + 45 - 0.5f, 10, xPos + 45 + 0.5f, 18, 0x3FFFFFFF);
 
         final PlayerEntity player = mc.player;
-        double playerPosX = MathHelper.lerp(partialTicks, mc.player.prevPosX, mc.player.getPosX());
-        double playerPosY = MathHelper.lerp(partialTicks, mc.player.prevPosY, mc.player.getPosY());
-        double playerPosZ = MathHelper.lerp(partialTicks, mc.player.prevPosZ, mc.player.getPosZ());
+        double playerPosX = MathHelper.lerp(partialTicks, mc.player.xo, mc.player.getX());
+        double playerPosY = MathHelper.lerp(partialTicks, mc.player.yo, mc.player.getY());
+        double playerPosZ = MathHelper.lerp(partialTicks, mc.player.zo, mc.player.getZ());
 
         final float yaw0 = yaw;
         final float elapsed0 = elapsed;
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(pts -> {
-            List<PointInfo<?>> sortedPoints = Lists.newArrayList(pts.get(player.world).getPoints());
+            List<PointInfo<?>> sortedPoints = Lists.newArrayList(pts.get(player.level).getPoints());
             sortedPoints.sort((a,b) -> {
                 Vector3d positionA = a.getPosition();
                 Vector3d positionB = b.getPosition();
@@ -216,8 +216,8 @@ public class HudOverlay extends AbstractGui
     {
         if (mc.player == null) return false;
 
-        return mc.player.getHeldItemMainhand().getItem().isIn(MAKES_HUDCOMPASS_VISIBLE)
-                || mc.player.getHeldItemOffhand().getItem().isIn(MAKES_HUDCOMPASS_VISIBLE);
+        return mc.player.getMainHandItem().getItem().is(MAKES_HUDCOMPASS_VISIBLE)
+                || mc.player.getOffhandItem().getItem().is(MAKES_HUDCOMPASS_VISIBLE);
     }
 
     private boolean findCompassInInventory()
@@ -225,9 +225,9 @@ public class HudOverlay extends AbstractGui
         if (mc.player == null) return false;
 
         PlayerInventory inv = mc.player.inventory;
-        for(int i=0;i<inv.getSizeInventory();i++)
+        for(int i=0;i<inv.getContainerSize();i++)
         {
-            if (inv.getStackInSlot(i).getItem().isIn(MAKES_HUDCOMPASS_VISIBLE))
+            if (inv.getItem(i).getItem().is(MAKES_HUDCOMPASS_VISIBLE))
                 return true;
         }
         return false;
@@ -248,7 +248,7 @@ public class HudOverlay extends AbstractGui
         {
             float nPos = xPos + nDist;
             fillRect(matrixStack, nPos-0.5f, 10, nPos+0.5f, 18, 0x7FFFFFFF);
-            if (mc.gameSettings.accessibilityTextBackground)
+            if (mc.options.backgroundForChatOnly)
                 drawCenteredShadowString(matrixStack, font, text, nPos, 1, 0xFFFFFF);
             else
                 drawCenteredBoxedString(matrixStack, font, text, nPos, 1, 0xFFFFFF);
@@ -257,35 +257,35 @@ public class HudOverlay extends AbstractGui
 
     public void drawCenteredShadowString(MatrixStack matrixStack, FontRenderer font, String text, float x, float y, int color)
     {
-        float width = font.getStringWidth(text);
-        font.drawStringWithShadow(matrixStack, text, x - width / 2, y, color);
+        float width = font.width(text);
+        font.drawShadow(matrixStack, text, x - width / 2, y, color);
     }
 
     public static void drawCenteredBoxedString(MatrixStack matrixStack, FontRenderer font, String text, float x, float y, int color)
     {
         Minecraft mc = Minecraft.getInstance();
-        float width = font.getStringWidth(text);
-        float height = font.FONT_HEIGHT;
+        float width = font.width(text);
+        float height = font.lineHeight;
         float width1 = width+4;
         float height1 = height+3;
         float x0 = x-width1/2;
-        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) MathHelper.clamp(mc.gameSettings.accessibilityTextBackgroundOpacity * ((color >>24) & 0xFF), 0, 255)) << 24);
-        font.drawStringWithShadow(matrixStack, text, x-width/2, y+2, color);
+        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) MathHelper.clamp(mc.options.textBackgroundOpacity * ((color >>24) & 0xFF), 0, 255)) << 24);
+        font.drawShadow(matrixStack, text, x-width/2, y+2, color);
 
         RenderSystem.enableBlend();
     }
 
     public static void drawCenteredBoxedString(MatrixStack matrixStack, FontRenderer font, ITextComponent text, float x, float y, int color)
     {
-        IReorderingProcessor reodering = text.func_241878_f();
+        IReorderingProcessor reodering = text.getVisualOrderText();
         Minecraft mc = Minecraft.getInstance();
-        float width = font.func_243245_a(reodering);
-        float height = font.FONT_HEIGHT;
+        float width = font.width(reodering);
+        float height = font.lineHeight;
         float width1 = width+4;
         float height1 = height+3;
         float x0 = x-width1/2;
-        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) MathHelper.clamp(mc.gameSettings.accessibilityTextBackgroundOpacity * ((color >>24) & 0xFF), 0, 255)) << 24);
-        font.func_238407_a_(matrixStack, reodering, x-width/2, y+2, color);
+        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) MathHelper.clamp(mc.options.textBackgroundOpacity * ((color >>24) & 0xFF), 0, 255)) << 24);
+        font.drawShadow(matrixStack, reodering, x-width/2, y+2, color);
 
         RenderSystem.enableBlend();
     }
@@ -296,7 +296,7 @@ public class HudOverlay extends AbstractGui
         if (Math.abs(nDist) <= 90)
         {
             float nPos = xPos + nDist;
-            matrixStack.push();
+            matrixStack.pushPose();
             matrixStack.translate(nPos, 0, 0);
 
             PointRenderer.renderIcon(point, player, textureManager, matrixStack, 0, 14);
@@ -330,7 +330,7 @@ public class HudOverlay extends AbstractGui
                 if (yDelta <= -2) drawBelowArrow(matrixStack, nPos, yDelta);
             }
 
-            matrixStack.pop();
+            matrixStack.popPose();
         }
     }
 
@@ -338,7 +338,7 @@ public class HudOverlay extends AbstractGui
     {
         int x = yDelta > 10 ? 8 : 0;
         int y = 0;
-        textureManager.bindTexture(LOCATION_POI_ICONS);
+        textureManager.bind(LOCATION_POI_ICONS);
         blitRect(matrixStack, -4.5f, 4, x, y, 8, 8, 128, 128);
     }
 
@@ -346,7 +346,7 @@ public class HudOverlay extends AbstractGui
     {
         int x = yDelta < -10 ? 24 : 16;
         int y = 0;
-        textureManager.bindTexture(LOCATION_POI_ICONS);
+        textureManager.bind(LOCATION_POI_ICONS);
         blitRect(matrixStack, -4.5f, 16, x, y, 8, 8, 128, 128);
     }
 
@@ -369,15 +369,15 @@ public class HudOverlay extends AbstractGui
         int g = (color >> 8 & 255);
         int b = (color & 255);
         Tessellator tess = Tessellator.getInstance();
-        BufferBuilder builder = tess.getBuffer();
+        BufferBuilder builder = tess.getBuilder();
         RenderSystem.disableTexture();
         builder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
-        Matrix4f matrix = matrixStack.getLast().getMatrix();
-        builder.pos(matrix, x0, y1, 0.0f).color(r, g, b, a).endVertex();
-        builder.pos(matrix, x1, y1, 0.0f).color(r, g, b, a).endVertex();
-        builder.pos(matrix, x1, y0, 0.0f).color(r, g, b, a).endVertex();
-        builder.pos(matrix, x0, y0, 0.0f).color(r, g, b, a).endVertex();
-        tess.draw();
+        Matrix4f matrix = matrixStack.last().pose();
+        builder.vertex(matrix, x0, y1, 0.0f).color(r, g, b, a).endVertex();
+        builder.vertex(matrix, x1, y1, 0.0f).color(r, g, b, a).endVertex();
+        builder.vertex(matrix, x1, y0, 0.0f).color(r, g, b, a).endVertex();
+        builder.vertex(matrix, x0, y0, 0.0f).color(r, g, b, a).endVertex();
+        tess.end();
         RenderSystem.enableTexture();
     }
 
@@ -395,14 +395,14 @@ public class HudOverlay extends AbstractGui
         float y1 = y0 + height;
 
         Tessellator tess = Tessellator.getInstance();
-        BufferBuilder builder = tess.getBuffer();
+        BufferBuilder builder = tess.getBuilder();
         builder.begin(7, DefaultVertexFormats.POSITION_TEX);
-        Matrix4f matrix = matrixStack.getLast().getMatrix();
-        builder.pos(matrix, x0, y1, 0.0f).tex(tx0,ty1).endVertex();
-        builder.pos(matrix, x1, y1, 0.0f).tex(tx1,ty1).endVertex();
-        builder.pos(matrix, x1, y0, 0.0f).tex(tx1,ty0).endVertex();
-        builder.pos(matrix, x0, y0, 0.0f).tex(tx0,ty0).endVertex();
-        tess.draw();
+        Matrix4f matrix = matrixStack.last().pose();
+        builder.vertex(matrix, x0, y1, 0.0f).uv(tx0,ty1).endVertex();
+        builder.vertex(matrix, x1, y1, 0.0f).uv(tx1,ty1).endVertex();
+        builder.vertex(matrix, x1, y0, 0.0f).uv(tx1,ty0).endVertex();
+        builder.vertex(matrix, x0, y0, 0.0f).uv(tx0,ty0).endVertex();
+        tess.end();
     }
 
     private float angleDistance(float yaw, float other)

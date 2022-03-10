@@ -148,13 +148,13 @@ public class XaeroMinimapIntegration
                 {
                     XMWaypoint way = new XMWaypoint(wp);
                     addon.waypoints.put(wp, way);
-                    pois.get(player.world).addPoint(way);
+                    pois.get(player.level).addPoint(way);
                 }
                 for(Waypoint wp : toRemove)
                 {
                     XMWaypoint way = addon.waypoints.get(wp);
                     addon.waypoints.remove(wp);
-                    pois.get(player.world).removePoint(way);
+                    pois.get(player.level).removePoint(way);
                 }
             });
         }
@@ -262,14 +262,14 @@ public class XaeroMinimapIntegration
             @Override
             public void renderIcon(XMIconData data, PlayerEntity player, TextureManager textureManager, MatrixStack matrixStack, int x, int y)
             {
-                IRenderTypeBuffer.Impl impl = Minecraft.getInstance().getRenderTypeBuffers().getBufferSource();
-                matrixStack.push();
+                IRenderTypeBuffer.Impl impl = Minecraft.getInstance().renderBuffers().bufferSource();
+                matrixStack.pushPose();
                 matrixStack.translate(0, 2.8f,0);
                 matrixStack.scale(7/9f, 7/9f, 7/9f);
                 XaeroMinimap.instance.getInterfaces().getMinimapInterface().getWaypointsGuiRenderer()
                         .drawIconOnGUI(matrixStack, renderHelper, data.parent, XaeroMinimap.instance.getSettings(), x, y, impl, impl.getBuffer(CustomRenderTypes.COLORED_WAYPOINTS_BGS));
-                matrixStack.pop();
-                impl.finish();
+                matrixStack.popPose();
+                impl.endBatch();
             }
         }
     }

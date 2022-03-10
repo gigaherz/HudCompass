@@ -51,7 +51,7 @@ public class UpdateWaypointsFromGui
         int numberToRemove = buffer.readVarInt();
         for(int i=0;i<numberToRemove;i++)
         {
-            toRemove.add(buffer.readUniqueId());
+            toRemove.add(buffer.readUUID());
         }
 
         pointsAdded = toAdd.build();
@@ -74,7 +74,7 @@ public class UpdateWaypointsFromGui
         });
 
         buffer.writeVarInt(pointsRemoved.size());
-        pointsRemoved.forEach(buffer::writeUniqueId);
+        pointsRemoved.forEach(buffer::writeUUID);
     }
 
     public boolean handle(Supplier<NetworkEvent.Context> ctx)

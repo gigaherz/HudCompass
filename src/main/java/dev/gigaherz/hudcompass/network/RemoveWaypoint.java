@@ -24,12 +24,12 @@ public class RemoveWaypoint
 
     public RemoveWaypoint(PacketBuffer buffer)
     {
-        this.id = buffer.readUniqueId();
+        this.id = buffer.readUUID();
     }
 
     public void encode(PacketBuffer buffer)
     {
-        buffer.writeUniqueId(id);
+        buffer.writeUUID(id);
     }
 
     public boolean handle(Supplier<NetworkEvent.Context> ctx)

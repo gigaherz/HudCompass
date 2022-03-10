@@ -150,7 +150,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
     {
         internalId = UUID.fromString(tag.getString("ID"));
         if (tag.contains("Label", Constants.NBT.TAG_STRING))
-            label = ITextComponent.Serializer.getComponentFromJson(tag.getString("Label"));
+            label = ITextComponent.Serializer.fromJson(tag.getString("Label"));
         else
             label = null;
         iconData = IconDataRegistry.deserializeIcon(tag.getCompound("Icon"));
@@ -160,7 +160,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
 
     public final void writeToPacket(PacketBuffer buffer)
     {
-        buffer.writeUniqueId(internalId);
+        buffer.writeUUID(internalId);
         writeToPacketWithoutId(buffer);
     }
 
@@ -169,7 +169,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
         boolean hasLabel = label != null;
         buffer.writeBoolean(hasLabel);
         if (hasLabel)
-            buffer.writeTextComponent(label);
+            buffer.writeComponent(label);
         IconDataRegistry.serializeIcon(iconData, buffer);
         buffer.writeBoolean(displayVerticalDistance);
         buffer.writeBoolean(isDynamic);
@@ -178,7 +178,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
 
     public final void readFromPacket(PacketBuffer buffer)
     {
-        internalId = buffer.readUniqueId();
+        internalId = buffer.readUUID();
         readFromPacketWithoutId(buffer);
     }
 
@@ -186,7 +186,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
     {
         boolean hasLabel = buffer.readBoolean();
         if (hasLabel)
-            label = buffer.readTextComponent();
+            label = buffer.readComponent();
         else
             label = null;
         iconData = IconDataRegistry.deserializeIcon(buffer);

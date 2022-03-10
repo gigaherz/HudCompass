@@ -47,7 +47,7 @@ public class SpawnPointPoints
             counter = 0;
 
             PlayerEntity player = event.player;
-            if (player.world.isRemote)
+            if (player.level.isClientSide)
                 return;
 
             ServerPlayerEntity serverPlayer = (ServerPlayerEntity)player;
@@ -56,8 +56,8 @@ public class SpawnPointPoints
 
                 SpawnPointAddon addon = pois.getOrCreateAddonData(ADDON_ID, SpawnPointAddon::new);
 
-                RegistryKey<World> worldKey = serverPlayer.func_241141_L_();
-                BlockPos spawnPosition = serverPlayer.func_241140_K_();
+                RegistryKey<World> worldKey = serverPlayer.getRespawnDimension();
+                BlockPos spawnPosition = serverPlayer.getRespawnPosition();
 
                 boolean enabled = ConfigData.COMMON.enableSpawnPointWaypoint.get();
                 boolean hasWaypoint = addon.waypoint != null;
@@ -79,7 +79,7 @@ public class SpawnPointPoints
                 {
                     addon.spawnWorld = worldKey;
                     addon.spawnPosition = spawnPosition;
-                    addon.waypoint = new BasicWaypoint(BasicWaypoint.TYPE, Vector3d.copyCentered(spawnPosition), "Home", BasicIconData.mapMarker(8))
+                    addon.waypoint = new BasicWaypoint(BasicWaypoint.TYPE, Vector3d.atCenterOf(spawnPosition), "Home", BasicIconData.mapMarker(8))
                             .dynamic();
                     pois.get(addon.spawnWorld).addPoint(addon.waypoint);
                 }

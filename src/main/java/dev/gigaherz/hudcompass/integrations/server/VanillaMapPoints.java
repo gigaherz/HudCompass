@@ -69,11 +69,11 @@ public class VanillaMapPoints
             counter = 0;
 
             PlayerEntity player = event.player;
-            if (player.world.isRemote)
+            if (player.level.isClientSide)
                 return;
 
             player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-                PointsOfInterest.WorldPoints worldPoints = pois.get(player.world);
+                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level);
 
                 VanillaMapData addon = pois.getOrCreateAddonData(ADDON_ID, VanillaMapData::new);
 
@@ -104,19 +104,19 @@ public class VanillaMapPoints
             return Collections.emptySet();
 
         Set<MapData> seenMaps = Sets.newHashSet();
-        for(int slot = 0; slot < player.inventory.getSizeInventory(); slot++)
+        for(int slot = 0; slot < player.inventory.getContainerSize(); slot++)
         {
-            ItemStack stack = player.inventory.getStackInSlot(slot);
-            MapData mapData = FilledMapItem.getMapData(stack, player.world);
+            ItemStack stack = player.inventory.getItem(slot);
+            MapData mapData = FilledMapItem.getOrCreateSavedData(stack, player.level);
             if (mapData != null && !seenMaps.contains(mapData) && mapData.dimension == worldPoints.getWorldKey())
             {
                 seenMaps.add(mapData);
 
                 Map<MapDecoration, PointInfo<?>> decorationPointInfoMap = addon.mapDecorations.computeIfAbsent(mapData, k -> Maps.newHashMap());
 
-                for(MapBanner banner : mapData.banners.values())
+                for(MapBanner banner : mapData.bannerMarkers.values())
                 {
-                    MapDecoration decoration = mapData.mapDecorations.get(banner.getMapDecorationId());
+                    MapDecoration decoration = mapData.decorations.get(banner.getId());
                     if (!decorationPointInfoMap.containsKey(decoration))
                     {
                         MapBannerWaypoint wp = new MapBannerWaypoint(banner, decoration);
@@ -125,7 +125,7 @@ public class VanillaMapPoints
                     }
                 }
 
-                for(Map.Entry<String, MapDecoration> kvp : mapData.mapDecorations.entrySet())
+                for(Map.Entry<String, MapDecoration> kvp : mapData.decorations.entrySet())
                 {
                     String decorationId = kvp.getKey();
                     MapDecoration decoration = kvp.getValue();
@@ -145,7 +145,7 @@ public class VanillaMapPoints
                 }
 
                 Set<MapDecoration> toRemove = new HashSet<>(decorationPointInfoMap.keySet());
-                toRemove.removeAll(mapData.mapDecorations.values());
+                toRemove.removeAll(mapData.decorations.values());
 
                 for(MapDecoration remove : toRemove)
                 {
@@ -167,7 +167,7 @@ public class VanillaMapPoints
             super(BANNER_TYPE.get(), true, banner.getName(), BasicIconData.mapMarker(decoration.getType().getIcon()));
             dynamic();
             this.banner = banner;
-            this.position = Vector3d.copyCentered(banner.getPos());
+            this.position = Vector3d.atCenterOf(banner.getPos());
         }
 
         public MapBannerWaypoint()
@@ -241,8 +241,8 @@ public class VanillaMapPoints
             float decoZ =(decoration.getY()-0.5f)*0.5f;
 
             int scale = 1<<mapData.scale;
-            float worldX = mapData.xCenter + decoX * scale;
-            float worldZ = mapData.zCenter + decoZ * scale;
+            float worldX = mapData.x + decoX * scale;
+            float worldZ = mapData.z + decoZ * scale;
 
             this.decoration = decoration;
             this.position = new Vector3d(worldX, 0, worldZ);

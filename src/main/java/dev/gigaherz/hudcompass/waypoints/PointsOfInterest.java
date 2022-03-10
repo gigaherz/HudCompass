@@ -192,9 +192,9 @@ public class PointsOfInterest
         for (Map.Entry<RegistryKey<World>, WorldPoints> entry : perWorld.entrySet())
         {
             CompoundNBT tag = new CompoundNBT();
-            tag.putString("World", entry.getKey().getLocation().toString());
+            tag.putString("World", entry.getKey().location().toString());
             if (entry.getValue().getDimensionTypeKey() != null)
-                tag.putString("DimensionKey", entry.getValue().getDimensionTypeKey().getLocation().toString());
+                tag.putString("DimensionKey", entry.getValue().getDimensionTypeKey().location().toString());
             tag.put("POIs", entry.getValue().write());
             list.add(tag);
         }
@@ -210,11 +210,11 @@ public class PointsOfInterest
             RegistryKey<World> key = entry.getKey();
             WorldPoints value = entry.getValue();
 
-            buffer.writeResourceLocation(key.getLocation());
+            buffer.writeResourceLocation(key.location());
             if (value.getDimensionTypeKey() != null)
             {
                 buffer.writeBoolean(true);
-                buffer.writeResourceLocation(value.getDimensionTypeKey().getLocation());
+                buffer.writeResourceLocation(value.getDimensionTypeKey().location());
             }
             else
             {
@@ -230,10 +230,10 @@ public class PointsOfInterest
         for (int i = 0; i < nbt.size(); i++)
         {
             CompoundNBT tag = nbt.getCompound(i);
-            RegistryKey<World> key = RegistryKey.getOrCreateKey(Registry.WORLD_KEY, new ResourceLocation(tag.getString("World")));
+            RegistryKey<World> key = RegistryKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation(tag.getString("World")));
             RegistryKey<DimensionType> dimType = null;
             if (tag.contains("DimensionKey", Constants.NBT.TAG_STRING))
-                dimType = RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, new ResourceLocation(tag.getString("DimensionKey")));
+                dimType = RegistryKey.create(Registry.DIMENSION_TYPE_REGISTRY, new ResourceLocation(tag.getString("DimensionKey")));
             WorldPoints p = get(key, dimType);
             p.read(tag.getList("POIs", Constants.NBT.TAG_COMPOUND));
         }
@@ -246,10 +246,10 @@ public class PointsOfInterest
         int numWorlds = buffer.readVarInt();
         for (int i = 0; i < numWorlds; i++)
         {
-            RegistryKey<World> key = RegistryKey.getOrCreateKey(Registry.WORLD_KEY, buffer.readResourceLocation());
+            RegistryKey<World> key = RegistryKey.create(Registry.DIMENSION_REGISTRY, buffer.readResourceLocation());
             boolean hasDimensionType = buffer.readBoolean();
             RegistryKey<DimensionType> dimType = hasDimensionType
-                    ? RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, buffer.readResourceLocation())
+                    ? RegistryKey.create(Registry.DIMENSION_TYPE_REGISTRY, buffer.readResourceLocation())
                     : null;
             WorldPoints p = get(key, dimType);
             p.read(buffer);
@@ -320,7 +320,7 @@ public class PointsOfInterest
                             ? BasicIconData.mapMarker(addWaypoint.iconIndex)
                             : BasicIconData.poi(addWaypoint.iconIndex)
             );
-            points.get(sender.world).addPoint(waypoint);
+            points.get(sender.level).addPoint(waypoint);
         });
     }
 
@@ -329,7 +329,7 @@ public class PointsOfInterest
             ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toUpdate,
             ImmutableList<UUID> toRemove)
     {
-        if (player.world.isRemote && otherSideHasMod)
+        if (player.level.isClientSide && otherSideHasMod)
         {
             sendUpdateFromGui(toAdd, toUpdate, toRemove);
         }
@@ -340,7 +340,7 @@ public class PointsOfInterest
 
     public WorldPoints get(World world)
     {
-        return getInternal(world.getDimensionKey(), () -> getDimensionTypeKey(world, null));
+        return getInternal(world.dimension(), () -> getDimensionTypeKey(world, null));
     }
 
     public WorldPoints get(RegistryKey<World> worldKey)
@@ -351,14 +351,14 @@ public class PointsOfInterest
     public WorldPoints get(RegistryKey<World> worldKey, @Nullable RegistryKey<DimensionType> dimensionTypeKey)
     {
         return getInternal(worldKey, () -> {
-            if (player.world.getDimensionKey() == worldKey)
-                return getDimensionTypeKey(player.world, dimensionTypeKey);
+            if (player.level.dimension() == worldKey)
+                return getDimensionTypeKey(player.level, dimensionTypeKey);
 
-            MinecraftServer server = player.world.getServer();
+            MinecraftServer server = player.level.getServer();
             if (server == null)
                 return dimensionTypeKey;
 
-            World world = server.getWorld(worldKey);
+            World world = server.getLevel(worldKey);
             if (world == null)
                 return dimensionTypeKey;
 
@@ -369,11 +369,11 @@ public class PointsOfInterest
     @Nullable
     private static RegistryKey<DimensionType> getDimensionTypeKey(World world, @Nullable RegistryKey<DimensionType> fallback)
     {
-        DimensionType dimType = world.getDimensionType();
-        ResourceLocation key = world.func_241828_r().func_230520_a_().getKey(dimType);
+        DimensionType dimType = world.dimensionType();
+        ResourceLocation key = world.registryAccess().dimensionTypes().getKey(dimType);
         if (key == null)
             return fallback;
-        return RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, key);
+        return RegistryKey.create(Registry.DIMENSION_TYPE_REGISTRY, key);
     }
 
     private WorldPoints getInternal(RegistryKey<World> worldKey, Supplier<RegistryKey<DimensionType>> dimensionTypeKey)
@@ -426,11 +426,11 @@ public class PointsOfInterest
         }
         for(Pair<ResourceLocation, PointInfo<?>> pt : pointsAdded)
         {
-            get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
+            get(RegistryKey.create(Registry.DIMENSION_REGISTRY, pt.getFirst())).addPoint(pt.getSecond());
         }
         for(Pair<ResourceLocation, PointInfo<?>> pt : pointsUpdated)
         {
-            get(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, pt.getFirst())).addPoint(pt.getSecond());
+            get(RegistryKey.create(Registry.DIMENSION_REGISTRY, pt.getFirst())).addPoint(pt.getSecond());
         }
     }
 
@@ -439,7 +439,7 @@ public class PointsOfInterest
         if (player == null) return;
         player.getCapability(INSTANCE).ifPresent(points -> {
             points.otherSideHasMod = true;
-            if (!player.world.isRemote)
+            if (!player.level.isClientSide)
                 points.sendInitialSync();
         });
     }
@@ -479,14 +479,14 @@ public class PointsOfInterest
                 point.tick(player);
             }
 
-            if (player.world.isRemote && player.world.getDimensionKey() == worldKey)
+            if (player.level.isClientSide && player.level.dimension() == worldKey)
             {
                 PointInfo<?> closest = null;
                 double closestAngle = Double.POSITIVE_INFINITY;
                 for (PointInfo<?> point : points.values())
                 {
-                    Vector3d direction = point.getPosition().subtract(player.getPositionVec());
-                    Vector3d look = player.getLookVec();
+                    Vector3d direction = point.getPosition().subtract(player.position());
+                    Vector3d look = player.getLookAngle();
                     direction = direction.normalize();
                     look = look.normalize();
                     double dot = direction.x * look.x + direction.z * look.z;
@@ -510,7 +510,7 @@ public class PointsOfInterest
                 }
             }
 
-            if (!player.world.isRemote && (changed.size() > 0 || removed.size() > 0))
+            if (!player.level.isClientSide && (changed.size() > 0 || removed.size() > 0))
             {
                 sendSync();
                 changed.clear();
@@ -520,7 +520,7 @@ public class PointsOfInterest
 
         public void addPointRequest(PointInfo<?> point)
         {
-            if (otherSideHasMod && player.world.isRemote && point instanceof BasicWaypoint)
+            if (otherSideHasMod && player.level.isClientSide && point instanceof BasicWaypoint)
             {
                 HudCompass.channel.sendToServer(new AddWaypoint((BasicWaypoint) point));
             }
@@ -537,7 +537,7 @@ public class PointsOfInterest
             if (oldPoint != null) {
                 oldPoint.setOwner(null);
             }
-            if (!player.world.isRemote && otherSideHasMod)
+            if (!player.level.isClientSide && otherSideHasMod)
             {
                 changed.add(point);
             }
@@ -548,7 +548,7 @@ public class PointsOfInterest
         public void removePointRequest(PointInfo<?> point)
         {
             UUID id = point.getInternalId();
-            if (otherSideHasMod && player.world.isRemote)
+            if (otherSideHasMod && player.level.isClientSide)
             {
                 HudCompass.channel.sendToServer(new RemoveWaypoint(id));
             }
@@ -570,7 +570,7 @@ public class PointsOfInterest
             {
                 point.setOwner(null);
                 points.remove(point.getInternalId());
-                if (!player.world.isRemote && otherSideHasMod)
+                if (!player.level.isClientSide && otherSideHasMod)
                 {
                     removed.add(point);
                 }
@@ -590,7 +590,7 @@ public class PointsOfInterest
 
         public void markDirty(PointInfo<?> point)
         {
-            if (!player.world.isRemote && otherSideHasMod)
+            if (!player.level.isClientSide && otherSideHasMod)
             {
                 changed.add(point);
             }

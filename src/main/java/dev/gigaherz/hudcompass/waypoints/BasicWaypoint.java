@@ -51,7 +51,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
 
     public void setPosition(Vector3d position)
     {
-        if (MathHelper.epsilonEquals(position.squareDistanceTo(position),0))
+        if (MathHelper.equal(position.distanceToSqr(position),0))
         {
             this.position = position;
             markDirty();
@@ -95,7 +95,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
         buffer.writeDouble(position.x);
         buffer.writeDouble(position.y);
         buffer.writeDouble(position.z);
-        buffer.writeString(label, 1024);
+        buffer.writeUtf(label, 1024);
     }
 
     @Override
@@ -106,6 +106,6 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
                 buffer.readDouble(),
                 buffer.readDouble()
         );
-        label = buffer.readString(1024);
+        label = buffer.readUtf(1024);
     }
 }

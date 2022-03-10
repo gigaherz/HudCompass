@@ -31,13 +31,13 @@ public class ClientHandler
     public static void initKeybinds()
     {
         ClientRegistry.registerKeyBinding(ADD_WAYPOINT =
-                new KeyBinding("key.hudcompass.add_waypoint", InputMappings.INPUT_INVALID.getKeyCode(), "key.hudcompass.category"));
+                new KeyBinding("key.hudcompass.add_waypoint", InputMappings.UNKNOWN.getValue(), "key.hudcompass.category"));
 
         ClientRegistry.registerKeyBinding(REMOVE_WAYPOINT =
-                new KeyBinding("key.hudcompass.remove_waypoint", InputMappings.INPUT_INVALID.getKeyCode(), "key.hudcompass.category"));
+                new KeyBinding("key.hudcompass.remove_waypoint", InputMappings.UNKNOWN.getValue(), "key.hudcompass.category"));
 
         ClientRegistry.registerKeyBinding(EDIT_WAYPOINTS =
-                new KeyBinding("key.hudcompass.edit_waypoints", InputMappings.INPUT_INVALID.getKeyCode(), "key.hudcompass.category"));
+                new KeyBinding("key.hudcompass.edit_waypoints", InputMappings.UNKNOWN.getValue(), "key.hudcompass.category"));
 
         MinecraftForge.EVENT_BUS.addListener(ClientHandler::handleKeys);
     }
@@ -49,23 +49,23 @@ public class ClientHandler
         if (mc.player == null)
             return;
 
-        if (ADD_WAYPOINT.isPressed())
+        if (ADD_WAYPOINT.consumeClick())
         {
             mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-                Vector3d position = mc.player.getPositionVec();
-                String label = String.format("{%1.2f, %1.2f, %1.2f}", position.getX(), position.getY(), position.getZ());
+                Vector3d position = mc.player.position();
+                String label = String.format("{%1.2f, %1.2f, %1.2f}", position.x(), position.y(), position.z());
 
-                pois.get(mc.player.world).addPointRequest(new BasicWaypoint(position, label, BasicIconData.mapMarker(7)));
+                pois.get(mc.player.level).addPointRequest(new BasicWaypoint(position, label, BasicIconData.mapMarker(7)));
             });
 
             //noinspection StatementWithEmptyBody
-            while (ADD_WAYPOINT.isPressed())
+            while (ADD_WAYPOINT.consumeClick())
             {
                 // eat
             }
         }
 
-        if (REMOVE_WAYPOINT.isPressed())
+        if (REMOVE_WAYPOINT.consumeClick())
         {
             mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
                 PointInfo<?> targetted = pois.getTargetted();
@@ -78,26 +78,26 @@ public class ClientHandler
                     }
                     else
                     {
-                        pois.get(mc.player.world).removePointRequest(targetted);
+                        pois.get(mc.player.level).removePointRequest(targetted);
                     }
                 }
             });
 
             //noinspection StatementWithEmptyBody
-            while (ADD_WAYPOINT.isPressed())
+            while (ADD_WAYPOINT.consumeClick())
             {
                 // eat
             }
         }
 
-        if (EDIT_WAYPOINTS.isPressed())
+        if (EDIT_WAYPOINTS.consumeClick())
         {
             mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-                mc.displayGuiScreen(new ClientWaypointManagerScreen(pois));
+                mc.setScreen(new ClientWaypointManagerScreen(pois));
             });
 
             //noinspection StatementWithEmptyBody
-            while (ADD_WAYPOINT.isPressed())
+            while (ADD_WAYPOINT.consumeClick())
             {
                 // eat
             }
