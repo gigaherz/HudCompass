@@ -1,6 +1,7 @@
 package dev.gigaherz.hudcompass.icons.client;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import net.minecraft.client.gui.AbstractGui;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -39,6 +40,7 @@ public class BasicIconRenderer implements IIconRenderer<BasicIconData>
         textureManager.bind(texture);
         int indexX = data.iconIndex % iconsPerRow;
         int indexY = data.iconIndex / iconsPerCol;
+        RenderSystem.color4f(1,1,1,alpha/255.0f);
         AbstractGui.blit(matrixStack, x - iconW / 2, y - iconH / 2, indexX * iconW, indexY * iconH, iconW, iconH, texW, texH);
     }
 }

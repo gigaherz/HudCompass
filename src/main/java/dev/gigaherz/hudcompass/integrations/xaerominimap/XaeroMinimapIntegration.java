@@ -2,6 +2,7 @@ package dev.gigaherz.hudcompass.integrations.xaerominimap;
 
 import com.google.common.collect.Maps;
 import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.IIconData;
@@ -75,9 +76,6 @@ public class XaeroMinimapIntegration
 
             modEventBus.addListener(INSTANCE::clientSetup);
 
-            PIT.register(modEventBus);
-            IDS.register(modEventBus);
-
             MinecraftForge.EVENT_BUS.addListener(INSTANCE::clientTick);
         }
 
@@ -109,7 +107,7 @@ public class XaeroMinimapIntegration
 
                 Set<Waypoint> _toAdd = new HashSet<>();
                 Set<Waypoint> _toRemove = addon.waypoints.keySet();
-                if (ConfigData.CLIENT.enableXaeroMinimapIntegration.get())
+                if (ConfigData.enableXaeroMinimapIntegration)
                 {
                     XaeroMinimapSession session = XaeroMinimapSession.getCurrentSession();
                     if (session != null)

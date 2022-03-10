@@ -140,6 +140,7 @@ public class ConfigData
     public static boolean showAllLabelsOnSneak;
     public static boolean animateLabels;
     public static DisplayWhen displayWhen;
+    public static boolean enableXaeroMinimapIntegration;
     public static double waypointViewDistance;
     public static double waypointFadeDistance;
 
@@ -154,6 +155,7 @@ public class ConfigData
         displayWhen = CLIENT.displayWhen.get();
         waypointFadeDistance = CLIENT.waypointFadeDistance.get();
         waypointViewDistance = CLIENT.waypointViewDistance.get();
+        enableXaeroMinimapIntegration = ConfigData.CLIENT.enableXaeroMinimapIntegration.get();
     }
 
     public static void refreshCommon()

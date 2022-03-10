@@ -355,7 +355,7 @@ public class PlayerTracker
                 ResourceLocation tex = clientPlayer.getSkinTextureLocation();
 
                 Minecraft.getInstance().getTextureManager().bind(tex);
-                RenderSystem.color4f(1, 1, 1, 1);
+                RenderSystem.color4f(1,1,1,alpha/255.0f);
 
                 drawFaceLayer(matrixStack, x - 4, y - 4, 8, 8, 8);
                 drawFaceLayer(matrixStack, x - 4.5f, y - 4.5f, 9, 9, 40);
