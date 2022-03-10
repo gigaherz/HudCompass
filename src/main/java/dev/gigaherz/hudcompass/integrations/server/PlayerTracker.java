@@ -328,7 +328,7 @@ public class PlayerTracker
                 var tex = clientPlayer.getSkinTextureLocation();
 
                 RenderSystem.setShaderTexture(0, tex);
-                RenderSystem.setShaderColor(1, 1, 1, 1);
+                RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha / 255.0f);
 
                 drawFaceLayer(matrixStack, x - 4, y - 4, 8, 8, 8);
                 drawFaceLayer(matrixStack, x - 4.5f, y - 4.5f, 9, 9, 40);
