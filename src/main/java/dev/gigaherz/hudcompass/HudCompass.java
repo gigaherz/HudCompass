@@ -25,7 +25,6 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.ExtensionPoint;
 import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
@@ -127,7 +126,7 @@ public class HudCompass
         ModConfig config = event.getConfig();
         if (config.getSpec() == ConfigData.CLIENT_SPEC)
             ConfigData.refreshClient();
-        else if(config.getSpec() == ConfigData.COMMON_SPEC)
+        else if (config.getSpec() == ConfigData.COMMON_SPEC)
             ConfigData.refreshCommon();
     }
 
@@ -181,7 +180,7 @@ public class HudCompass
         if (!(event.player instanceof ServerPlayerEntity))
             return;
 
-        ServerPlayerEntity player = (ServerPlayerEntity)event.player;
+        ServerPlayerEntity player = (ServerPlayerEntity) event.player;
 
         PointsOfInterest.onTick(player);
     }

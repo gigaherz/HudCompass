@@ -18,7 +18,7 @@ public class IconDataRegistry
     {
         IconDataSerializer serializer = iconData.getSerializer();
         ResourceLocation serializerId = serializer.getRegistryName();
-        if(serializerId == null)
+        if (serializerId == null)
         {
             throw new IllegalStateException(String.format("Serializer name is null %s", serializer.getClass().getName()));
         }

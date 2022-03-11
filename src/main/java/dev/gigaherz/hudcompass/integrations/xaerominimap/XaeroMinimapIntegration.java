@@ -2,7 +2,6 @@ package dev.gigaherz.hudcompass.integrations.xaerominimap;
 
 import com.google.common.collect.Maps;
 import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.systems.RenderSystem;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.IIconData;
@@ -85,6 +84,7 @@ public class XaeroMinimapIntegration
         }
 
         private int counter = 0;
+
         private void clientTick(TickEvent.ClientTickEvent event)
         {
             if ((++counter) > 20)
@@ -141,13 +141,13 @@ public class XaeroMinimapIntegration
                 final Set<Waypoint> toAdd = _toAdd;
                 final Set<Waypoint> toRemove = _toRemove;
 
-                for(Waypoint wp : toAdd)
+                for (Waypoint wp : toAdd)
                 {
                     XMWaypoint way = new XMWaypoint(wp);
                     addon.waypoints.put(wp, way);
                     pois.get(player.level).addPoint(way);
                 }
-                for(Waypoint wp : toRemove)
+                for (Waypoint wp : toRemove)
                 {
                     XMWaypoint way = addon.waypoints.get(wp);
                     addon.waypoints.remove(wp);
@@ -267,8 +267,8 @@ public class XaeroMinimapIntegration
             {
                 IRenderTypeBuffer.Impl impl = Minecraft.getInstance().renderBuffers().bufferSource();
                 matrixStack.pushPose();
-                matrixStack.translate(0, 2.8f,0);
-                matrixStack.scale(7/9f, 7/9f, 7/9f);
+                matrixStack.translate(0, 2.8f, 0);
+                matrixStack.scale(7 / 9f, 7 / 9f, 7 / 9f);
                 XaeroMinimap.instance.getInterfaces().getMinimapInterface().getWaypointsGuiRenderer()
                         .drawIconOnGUI(matrixStack, renderHelper, data.parent, XaeroMinimap.instance.getSettings(), x, y, impl, impl.getBuffer(CustomRenderTypes.COLORED_WAYPOINTS_BGS));
                 matrixStack.popPose();

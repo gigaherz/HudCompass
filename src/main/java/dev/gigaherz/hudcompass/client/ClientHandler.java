@@ -4,7 +4,6 @@ import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.network.ClientHello;
 import dev.gigaherz.hudcompass.network.RemoveWaypoint;
-import dev.gigaherz.hudcompass.network.SyncWaypointData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;

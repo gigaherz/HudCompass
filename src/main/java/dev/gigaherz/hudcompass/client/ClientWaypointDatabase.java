@@ -26,7 +26,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.file.Path;
 
-@Mod.EventBusSubscriber(value= Dist.CLIENT, modid= HudCompass.MODID, bus= Mod.EventBusSubscriber.Bus.FORGE)
+@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ClientWaypointDatabase
 {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -67,7 +67,7 @@ public class ClientWaypointDatabase
 
             Path filePath = getPath(mc);
             File file = filePath.toFile();
-            if(!file.exists())
+            if (!file.exists())
             {
                 File backup = new File(file.getAbsolutePath() + ".bak");
                 if (backup.exists())
@@ -76,7 +76,7 @@ public class ClientWaypointDatabase
                     LOGGER.debug("File did not exist, but a backup was found...");
                 }
             }
-            if(file.exists())
+            if (file.exists())
             {
                 try
                 {
@@ -93,7 +93,8 @@ public class ClientWaypointDatabase
                 }
                 LOGGER.debug("Done!");
             }
-            else {
+            else
+            {
                 LOGGER.debug("File did not exist.");
             }
         });
@@ -112,7 +113,7 @@ public class ClientWaypointDatabase
                 {
                     Path filePath = getPath(mc);
                     File file = filePath.toFile();
-                    if(file.exists())
+                    if (file.exists())
                     {
                         LOGGER.debug("File already exists, keeping as backup.");
                         File backup = new File(file.getAbsolutePath() + ".bak");

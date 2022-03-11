@@ -19,6 +19,7 @@ public class BasicIconData implements IIconData<BasicIconData>
     {
         return new BasicIconData(Serializer.POI_SERIALIZER, index);
     }
+
     public static IIconData<?> mapMarker(int index)
     {
         return new BasicIconData(Serializer.MAP_SERIALIZER, index);
@@ -39,10 +40,10 @@ public class BasicIconData implements IIconData<BasicIconData>
 
     public void setColor(float r, float g, float b, float a)
     {
-        this.r=r;
-        this.g=g;
-        this.b=b;
-        this.a=a;
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = a;
     }
 
     @Override

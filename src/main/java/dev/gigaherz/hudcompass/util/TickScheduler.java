@@ -18,6 +18,7 @@ public final class TickScheduler
         private boolean repeating;
         private final Consumer callback;
         private final Object parameter;
+
         private ScheduledTask(int targetTick, int interval, boolean repeating, Consumer callback, Object parameter)
         {
             this.targetTick = targetTick;
@@ -92,7 +93,7 @@ public final class TickScheduler
     private void update()
     {
         int current = currentTick.incrementAndGet();
-        for(Iterator<ScheduledTask> it = tasks.iterator(); it.hasNext();)
+        for (Iterator<ScheduledTask> it = tasks.iterator(); it.hasNext(); )
         {
             ScheduledTask next = it.next();
             if (next.targetTick <= current)
@@ -109,7 +110,7 @@ public final class TickScheduler
 
     public <T> ScheduledTask schedule(int interval, boolean repeating, Consumer<T> callback, T parameter)
     {
-        ScheduledTask task = new ScheduledTask(currentTick.get()+interval, interval, repeating, callback, parameter);
+        ScheduledTask task = new ScheduledTask(currentTick.get() + interval, interval, repeating, callback, parameter);
         tasks.add(task);
         return task;
     }

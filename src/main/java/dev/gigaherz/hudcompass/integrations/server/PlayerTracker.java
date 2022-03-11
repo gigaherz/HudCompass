@@ -352,7 +352,7 @@ public class PlayerTracker
                 ResourceLocation tex = clientPlayer.getSkinTextureLocation();
 
                 Minecraft.getInstance().getTextureManager().bind(tex);
-                RenderSystem.color4f(1,1,1,alpha/255.0f);
+                RenderSystem.color4f(1, 1, 1, alpha / 255.0f);
 
                 drawFaceLayer(matrixStack, x - 4, y - 4, 8, 8, 8);
                 drawFaceLayer(matrixStack, x - 4.5f, y - 4.5f, 9, 9, 40);
@@ -369,10 +369,10 @@ public class PlayerTracker
 
             BufferBuilder bufferbuilder = Tessellator.getInstance().getBuilder();
             bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
-            bufferbuilder.vertex(pMatrix, x1, y2, 0).uv(u1, 16f/64f).endVertex();
-            bufferbuilder.vertex(pMatrix, x2, y2, 0).uv(u2, 16f/64f).endVertex();
-            bufferbuilder.vertex(pMatrix, x2, y1, 0).uv(u2, 8f/64f).endVertex();
-            bufferbuilder.vertex(pMatrix, x1, y1, 0).uv(u1, 8f/64f).endVertex();
+            bufferbuilder.vertex(pMatrix, x1, y2, 0).uv(u1, 16f / 64f).endVertex();
+            bufferbuilder.vertex(pMatrix, x2, y2, 0).uv(u2, 16f / 64f).endVertex();
+            bufferbuilder.vertex(pMatrix, x2, y1, 0).uv(u2, 8f / 64f).endVertex();
+            bufferbuilder.vertex(pMatrix, x1, y1, 0).uv(u1, 8f / 64f).endVertex();
             bufferbuilder.end();
             WorldVertexBufferUploader.end(bufferbuilder);
         }

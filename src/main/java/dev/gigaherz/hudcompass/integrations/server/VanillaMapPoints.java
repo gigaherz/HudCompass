@@ -5,7 +5,6 @@ import com.google.common.collect.Sets;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
-import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
@@ -60,6 +59,7 @@ public class VanillaMapPoints
     }
 
     private int counter = 0;
+
     private void playerTick(TickEvent.PlayerTickEvent event)
     {
         if (event.phase != TickEvent.Phase.END)
@@ -105,7 +105,7 @@ public class VanillaMapPoints
             return Collections.emptySet();
 
         Set<MapData> seenMaps = Sets.newHashSet();
-        for(int slot = 0; slot < player.inventory.getContainerSize(); slot++)
+        for (int slot = 0; slot < player.inventory.getContainerSize(); slot++)
         {
             ItemStack stack = player.inventory.getItem(slot);
             MapData mapData = FilledMapItem.getOrCreateSavedData(stack, player.level);
@@ -115,7 +115,7 @@ public class VanillaMapPoints
 
                 Map<MapDecoration, PointInfo<?>> decorationPointInfoMap = addon.mapDecorations.computeIfAbsent(mapData, k -> Maps.newHashMap());
 
-                for(MapBanner banner : mapData.bannerMarkers.values())
+                for (MapBanner banner : mapData.bannerMarkers.values())
                 {
                     MapDecoration decoration = mapData.decorations.get(banner.getId());
                     if (!decorationPointInfoMap.containsKey(decoration))
@@ -126,7 +126,7 @@ public class VanillaMapPoints
                     }
                 }
 
-                for(Map.Entry<String, MapDecoration> kvp : mapData.decorations.entrySet())
+                for (Map.Entry<String, MapDecoration> kvp : mapData.decorations.entrySet())
                 {
                     String decorationId = kvp.getKey();
                     MapDecoration decoration = kvp.getValue();
@@ -148,7 +148,7 @@ public class VanillaMapPoints
                 Set<MapDecoration> toRemove = new HashSet<>(decorationPointInfoMap.keySet());
                 toRemove.removeAll(mapData.decorations.values());
 
-                for(MapDecoration remove : toRemove)
+                for (MapDecoration remove : toRemove)
                 {
                     worldPoints.removePoint(decorationPointInfoMap.get(remove));
                     decorationPointInfoMap.remove(remove);
@@ -244,10 +244,10 @@ public class VanillaMapPoints
             dynamic();
             noVerticalDistance();
 
-            float decoX =(decoration.getX()-0.5f)*0.5f;
-            float decoZ =(decoration.getY()-0.5f)*0.5f;
+            float decoX = (decoration.getX() - 0.5f) * 0.5f;
+            float decoZ = (decoration.getY() - 0.5f) * 0.5f;
 
-            int scale = 1<<mapData.scale;
+            int scale = 1 << mapData.scale;
             float worldX = mapData.x + decoX * scale;
             float worldZ = mapData.z + decoZ * scale;
 

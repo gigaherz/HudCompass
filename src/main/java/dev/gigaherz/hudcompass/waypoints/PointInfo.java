@@ -18,7 +18,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
 {
     public static Vector3d toVec3d(BlockPos pos)
     {
-        return new Vector3d(pos.getX()+0.5,pos.getY()+0.5,pos.getZ()+0.5);
+        return new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
     }
 
     private final PointInfoType<? extends T> type;
@@ -66,12 +66,14 @@ public abstract class PointInfo<T extends PointInfo<T>>
     {
         return internalId;
     }
+
     public void setInternalId(UUID uuid)
     {
         internalId = uuid;
     }
 
     public abstract Vector3d getPosition();
+
     public abstract Vector3d getPosition(PlayerEntity player, float partialTicks);
 
     @Nullable
@@ -142,7 +144,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
 
     public void markDirty()
     {
-        if(owner != null)
+        if (owner != null)
         {
             owner.markDirty(this);
         }
@@ -208,7 +210,10 @@ public abstract class PointInfo<T extends PointInfo<T>>
     }
 
     protected abstract void serializeAdditional(CompoundNBT tag);
+
     protected abstract void deserializeAdditional(CompoundNBT tag);
+
     protected abstract void serializeAdditional(PacketBuffer tag);
+
     protected abstract void deserializeAdditional(PacketBuffer tag);
 }

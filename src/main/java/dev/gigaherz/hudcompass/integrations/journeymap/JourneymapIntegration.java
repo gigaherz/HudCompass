@@ -1,13 +1,8 @@
 package dev.gigaherz.hudcompass.integrations.journeymap;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.systems.RenderSystem;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IIconData;
-import dev.gigaherz.hudcompass.icons.IconDataSerializer;
-import dev.gigaherz.hudcompass.icons.client.IIconRenderer;
-import dev.gigaherz.hudcompass.icons.client.IconRendererRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
@@ -18,24 +13,14 @@ import journeymap.client.api.event.ClientEvent;
 import journeymap.client.api.event.WaypointEvent;
 import journeymap.client.api.model.MapImage;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldVertexBufferUploader;
-import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Matrix4f;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.registries.DeferredRegister;
-import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
@@ -145,11 +130,11 @@ public class JourneymapIntegration implements IClientPlugin
 
                     MapImage icon = jmWaypoint.getIcon();
                     int rgb = icon.getColor();
-                    float r = ((rgb >> 16)&0xFF)/255.0f;
-                    float g = ((rgb >> 8)&0xFF)/255.0f;
-                    float b = ((rgb)&0xFF)/255.0f;
+                    float r = ((rgb >> 16) & 0xFF) / 255.0f;
+                    float g = ((rgb >> 8) & 0xFF) / 255.0f;
+                    float b = ((rgb) & 0xFF) / 255.0f;
                     float a = 1.0f; // icon.getOpacity();
-                    basicIconData.setColor(r,g,b,a);
+                    basicIconData.setColor(r, g, b, a);
                 }
             }
         }

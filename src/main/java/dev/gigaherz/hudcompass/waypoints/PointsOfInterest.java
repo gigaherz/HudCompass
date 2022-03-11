@@ -95,6 +95,7 @@ public class PointsOfInterest
     }
 
     private static final ResourceLocation PROVIDER_KEY = HudCompass.location("poi_provider");
+
     private static void attachEvent(AttachCapabilitiesEvent<Entity> event)
     {
         Entity entity = event.getObject();
@@ -106,7 +107,7 @@ public class PointsOfInterest
                 private final LazyOptional<PointsOfInterest> poiSupplier = LazyOptional.of(() -> poi);
 
                 {
-                    poi.setPlayer((PlayerEntity)entity);
+                    poi.setPlayer((PlayerEntity) entity);
                 }
 
                 @Override
@@ -151,7 +152,7 @@ public class PointsOfInterest
 
     private void transferFrom(PointsOfInterest oldPois)
     {
-        for(WorldPoints w : oldPois.getAllWorlds())
+        for (WorldPoints w : oldPois.getAllWorlds())
         {
             get(w.worldKey, w.dimensionTypeKey).transferFrom(w);
         }
@@ -332,7 +333,8 @@ public class PointsOfInterest
         {
             sendUpdateFromGui(toAdd, toUpdate, toRemove);
         }
-        else {
+        else
+        {
             applyUpdatesFromGui(toAdd, toUpdate, toRemove);
         }
     }
@@ -385,13 +387,13 @@ public class PointsOfInterest
         sender.getCapability(INSTANCE).ifPresent(points -> points
                 .find(removeWaypoint.id)
                 .ifPresent(pt -> {
-            if (!pt.isDynamic())
-            {
-                WorldPoints owner = pt.getOwner();
-                if (owner != null)
-                    owner.removePoint(removeWaypoint.id);
-            }
-        }));
+                    if (!pt.isDynamic())
+                    {
+                        WorldPoints owner = pt.getOwner();
+                        if (owner != null)
+                            owner.removePoint(removeWaypoint.id);
+                    }
+                }));
     }
 
     private Optional<PointInfo<?>> find(UUID id)
@@ -423,15 +425,15 @@ public class PointsOfInterest
 
     private void applyUpdatesFromGui(ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsAdded, ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsUpdated, ImmutableList<UUID> pointsRemoved)
     {
-        for(UUID pt : pointsRemoved)
+        for (UUID pt : pointsRemoved)
         {
             remove(pt);
         }
-        for(Pair<ResourceLocation, PointInfo<?>> pt : pointsAdded)
+        for (Pair<ResourceLocation, PointInfo<?>> pt : pointsAdded)
         {
             get(RegistryKey.create(Registry.DIMENSION_REGISTRY, pt.getFirst())).addPoint(pt.getSecond());
         }
-        for(Pair<ResourceLocation, PointInfo<?>> pt : pointsUpdated)
+        for (Pair<ResourceLocation, PointInfo<?>> pt : pointsUpdated)
         {
             get(RegistryKey.create(Registry.DIMENSION_REGISTRY, pt.getFirst())).addPoint(pt.getSecond());
         }
@@ -537,7 +539,8 @@ public class PointsOfInterest
         {
             point.setOwner(this);
             PointInfo<?> oldPoint = points.put(point.getInternalId(), point);
-            if (oldPoint != null) {
+            if (oldPoint != null)
+            {
                 oldPoint.setOwner(null);
             }
             if (!player.level.isClientSide && otherSideHasMod)
@@ -664,11 +667,10 @@ public class PointsOfInterest
 
         public void transferFrom(WorldPoints w)
         {
-            for(PointInfo<?> p : w.getPoints())
+            for (PointInfo<?> p : w.getPoints())
             {
                 addPoint(p);
             }
         }
     }
-
 }

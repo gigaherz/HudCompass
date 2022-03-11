@@ -58,7 +58,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
 
     public void setPosition(Vector3d position)
     {
-        if (MathHelper.equal(position.distanceToSqr(position),0))
+        if (MathHelper.equal(position.distanceToSqr(position), 0))
         {
             this.position = position;
             markDirty();

@@ -16,14 +16,14 @@ import java.util.function.Supplier;
 
 /**
  * Gets a codec that encodes a regsitry entry by its ID.
- *
+ * <p>
  * How to use:
- *
- *   Declare as:
- *     public static final Lazy<Codec<MyThing>> CODEC = ForgeRegistryEntryCodec.getOrcreate(MY_THING_REGISTRY_SUPPLIER);
- *
- *   Then reference like:
- *     CODEC.get().fieldOf("whatever")
+ * <p>
+ * Declare as:
+ * public static final Lazy<Codec<MyThing>> CODEC = ForgeRegistryEntryCodec.getOrcreate(MY_THING_REGISTRY_SUPPLIER);
+ * <p>
+ * Then reference like:
+ * CODEC.get().fieldOf("whatever")
  *
  * @param <T> The type of registry entry this codec deals with
  */
@@ -35,7 +35,7 @@ public class ForgeRegistryEntryCodec<T extends IForgeRegistryEntry<T>> implement
     public static <T extends IForgeRegistryEntry<T>> Codec<T> getOrCreate(IForgeRegistry<T> registry)
     {
         //noinspection unchecked
-        return (Codec<T>)cache.computeIfAbsent(registry, ForgeRegistryEntryCodec::new);
+        return (Codec<T>) cache.computeIfAbsent(registry, ForgeRegistryEntryCodec::new);
     }
 
     public static <T extends IForgeRegistryEntry<T>> Supplier<Codec<T>> getOrCreate(Supplier<IForgeRegistry<T>> registry)
@@ -48,7 +48,7 @@ public class ForgeRegistryEntryCodec<T extends IForgeRegistryEntry<T>> implement
     private ForgeRegistryEntryCodec(IForgeRegistry<T> registry)
     {
         this.registry = registry;
-        this.forgeRegistry = registry instanceof ForgeRegistry ? (ForgeRegistry<T>)registry : null;
+        this.forgeRegistry = registry instanceof ForgeRegistry ? (ForgeRegistry<T>) registry : null;
     }
 
     public <TOps> DataResult<Pair<T, TOps>> decode(DynamicOps<TOps> ops, TOps data)
@@ -76,7 +76,8 @@ public class ForgeRegistryEntryCodec<T extends IForgeRegistryEntry<T>> implement
         });
     }
 
-    public <TOps> DataResult<TOps> encode(T entry, DynamicOps<TOps> ops, TOps data) {
+    public <TOps> DataResult<TOps> encode(T entry, DynamicOps<TOps> ops, TOps data)
+    {
         ResourceLocation resourcelocation = this.registry.getKey(entry);
         if (resourcelocation == null)
             return DataResult.error("Unknown registry element " + entry);
