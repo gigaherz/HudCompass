@@ -4,6 +4,7 @@ import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
+import dev.gigaherz.hudcompass.integrations.journeymap.JourneymapIntegration;
 import dev.gigaherz.hudcompass.integrations.server.PlayerTracker;
 import dev.gigaherz.hudcompass.integrations.server.SpawnPointPoints;
 import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
@@ -23,6 +24,7 @@ import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.ExtensionPoint;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -107,6 +109,9 @@ public class HudCompass
         {
             XaeroMinimapIntegration.init();
         }
+
+        if (ModList.get().isLoaded("journeymap"))
+            JourneymapIntegration.staticInit();
 
         ModLoadingContext modLoadingContext = ModLoadingContext.get();
         //modLoadingContext.registerConfig(ModConfig.Type.SERVER, ConfigData.SERVER_SPEC);
