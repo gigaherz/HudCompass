@@ -162,7 +162,6 @@ public class ConfigData
         waypointViewDistance = CLIENT.waypointViewDistance.get();
         enableXaeroMinimapIntegration = ConfigData.CLIENT.enableXaeroMinimapIntegration.get();
         enableJourneymapIntegration = ConfigData.CLIENT.enableJourneymapIntegration.get();
-
     }
 
     public static void refreshCommon()
