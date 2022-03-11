@@ -5,7 +5,6 @@ import dev.gigaherz.hudcompass.icons.IconDataRegistry;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.common.util.Constants;
@@ -16,11 +15,6 @@ import java.util.UUID;
 
 public abstract class PointInfo<T extends PointInfo<T>>
 {
-    public static Vector3d toVec3d(BlockPos pos)
-    {
-        return new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
-    }
-
     private final PointInfoType<? extends T> type;
     @Nullable
     private PointsOfInterest.WorldPoints owner;
