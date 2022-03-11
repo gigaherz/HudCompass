@@ -92,6 +92,11 @@ public abstract class PointInfo<T extends PointInfo<T>>
         return iconData;
     }
 
+    protected void setIconData(IIconData<?> iconData)
+    {
+        this.iconData = iconData;
+    }
+
     @SuppressWarnings("unchecked")
     public T dynamic()
     {
@@ -111,7 +116,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
         return displayVerticalDistance;
     }
 
-    public void makeClientPoint()
+    public void clientPoint()
     {
         isServerProvided = false;
     }

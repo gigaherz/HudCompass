@@ -608,7 +608,8 @@ public class PointsOfInterest
 
         public void read(FriendlyByteBuf buffer)
         {
-            points.clear();
+            // IT BROKE WHEN IT WAS A METHOD REFERENCE
+            points.values().removeIf(pointInfo -> pointInfo.isServerManaged());
             int numPoints = buffer.readVarInt();
             for (int i = 0; i < numPoints; i++)
             {

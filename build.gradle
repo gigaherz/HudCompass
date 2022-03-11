@@ -94,11 +94,7 @@ minecraft {
 
 dependencies {
     minecraft 'net.minecraftforge:forge:1.18.2-40.0.12'
-    //compileOnly 'xaero:Xaeros_Minimap:21.3.0.2_Forge_1.16.5'
-    //runtimeOnly fg.deobf('xaero:Xaeros_Minimap:20.25.1_Forge_1.16.3-deobf')
-    //implementation 'xaero:Xaeros_Minimap:21.12.5-deobf'
-    //implementation fg.deobf('curse.maven:xaeros-minimap-263420:3375900')
-    //https://www.curseforge.com/minecraft/mc-mods/xaeros-minimap/files/3375900
+    implementation fg.deobf('curse.maven:journeymap-32274:3681171') // https://www.curseforge.com/minecraft/mc-mods/journeymap/files/3681171
 }
 
 jar {
