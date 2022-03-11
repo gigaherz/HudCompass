@@ -110,7 +110,9 @@ public class HudCompass
         }
 
         if (ModList.get().isLoaded("journeymap"))
+        {
             JourneymapIntegration.staticInit();
+        }
 
         ModLoadingContext modLoadingContext = ModLoadingContext.get();
         //modLoadingContext.registerConfig(ModConfig.Type.SERVER, ConfigData.SERVER_SPEC);

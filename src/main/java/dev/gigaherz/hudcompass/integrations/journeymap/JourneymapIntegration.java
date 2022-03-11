@@ -1,5 +1,6 @@
 package dev.gigaherz.hudcompass.integrations.journeymap;
 
+import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IIconData;
@@ -63,6 +64,9 @@ public class JourneymapIntegration implements IClientPlugin
 
         PlayerEntity player = Minecraft.getInstance().player;
         if (player == null) return;
+
+        if (!ConfigData.enableJourneymapIntegration)
+            return;
 
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
             PointsOfInterest.WorldPoints worldPoints = pois.get(player.level);

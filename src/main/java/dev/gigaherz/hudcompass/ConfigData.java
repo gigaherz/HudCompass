@@ -42,6 +42,7 @@ public class ConfigData
         public final ForgeConfigSpec.BooleanValue showAllLabelsOnSneak;
         public final ForgeConfigSpec.BooleanValue animateLabels;
         public final ForgeConfigSpec.BooleanValue enableXaeroMinimapIntegration;
+        public final ForgeConfigSpec.BooleanValue enableJourneymapIntegration;
         public final ForgeConfigSpec.EnumValue<DisplayWhen> displayWhen;
         public final ForgeConfigSpec.DoubleValue waypointFadeDistance;
         public final ForgeConfigSpec.DoubleValue waypointViewDistance;
@@ -71,6 +72,9 @@ public class ConfigData
             enableXaeroMinimapIntegration = builder
                     .comment("If set to FALSE, Xaero Minimap waypoints won't be displayed in the compass.")
                     .define("enableXaeroMinimapIntegration", true);
+            enableJourneymapIntegration = builder
+                    .comment("If set to FALSE, Journeymap waypoints won't be displayed in the compass.")
+                    .define("enableJourneymapIntegration", true);
             waypointFadeDistance = builder
                     .comment("Sets the distance at which waypoints start to fade. Meaningless if waypointViewDistance=0. If this value is >= waypointViewDistance, it will never fade.")
                     .defineInRange("waypointFadeDistance", 195.0, 0.0, Double.MAX_VALUE);
@@ -111,7 +115,7 @@ public class ConfigData
                     .define("enableVanillaMapIntegration", true);
             enableSpawnPointWaypoint = builder
                     .comment("If set to FALSE, the spawn point location will not be shown.")
-                    .define("enableXaeroMinimapIntegration", true);
+                    .define("enableSpawnPointWaypoint", true);
             disableServerHello = builder
                     .comment("If set to TRUE, the server will not advertise itself to the clients, making them work in client-only mode.")
                     .define("disableServerHello", false);
@@ -141,6 +145,7 @@ public class ConfigData
     public static boolean animateLabels;
     public static DisplayWhen displayWhen;
     public static boolean enableXaeroMinimapIntegration;
+    public static boolean enableJourneymapIntegration;
     public static double waypointViewDistance;
     public static double waypointFadeDistance;
 
@@ -156,6 +161,8 @@ public class ConfigData
         waypointFadeDistance = CLIENT.waypointFadeDistance.get();
         waypointViewDistance = CLIENT.waypointViewDistance.get();
         enableXaeroMinimapIntegration = ConfigData.CLIENT.enableXaeroMinimapIntegration.get();
+        enableJourneymapIntegration = ConfigData.CLIENT.enableJourneymapIntegration.get();
+
     }
 
     public static void refreshCommon()
