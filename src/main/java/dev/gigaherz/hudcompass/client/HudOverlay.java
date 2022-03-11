@@ -351,6 +351,7 @@ public class HudOverlay extends AbstractGui
         int x = yDelta > 10 ? 8 : 0;
         int y = 0;
         textureManager.bind(LOCATION_POI_ICONS);
+        RenderSystem.color4f(1,1,1,1);
         blitRect(matrixStack, -4.5f, 4, x, y, 8, 8, 128, 128);
     }
 
@@ -359,6 +360,7 @@ public class HudOverlay extends AbstractGui
         int x = yDelta < -10 ? 24 : 16;
         int y = 0;
         textureManager.bind(LOCATION_POI_ICONS);
+        RenderSystem.color4f(1,1,1,1);
         blitRect(matrixStack, -4.5f, 16, x, y, 8, 8, 128, 128);
     }
 

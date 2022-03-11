@@ -91,10 +91,11 @@ minecraft {
 }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.16.5-36.1.12'
+    minecraft 'net.minecraftforge:forge:1.16.5-36.2.30'
     implementation fg.deobf('curse.maven:xaeros-minimap-263420:3663012')
 
     //implementation fg.deobf('curse.maven:journeymap-32274:3681166') // https://www.curseforge.com/minecraft/mc-mods/journeymap/files/3681166
+    implementation fg.deobf("journeymap:journeymap-1.16.5:5.8.0beta17")
 }
 
 jar {

@@ -26,11 +26,23 @@ public class BasicIconData implements IIconData<BasicIconData>
 
     private final IconDataSerializer<BasicIconData> serializer;
     public final int iconIndex;
+    public float r = 1.0f;
+    public float g = 1.0f;
+    public float b = 1.0f;
+    public float a = 1.0f;
 
     public BasicIconData(IconDataSerializer<BasicIconData> serializer, int iconIndex)
     {
         this.serializer = serializer;
         this.iconIndex = iconIndex;
+    }
+
+    public void setColor(float r, float g, float b, float a)
+    {
+        this.r=r;
+        this.g=g;
+        this.b=b;
+        this.a=a;
     }
 
     @Override

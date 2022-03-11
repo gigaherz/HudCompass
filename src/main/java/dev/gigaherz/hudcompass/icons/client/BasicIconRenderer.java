@@ -40,7 +40,7 @@ public class BasicIconRenderer implements IIconRenderer<BasicIconData>
         textureManager.bind(texture);
         int indexX = data.iconIndex % iconsPerRow;
         int indexY = data.iconIndex / iconsPerCol;
-        RenderSystem.color4f(1,1,1,alpha/255.0f);
+        RenderSystem.color4f(data.r,data.g,data.b,data.a * (alpha/255.0f));
         AbstractGui.blit(matrixStack, x - iconW / 2, y - iconH / 2, indexX * iconW, indexY * iconH, iconW, iconH, texW, texH);
     }
 }
