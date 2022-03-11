@@ -29,7 +29,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
 
     public BasicWaypoint(BlockPos exactPosition, @Nullable String label, IIconData<?> iconData)
     {
-        this(toVec3d(exactPosition), label, iconData);
+        this(Vec3.atCenterOf(exactPosition), label, iconData);
     }
 
     public BasicWaypoint(Vec3 exactPosition, @Nullable String label, IIconData<?> iconData)

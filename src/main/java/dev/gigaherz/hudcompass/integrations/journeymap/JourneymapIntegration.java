@@ -113,7 +113,7 @@ public class JourneymapIntegration implements IClientPlugin
 
         public JmWaypoint(Waypoint jmWaypoint)
         {
-            super(JM_WAYPOINT.get(), true, new TextComponent(jmWaypoint.getName()), BasicIconData.mapMarker(7));
+            super(JM_WAYPOINT.get(), true, new TextComponent(jmWaypoint.getName()), BasicIconData.poi(5));
             this.jmWaypoint = jmWaypoint;
 
             this.dynamic();
@@ -142,7 +142,7 @@ public class JourneymapIntegration implements IClientPlugin
 
         public JmWaypoint()
         {
-            super(JM_WAYPOINT.get(), true, null, BasicIconData.mapMarker(7));
+            super(JM_WAYPOINT.get(), true, null, BasicIconData.poi(5));
 
             throw new IllegalStateException("This waypoint is client-only and cannot be synchronized.");
         }
@@ -150,8 +150,7 @@ public class JourneymapIntegration implements IClientPlugin
         @Override
         public Vec3 getPosition()
         {
-            var p = jmWaypoint.getPosition();
-            return new Vec3(p.getX(), p.getY(), p.getZ());
+            return Vec3.atCenterOf(jmWaypoint.getPosition());
         }
 
         @Override

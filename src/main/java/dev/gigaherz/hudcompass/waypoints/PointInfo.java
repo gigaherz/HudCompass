@@ -16,11 +16,6 @@ import java.util.UUID;
 
 public abstract class PointInfo<T extends PointInfo<T>>
 {
-    public static Vec3 toVec3d(BlockPos pos)
-    {
-        return new Vec3(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
-    }
-
     private final PointInfoType<? extends T> type;
     @Nullable
     private PointsOfInterest.WorldPoints owner;
