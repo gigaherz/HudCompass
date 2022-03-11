@@ -8,23 +8,23 @@ import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.MapItem;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.MapItem;
 import net.minecraft.world.level.saveddata.maps.MapBanner;
-import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
+import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.RegistryObject;
 import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.RegistryObject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,6 +59,7 @@ public class VanillaMapPoints
     }
 
     private int counter = 0;
+
     private void playerTick(TickEvent.PlayerTickEvent event)
     {
         if (event.phase != TickEvent.Phase.END)
@@ -104,7 +105,7 @@ public class VanillaMapPoints
             return Collections.emptySet();
 
         Set<MapItemSavedData> seenMaps = Sets.newHashSet();
-        for(int slot = 0; slot < player.getInventory().getContainerSize(); slot++)
+        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++)
         {
             ItemStack stack = player.getInventory().getItem(slot);
             MapItemSavedData mapData = MapItem.getSavedData(stack, player.level);
@@ -114,7 +115,7 @@ public class VanillaMapPoints
 
                 Map<MapDecoration, PointInfo<?>> decorationPointInfoMap = addon.mapDecorations.computeIfAbsent(mapData, k -> Maps.newHashMap());
 
-                for(MapBanner banner : mapData.bannerMarkers.values())
+                for (MapBanner banner : mapData.bannerMarkers.values())
                 {
                     MapDecoration decoration = mapData.decorations.get(banner.getId());
                     if (!decorationPointInfoMap.containsKey(decoration))
@@ -125,7 +126,7 @@ public class VanillaMapPoints
                     }
                 }
 
-                for(Map.Entry<String, MapDecoration> kvp : mapData.decorations.entrySet())
+                for (Map.Entry<String, MapDecoration> kvp : mapData.decorations.entrySet())
                 {
                     String decorationId = kvp.getKey();
                     MapDecoration decoration = kvp.getValue();
@@ -147,7 +148,7 @@ public class VanillaMapPoints
                 Set<MapDecoration> toRemove = new HashSet<>(decorationPointInfoMap.keySet());
                 toRemove.removeAll(mapData.decorations.values());
 
-                for(MapDecoration remove : toRemove)
+                for (MapDecoration remove : toRemove)
                 {
                     worldPoints.removePoint(decorationPointInfoMap.get(remove));
                     decorationPointInfoMap.remove(remove);
@@ -243,10 +244,10 @@ public class VanillaMapPoints
             dynamic();
             noVerticalDistance();
 
-            float decoX =(decoration.getX()-0.5f)*0.5f;
-            float decoZ =(decoration.getY()-0.5f)*0.5f;
+            float decoX = (decoration.getX() - 0.5f) * 0.5f;
+            float decoZ = (decoration.getY() - 0.5f) * 0.5f;
 
-            int scale = 1<<mapData.scale;
+            int scale = 1 << mapData.scale;
             float worldX = mapData.x + decoX * scale;
             float worldZ = mapData.z + decoZ * scale;
 

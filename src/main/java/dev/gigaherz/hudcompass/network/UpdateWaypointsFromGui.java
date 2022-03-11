@@ -32,7 +32,7 @@ public class UpdateWaypointsFromGui
         ImmutableList.Builder<UUID> toRemove = ImmutableList.builder();
 
         int numberToAdd = buffer.readVarInt();
-        for(int i=0;i<numberToAdd;i++)
+        for (int i = 0; i < numberToAdd; i++)
         {
             ResourceLocation id = buffer.readResourceLocation();
             PointInfo<?> pt = PointInfoRegistry.deserializePointWithoutId(buffer);
@@ -40,7 +40,7 @@ public class UpdateWaypointsFromGui
         }
 
         int numberToUpdate = buffer.readVarInt();
-        for(int i=0;i<numberToUpdate;i++)
+        for (int i = 0; i < numberToUpdate; i++)
         {
             ResourceLocation id = buffer.readResourceLocation();
             PointInfo<?> pt = PointInfoRegistry.deserializePoint(buffer);
@@ -48,7 +48,7 @@ public class UpdateWaypointsFromGui
         }
 
         int numberToRemove = buffer.readVarInt();
-        for(int i=0;i<numberToRemove;i++)
+        for (int i = 0; i < numberToRemove; i++)
         {
             toRemove.add(buffer.readUUID());
         }

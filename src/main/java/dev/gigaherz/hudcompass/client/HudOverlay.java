@@ -152,12 +152,12 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         final float elapsed0 = elapsed;
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(pts -> {
             List<PointInfo<?>> sortedPoints = Lists.newArrayList(pts.get(player.level).getPoints());
-            sortedPoints.sort((a,b) -> {
+            sortedPoints.sort((a, b) -> {
                 Vec3 positionA = a.getPosition(player, partialTicks);
                 Vec3 positionB = b.getPosition(player, partialTicks);
                 float angleA = Math.abs(angleDistance(yaw0, angleFromPoint(positionA, playerPosX, playerPosY, playerPosZ).x));
                 float angleB = Math.abs(angleDistance(yaw0, angleFromPoint(positionB, playerPosX, playerPosY, playerPosZ).x));
-                return (int)Math.signum(angleB-angleA);
+                return (int) Math.signum(angleB - angleA);
             });
             for (PointInfo<?> point : sortedPoints)
             {
@@ -182,6 +182,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
     }
 
     private static final TagKey<Item> MAKES_HUDCOMPASS_VISIBLE = TagKey.create(Registry.ITEM_REGISTRY, new ResourceLocation("hudcompass:makes_hudcompass_visible"));
+
     private boolean findCompassInHands()
     {
         if (mc.player == null) return false;
@@ -195,7 +196,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         if (mc.player == null) return false;
 
         Inventory inv = mc.player.getInventory();
-        for(int i=0;i<inv.getContainerSize();i++)
+        for (int i = 0; i < inv.getContainerSize(); i++)
         {
             if (inv.getItem(i).is(MAKES_HUDCOMPASS_VISIBLE))
                 return true;
@@ -208,7 +209,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         double xd = position.x - playerPosX;
         double yd = position.y - playerPosY;
         double zd = position.z - playerPosZ;
-        return new Vec2((float) Math.toDegrees(-Math.atan2(xd, zd)), (float)yd);
+        return new Vec2((float) Math.toDegrees(-Math.atan2(xd, zd)), (float) yd);
     }
 
     private void drawCardinalDirection(PoseStack matrixStack, float yaw, float angle, int xPos, String text)
@@ -217,7 +218,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         if (Math.abs(nDist) <= 90)
         {
             float nPos = xPos + nDist;
-            fillRect(matrixStack, nPos-0.5f, 10, nPos+0.5f, 18, 0x7FFFFFFF);
+            fillRect(matrixStack, nPos - 0.5f, 10, nPos + 0.5f, 18, 0x7FFFFFFF);
             if (mc.options.backgroundForChatOnly)
                 drawCenteredShadowString(matrixStack, font, text, nPos, 1, 0xFFFFFF);
             else
@@ -236,11 +237,11 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         Minecraft mc = Minecraft.getInstance();
         float width = font.width(text);
         float height = font.lineHeight;
-        float width1 = width+4;
-        float height1 = height+3;
-        float x0 = x-width1/2;
-        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity * ((color >>24) & 0xFF), 0, 255)) << 24);
-        font.drawShadow(matrixStack, text, x-width/2, y+2, color);
+        float width1 = width + 4;
+        float height1 = height + 3;
+        float x0 = x - width1 / 2;
+        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity * ((color >> 24) & 0xFF), 0, 255)) << 24);
+        font.drawShadow(matrixStack, text, x - width / 2, y + 2, color);
 
         RenderSystem.enableBlend();
     }
@@ -251,11 +252,11 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         Minecraft mc = Minecraft.getInstance();
         float width = font.width(reodering);
         float height = font.lineHeight;
-        float width1 = width+4;
-        float height1 = height+3;
-        float x0 = x-width1/2;
-        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity * ((color >>24) & 0xFF), 0, 255)) << 24);
-        font.drawShadow(matrixStack, reodering, x-width/2, y+2, color);
+        float width1 = width + 4;
+        float height1 = height + 3;
+        float x0 = x - width1 / 2;
+        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity * ((color >> 24) & 0xFF), 0, 255)) << 24);
+        font.drawShadow(matrixStack, reodering, x - width / 2, y + 2, color);
 
         RenderSystem.enableBlend();
     }
@@ -274,7 +275,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
 
         var distanceFade = 1 - Mth.clamp((distance - ConfigData.waypointFadeDistance) / (ConfigData.waypointViewDistance - ConfigData.waypointFadeDistance), 0, 1);
 
-        var alpha = (int)(255*distanceFade);
+        var alpha = (int) (255 * distanceFade);
 
         float nDist = angleDistance(yaw, angle);
         if (alpha > 0 && Math.abs(nDist) <= 90)
@@ -286,8 +287,8 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
             PointRenderer.renderIcon(point, player, textureManager, matrixStack, 0, 14, alpha);
             boolean showLabel =
                     ConfigData.alwaysShowLabels ||
-                    (ConfigData.alwaysShowFocusedLabel && isTargetted) ||
-                    (ConfigData.showAllLabelsOnSneak && Screen.hasShiftDown());
+                            (ConfigData.alwaysShowFocusedLabel && isTargetted) ||
+                            (ConfigData.showAllLabelsOnSneak && Screen.hasShiftDown());
 
             if (ConfigData.animateLabels)
             {
@@ -308,7 +309,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
             var pointFade = distanceFade * point.fade;
 
             if (pointFade > 4)
-                PointRenderer.renderLabel(point, font, matrixStack, 0, 20, (int)pointFade);
+                PointRenderer.renderLabel(point, font, matrixStack, 0, 20, (int) pointFade);
 
             if (point.displayVerticalDistance(player))
             {
@@ -377,8 +378,8 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
 
         float tx0 = xt / tWidth;
         float ty0 = yt / tHeight;
-        float tx1 = tx0 + width/tWidth;
-        float ty1 = ty0 + height/tHeight;
+        float tx1 = tx0 + width / tWidth;
+        float ty1 = ty0 + height / tHeight;
 
         float x1 = x0 + width;
         float y1 = y0 + height;
@@ -387,10 +388,10 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         BufferBuilder builder = tess.getBuilder();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
         Matrix4f matrix = matrixStack.last().pose();
-        builder.vertex(matrix, x0, y1, 0.0f).uv(tx0,ty1).endVertex();
-        builder.vertex(matrix, x1, y1, 0.0f).uv(tx1,ty1).endVertex();
-        builder.vertex(matrix, x1, y0, 0.0f).uv(tx1,ty0).endVertex();
-        builder.vertex(matrix, x0, y0, 0.0f).uv(tx0,ty0).endVertex();
+        builder.vertex(matrix, x0, y1, 0.0f).uv(tx0, ty1).endVertex();
+        builder.vertex(matrix, x1, y1, 0.0f).uv(tx1, ty1).endVertex();
+        builder.vertex(matrix, x1, y0, 0.0f).uv(tx1, ty0).endVertex();
+        builder.vertex(matrix, x0, y0, 0.0f).uv(tx0, ty0).endVertex();
         tess.end();
     }
 

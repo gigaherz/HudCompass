@@ -4,20 +4,16 @@ import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
-import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -34,6 +30,7 @@ public class SpawnPointPoints
     }
 
     private int counter = 0;
+
     private void playerTick(TickEvent.PlayerTickEvent event)
     {
         if (event.phase != TickEvent.Phase.END)
@@ -47,7 +44,7 @@ public class SpawnPointPoints
             if (player.level.isClientSide)
                 return;
 
-            ServerPlayer serverPlayer = (ServerPlayer)player;
+            ServerPlayer serverPlayer = (ServerPlayer) player;
 
             player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
 

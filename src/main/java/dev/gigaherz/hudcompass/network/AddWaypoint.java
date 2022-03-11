@@ -35,7 +35,7 @@ public class AddWaypoint
         this.x = position.x;
         this.y = position.y;
         this.z = position.z;
-        BasicIconData data = (BasicIconData)point.getIconData();
+        BasicIconData data = (BasicIconData) point.getIconData();
         this.isMarker = data.getSerializer() == BasicIconData.Serializer.MAP_SERIALIZER;
         this.iconIndex = data.iconIndex;
     }

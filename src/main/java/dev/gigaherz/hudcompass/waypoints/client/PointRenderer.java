@@ -6,8 +6,8 @@ import dev.gigaherz.hudcompass.icons.client.IconRendererRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Player;
 
 public class PointRenderer
 {

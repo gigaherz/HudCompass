@@ -3,7 +3,6 @@ package dev.gigaherz.hudcompass.integrations.server;
 import com.google.common.collect.Maps;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import com.mojang.math.Matrix4f;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.IIconData;
@@ -347,10 +346,10 @@ public class PlayerTracker
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
             BufferBuilder bufferbuilder = Tesselator.getInstance().getBuilder();
             bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-            bufferbuilder.vertex(pMatrix, x1, y2, 0).uv(u1, 16f/64f).endVertex();
-            bufferbuilder.vertex(pMatrix, x2, y2, 0).uv(u2, 16f/64f).endVertex();
-            bufferbuilder.vertex(pMatrix, x2, y1, 0).uv(u2, 8f/64f).endVertex();
-            bufferbuilder.vertex(pMatrix, x1, y1, 0).uv(u1, 8f/64f).endVertex();
+            bufferbuilder.vertex(pMatrix, x1, y2, 0).uv(u1, 16f / 64f).endVertex();
+            bufferbuilder.vertex(pMatrix, x2, y2, 0).uv(u2, 16f / 64f).endVertex();
+            bufferbuilder.vertex(pMatrix, x2, y1, 0).uv(u2, 8f / 64f).endVertex();
+            bufferbuilder.vertex(pMatrix, x1, y1, 0).uv(u1, 8f / 64f).endVertex();
             bufferbuilder.end();
             BufferUploader.end(bufferbuilder);
         }

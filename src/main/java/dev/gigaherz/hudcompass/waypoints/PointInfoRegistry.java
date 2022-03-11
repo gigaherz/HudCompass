@@ -18,7 +18,7 @@ public class PointInfoRegistry
     {
         PointInfoType type = iconData.getType();
         ResourceLocation typeId = type.getRegistryName();
-        if(typeId == null)
+        if (typeId == null)
         {
             throw new IllegalStateException(String.format("Serializer name is null %s", type.getClass().getName()));
         }

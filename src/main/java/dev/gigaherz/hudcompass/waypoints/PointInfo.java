@@ -2,13 +2,13 @@ package dev.gigaherz.hudcompass.waypoints;
 
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataRegistry;
-import net.minecraft.nbt.Tag;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -18,7 +18,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
 {
     public static Vec3 toVec3d(BlockPos pos)
     {
-        return new Vec3(pos.getX()+0.5,pos.getY()+0.5,pos.getZ()+0.5);
+        return new Vec3(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
     }
 
     private final PointInfoType<? extends T> type;
@@ -66,12 +66,14 @@ public abstract class PointInfo<T extends PointInfo<T>>
     {
         return internalId;
     }
+
     public void setInternalId(UUID uuid)
     {
         internalId = uuid;
     }
 
     public abstract Vec3 getPosition();
+
     public abstract Vec3 getPosition(Player player, float partialTicks);
 
     @Nullable
@@ -142,7 +144,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
 
     public void markDirty()
     {
-        if(owner != null)
+        if (owner != null)
         {
             owner.markDirty(this);
         }
@@ -208,7 +210,10 @@ public abstract class PointInfo<T extends PointInfo<T>>
     }
 
     protected abstract void serializeAdditional(CompoundTag tag);
+
     protected abstract void deserializeAdditional(CompoundTag tag);
+
     protected abstract void serializeAdditional(FriendlyByteBuf tag);
+
     protected abstract void deserializeAdditional(FriendlyByteBuf tag);
 }

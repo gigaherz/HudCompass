@@ -6,8 +6,8 @@ import dev.gigaherz.hudcompass.icons.BasicIconData;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 
 public class BasicIconRenderer implements IIconRenderer<BasicIconData>
 {
@@ -40,7 +40,7 @@ public class BasicIconRenderer implements IIconRenderer<BasicIconData>
     {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderTexture(0, texture);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha / 255.0f);
+        RenderSystem.setShaderColor(data.r, data.g, data.b, data.a * (alpha / 255.0f));
         int indexX = data.iconIndex % iconsPerRow;
         int indexY = data.iconIndex / iconsPerCol;
         GuiComponent.blit(matrixStack, x - iconW / 2, y - iconH / 2, indexX * iconW, indexY * iconH, iconW, iconH, texW, texH);

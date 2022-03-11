@@ -1,13 +1,13 @@
 package dev.gigaherz.hudcompass.waypoints;
 
 import dev.gigaherz.hudcompass.icons.IIconData;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.network.chat.TextComponent;
 import net.minecraftforge.registries.ObjectHolder;
 
 import javax.annotation.Nullable;
@@ -58,7 +58,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
 
     public void setPosition(Vec3 position)
     {
-        if (Mth.equal(position.distanceToSqr(position),0))
+        if (Mth.equal(position.distanceToSqr(position), 0))
         {
             this.position = position;
             markDirty();
