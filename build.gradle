@@ -93,8 +93,10 @@ minecraft {
 }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.18.2-40.0.12'
+    minecraft 'net.minecraftforge:forge:1.18.2-40.0.36'
+
     implementation fg.deobf('curse.maven:journeymap-32274:3681171') // https://www.curseforge.com/minecraft/mc-mods/journeymap/files/3681171
+
 }
 
 jar {

@@ -1,5 +1,6 @@
 package dev.gigaherz.hudcompass;
 
+import com.google.common.base.Predicates;
 import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
@@ -12,6 +13,8 @@ import dev.gigaherz.hudcompass.network.*;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -43,6 +46,8 @@ import net.minecraftforge.registries.RegistryBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 @Mod(HudCompass.MODID)
@@ -63,13 +68,16 @@ public class HudCompass
         }
     }
 
-    public static final DeferredRegister<PointInfoType<?>> POINT_INFO_TYPES = DeferredRegister.create(Generify.<PointInfoType<?>>from(PointInfoType.class), MODID);
-    public static final DeferredRegister<IconDataSerializer<?>> ICON_DATA_SERIALIZERS = DeferredRegister.create(Generify.<IconDataSerializer<?>>from(IconDataSerializer.class), MODID);
+    public static final ResourceKey<Registry<PointInfoType<?>>> POINT_INFO_TYPES_KEY = ResourceKey.createRegistryKey(location("point_info_types"));
+    public static final ResourceKey<Registry<IconDataSerializer<?>>> ICON_DATA_SERIALIZERS_KEY = ResourceKey.createRegistryKey(location("point_info_types"));
+
+    public static final DeferredRegister<PointInfoType<?>> POINT_INFO_TYPES = DeferredRegister.create(POINT_INFO_TYPES_KEY, MODID);
+    public static final DeferredRegister<IconDataSerializer<?>> ICON_DATA_SERIALIZERS = DeferredRegister.create(ICON_DATA_SERIALIZERS_KEY, MODID);
 
     public static final Supplier<IForgeRegistry<PointInfoType<?>>> POINT_INFO_TYPES_REGISTRY = POINT_INFO_TYPES
-            .makeRegistry("point_info_types", () -> new RegistryBuilder<PointInfoType<?>>().disableSaving());
+            .makeRegistry(Generify.from(PointInfoType.class), () -> new RegistryBuilder<PointInfoType<?>>().disableSaving());
     public static final Supplier<IForgeRegistry<IconDataSerializer<?>>> ICON_DATA_SERIALIZERS_REGISTRY = ICON_DATA_SERIALIZERS
-            .makeRegistry("icon_data_serializers", () -> new RegistryBuilder<IconDataSerializer<?>>().disableSaving());
+            .makeRegistry(Generify.from(IconDataSerializer.class), () -> new RegistryBuilder<IconDataSerializer<?>>().disableSaving());
 
     private static final String PROTOCOL_VERSION = "1.1";
     public static SimpleChannel channel = NetworkRegistry.ChannelBuilder

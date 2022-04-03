@@ -28,3 +28,9 @@ See where you go
    versionRange="[1.18.2,1.19)"
    ordering="NONE"
    side="BOTH"
+[[dependencies.hudcompass]]
+   modId="journeymap"
+   mandatory=false
+   versionRange="[5.8.0beta17,)"
+   ordering="NONE"
+   side="BOTH"
