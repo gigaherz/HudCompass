@@ -13,7 +13,6 @@ import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.Util;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -239,7 +238,7 @@ public class PlayerTracker
         @Override
         public void tick(Player player)
         {
-            if (!(player.level instanceof ClientLevel))
+            if (!player.level.isClientSide)
                 return;
 
             var target = player.level.getPlayerByUUID(playerUUID);

@@ -1,6 +1,5 @@
 package dev.gigaherz.hudcompass;
 
-import com.google.common.base.Predicates;
 import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
@@ -46,8 +45,6 @@ import net.minecraftforge.registries.RegistryBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.List;
-import java.util.Set;
 import java.util.function.Supplier;
 
 @Mod(HudCompass.MODID)

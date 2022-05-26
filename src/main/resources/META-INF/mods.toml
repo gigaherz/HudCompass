@@ -8,10 +8,8 @@ modId="hudcompass"
 version="${file.jarVersion}"
 displayName="HUD Compass"
 logoFile="logo.png"
-credits="Thanks for this example mod goes to Java"
 authors="gigaherz"
 displayURL="https://github.com/gigaherz/HudCompass"
-#updateJSONURL="http://myurl.me/"
 description='''
 See where you go
 '''
