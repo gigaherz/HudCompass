@@ -47,7 +47,6 @@ minecraft {
 
             property 'forge.logging.markers', ''
             property 'forge.logging.console.level', 'debug'
-            property 'legacyClassPath', '{minecraft_classpath}'
 
             mods {
                 examplemod {
