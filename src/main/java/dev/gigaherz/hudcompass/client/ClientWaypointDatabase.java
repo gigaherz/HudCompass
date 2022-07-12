@@ -13,7 +13,7 @@ import net.minecraft.network.Connection;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.loading.FMLPaths;
@@ -155,9 +155,9 @@ public class ClientWaypointDatabase
     }
 
     @SubscribeEvent
-    public static void entityJoinWorld(EntityJoinWorldEvent event)
+    public static void entityJoinWorld(EntityJoinLevelEvent event)
     {
-        if (event.getWorld().isClientSide && event.getEntity() instanceof LocalPlayer)
+        if (event.getLevel().isClientSide && event.getEntity() instanceof LocalPlayer)
         {
             populateFromDisk(Minecraft.getInstance());
         }

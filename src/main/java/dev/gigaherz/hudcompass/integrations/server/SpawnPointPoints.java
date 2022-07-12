@@ -73,7 +73,7 @@ public class SpawnPointPoints
                 {
                     addon.spawnWorld = worldKey;
                     addon.spawnPosition = spawnPosition;
-                    addon.waypoint = new BasicWaypoint(BasicWaypoint.TYPE, Vec3.atCenterOf(spawnPosition), "Home", BasicIconData.mapMarker(8))
+                    addon.waypoint = new BasicWaypoint(HudCompass.BASIC_WAYPOINT.get(), Vec3.atCenterOf(spawnPosition), "Home", BasicIconData.mapMarker(8))
                             .dynamic();
                     pois.get(addon.spawnWorld).addPoint(addon.waypoint);
                 }

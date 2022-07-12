@@ -58,18 +58,19 @@ public class UpdateWaypointsFromGui
         pointsRemoved = toRemove.build();
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void encode(FriendlyByteBuf buffer)
     {
         buffer.writeVarInt(pointsAdded.size());
         pointsAdded.forEach(pt -> {
             buffer.writeResourceLocation(pt.getFirst());
-            PointInfoRegistry.serializePointWithoutId(pt.getSecond(), buffer);
+            PointInfoRegistry.serializePointWithoutId((PointInfo)pt.getSecond(), buffer);
         });
 
         buffer.writeVarInt(pointsUpdated.size());
         pointsUpdated.forEach(pt -> {
             buffer.writeResourceLocation(pt.getFirst());
-            PointInfoRegistry.serializePoint(pt.getSecond(), buffer);
+            PointInfoRegistry.serializePoint((PointInfo)pt.getSecond(), buffer);
         });
 
         buffer.writeVarInt(pointsRemoved.size());
@@ -80,7 +81,8 @@ public class UpdateWaypointsFromGui
     {
         NetworkEvent.Context context = ctx.get();
         context.enqueueWork(() -> {
-            PointsOfInterest.handleUpdateFromGui(context.getSender(), this);
+            if (context.getSender() != null)
+                PointsOfInterest.handleUpdateFromGui(context.getSender(), this);
         });
         return true;
     }

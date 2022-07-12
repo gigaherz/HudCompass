@@ -34,9 +34,9 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.network.PacketDistributor;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -95,9 +95,9 @@ public class PointsOfInterest
                     poi.read(nbt);
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
-                public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side)
+                public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side)
                 {
                     if (cap == INSTANCE)
                         return poiSupplier.cast();
@@ -115,7 +115,7 @@ public class PointsOfInterest
         // at this time it's only needed when returning from the end alive
         oldPlayer.revive();
 
-        Player newPlayer = event.getPlayer();
+        Player newPlayer = event.getEntity();
         newPlayer.getCapability(INSTANCE).ifPresent(newPois -> {
             oldPlayer.getCapability(INSTANCE).ifPresent(oldPois -> {
                 newPois.transferFrom(oldPois);
@@ -236,7 +236,7 @@ public class PointsOfInterest
         perWorld.clear();
     }
 
-    public void setTargetted(PointInfo<?> targetted)
+    public void setTargetted(@Nullable PointInfo<?> targetted)
     {
         this.targetted = targetted;
     }
@@ -381,9 +381,8 @@ public class PointsOfInterest
 
     public static void handleSync(Player player, byte[] packet)
     {
-        player.getCapability(PointsOfInterest.INSTANCE).ifPresent(points -> {
-            points.read(new FriendlyByteBuf(Unpooled.wrappedBuffer(packet)));
-        });
+        player.getCapability(PointsOfInterest.INSTANCE).ifPresent(points -> 
+                points.read(new FriendlyByteBuf(Unpooled.wrappedBuffer(packet))));
     }
 
     public static void handleUpdateFromGui(ServerPlayer sender, UpdateWaypointsFromGui packet)
@@ -437,7 +436,7 @@ public class PointsOfInterest
         private final ResourceKey<Level> worldKey;
         @Nullable
         private final ResourceKey<DimensionType> dimensionTypeKey;
-        private Map<UUID, PointInfo<?>> points = Maps.newHashMap();
+        private final Map<UUID, PointInfo<?>> points = Maps.newHashMap();
 
         public WorldPoints(ResourceKey<Level> worldKey, @Nullable ResourceKey<DimensionType> dimensionTypeKey)
         {
@@ -577,11 +576,12 @@ public class PointsOfInterest
                 changeNumber++;
         }
 
+        @SuppressWarnings({"rawtypes", "unchecked"})
         public ListTag write()
         {
             ListTag tag = new ListTag();
 
-            for (PointInfo<?> point : points.values())
+            for (PointInfo point : points.values())
             {
                 if (!point.isDynamic())
                     tag.add(PointInfoRegistry.serializePoint(point));
@@ -590,10 +590,11 @@ public class PointsOfInterest
             return tag;
         }
 
+        @SuppressWarnings({"rawtypes", "unchecked"})
         public void write(FriendlyByteBuf buffer)
         {
             buffer.writeVarInt(points.size());
-            for (PointInfo<?> point : points.values())
+            for (PointInfo point : points.values())
             {
                 PointInfoRegistry.serializePoint(point, buffer);
             }

@@ -7,6 +7,7 @@ import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
+import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
 import journeymap.client.api.IClientAPI;
 import journeymap.client.api.IClientPlugin;
 import journeymap.client.api.display.Waypoint;
@@ -16,7 +17,7 @@ import journeymap.client.api.model.MapImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.DeferredRegister;
@@ -107,13 +108,13 @@ public class JourneymapIntegration implements IClientPlugin
         return UUID.nameUUIDFromBytes(bytes);
     }
 
-    public static class JmWaypoint extends PointInfo<JmWaypoint>
+    public static class JmWaypoint extends SpecificPointInfo<JmWaypoint, BasicIconData>
     {
         private final Waypoint jmWaypoint;
 
         public JmWaypoint(Waypoint jmWaypoint)
         {
-            super(JM_WAYPOINT.get(), true, new TextComponent(jmWaypoint.getName()), BasicIconData.poi(5));
+            super(JM_WAYPOINT.get(), true, Component.literal(jmWaypoint.getName()), BasicIconData.poi(5));
             this.jmWaypoint = jmWaypoint;
 
             this.dynamic();
@@ -124,19 +125,14 @@ public class JourneymapIntegration implements IClientPlugin
 
             if (jmWaypoint.hasIcon())
             {
-                IIconData<?> iconData = getIconData();
-                if (iconData instanceof BasicIconData)
-                {
-                    BasicIconData basicIconData = (BasicIconData) iconData;
-
-                    MapImage icon = jmWaypoint.getIcon();
-                    int rgb = icon.getColor();
-                    float r = ((rgb >> 16) & 0xFF) / 255.0f;
-                    float g = ((rgb >> 8) & 0xFF) / 255.0f;
-                    float b = ((rgb) & 0xFF) / 255.0f;
-                    float a = 1.0f; // icon.getOpacity();
-                    basicIconData.setColor(r, g, b, a);
-                }
+                var basicIconData = getIconData();
+                MapImage icon = jmWaypoint.getIcon();
+                int rgb = icon.getColor();
+                float r = ((rgb >> 16) & 0xFF) / 255.0f;
+                float g = ((rgb >> 8) & 0xFF) / 255.0f;
+                float b = ((rgb) & 0xFF) / 255.0f;
+                float a = 1.0f; // icon.getOpacity();
+                basicIconData.setColor(r, g, b, a);
             }
         }
 

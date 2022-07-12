@@ -22,14 +22,13 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.gui.ScrollPanel;
+import net.minecraftforge.client.gui.widget.ScrollPanel;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -40,7 +39,7 @@ import java.util.regex.Pattern;
 
 public class ClientWaypointManagerScreen extends Screen
 {
-    private static final Component TITLE = new TranslatableComponent("text.hudcompass.waypoint_editor.title");
+    private static final Component TITLE = Component.translatable("text.hudcompass.waypoint_editor.title");
 
     private static final Pattern COORD_VALIDATOR = Pattern.compile("^-?[0-9]*\\.?[0-9]*$");
     private static final Pattern COORD_FORMAT = Pattern.compile("^-?[0-9]+\\.?[0-9]+$");
@@ -113,7 +112,7 @@ public class ClientWaypointManagerScreen extends Screen
         scrollPanel = new ItemsScrollPanel(minecraft, width - MARGIN_RIGHT - MARGIN_LEFT, height - MARGIN_TOP - MARGIN_BOTTOM, MARGIN_TOP, MARGIN_LEFT);
         addWidget(scrollPanel);
 
-        addRenderableWidget(saveButton = new Button(8, height - 28, 120, 20, new TranslatableComponent("text.hudcompass.waypoint_editor.save"), (button) -> {
+        addRenderableWidget(saveButton = new Button(8, height - 28, 120, 20, Component.translatable("text.hudcompass.waypoint_editor.save"), (button) -> {
             scrollPanel.saveAll();
             pois.updateFromGui(
                     toAdd.stream().map(i -> Pair.<ResourceLocation, PointInfo<?>>of(i.worldItem.worldKey.location(), i.pointInfo)).collect(ImmutableList.toImmutableList()),
@@ -122,7 +121,7 @@ public class ClientWaypointManagerScreen extends Screen
             );
             onClose();
         }));
-        addRenderableWidget(new Button(width - 128, height - 28, 120, 20, new TranslatableComponent("text.hudcompass.waypoint_editor.cancel"), (button) -> {
+        addRenderableWidget(new Button(width - 128, height - 28, 120, 20, Component.translatable("text.hudcompass.waypoint_editor.cancel"), (button) -> {
             onClose();
         }));
 
@@ -221,18 +220,18 @@ public class ClientWaypointManagerScreen extends Screen
         int nameWidth = Math.max(scrollPanel.getContentWidth() - (61 * 2 + 41 + 23 + 23 + 3), 50);
         int x = scrollPanel.getLeft() + 6;
         int y = scrollPanel.getTop() - 10;
-        drawString(matrixStack, minecraft.font, new TranslatableComponent("text.hudcompass.waypoint_editor.header_label"), x, y, 0xFFFFFFFF);
+        drawString(matrixStack, minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_label"), x, y, 0xFFFFFFFF);
         x += nameWidth + 3;
-        drawString(matrixStack, minecraft.font, new TranslatableComponent("text.hudcompass.waypoint_editor.header_x"), x, y, 0xFFFFFFFF);
+        drawString(matrixStack, minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_x"), x, y, 0xFFFFFFFF);
         x += 61;
-        drawString(matrixStack, minecraft.font, new TranslatableComponent("text.hudcompass.waypoint_editor.header_y"), x, y, 0xFFFFFFFF);
+        drawString(matrixStack, minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_y"), x, y, 0xFFFFFFFF);
         x += 41;
-        drawString(matrixStack, minecraft.font, new TranslatableComponent("text.hudcompass.waypoint_editor.header_z"), x, y, 0xFFFFFFFF);
+        drawString(matrixStack, minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_z"), x, y, 0xFFFFFFFF);
     }
 
     private class WorldListItem extends CompositeListItem
     {
-        private final TranslatableComponent title;
+        private final Component title;
         private final ResourceKey<Level> worldKey;
         private final List<WaypointListItem> waypoints = Lists.newArrayList();
         private final ResourceKey<DimensionType> dimensionTypeKey;
@@ -249,7 +248,7 @@ public class ClientWaypointManagerScreen extends Screen
         {
             super(minecraft, 22);
 
-            this.title = new TranslatableComponent("text.hudcompass.waypoint_editor.world", key.location());
+            this.title = Component.translatable("text.hudcompass.waypoint_editor.world", key.location());
             this.worldKey = key;
             this.dimensionTypeKey = dimensionTypeKey;
         }
@@ -259,15 +258,15 @@ public class ClientWaypointManagerScreen extends Screen
         {
             super.init();
 
-            addWidget(new Button(1, 1, 20, 20, new TranslatableComponent("text.hudcompass.waypoint_editor.fold"), (button) -> {
+            addWidget(new Button(1, 1, 20, 20, Component.translatable("text.hudcompass.waypoint_editor.fold"), (button) -> {
                 folded = !folded;
                 if (folded)
                 {
-                    button.setMessage(new TranslatableComponent("text.hudcompass.waypoint_editor.unfold"));
+                    button.setMessage(Component.translatable("text.hudcompass.waypoint_editor.unfold"));
                 }
                 else
                 {
-                    button.setMessage(new TranslatableComponent("text.hudcompass.waypoint_editor.fold"));
+                    button.setMessage(Component.translatable("text.hudcompass.waypoint_editor.fold"));
                 }
                 waypoints.forEach(w -> w.setVisible(!folded));
                 newWaypoint.setVisible(!folded);
@@ -310,7 +309,7 @@ public class ClientWaypointManagerScreen extends Screen
         {
             super.init();
 
-            addWidget(new Button(getWidth() - 121, 1, 120, 20, new TranslatableComponent("text.hudcompass.waypoint_editor.new_waypoint"), (button) -> {
+            addWidget(new Button(getWidth() - 121, 1, 120, 20, Component.translatable("text.hudcompass.waypoint_editor.new_waypoint"), (button) -> {
                 createNewPoint(owner);
             }));
         }
@@ -349,18 +348,18 @@ public class ClientWaypointManagerScreen extends Screen
             int nameWidth = Math.max(getWidth() - (61 * 2 + 41 + 23 + 23 + 3), 50);
 
             int x = 2;
-            addWidget(label = new EditBox(minecraft.font, x + 1, 2, nameWidth, 16, new TranslatableComponent("text.hudcompass.waypoint_editor.header_label")));
+            addWidget(label = new EditBox(minecraft.font, x + 1, 2, nameWidth, 16, Component.translatable("text.hudcompass.waypoint_editor.header_label")));
             x += nameWidth + 3;
-            addWidget(xCoord = new EditBox(minecraft.font, x + 1, 2, 60, 16, new TranslatableComponent("text.hudcompass.waypoint_editor.header_x")));
+            addWidget(xCoord = new EditBox(minecraft.font, x + 1, 2, 60, 16, Component.translatable("text.hudcompass.waypoint_editor.header_x")));
             x += 61;
-            addWidget(yCoord = new EditBox(minecraft.font, x + 1, 2, 40, 16, new TranslatableComponent("text.hudcompass.waypoint_editor.header_y")));
+            addWidget(yCoord = new EditBox(minecraft.font, x + 1, 2, 40, 16, Component.translatable("text.hudcompass.waypoint_editor.header_y")));
             x += 41;
-            addWidget(zCoord = new EditBox(minecraft.font, x + 1, 2, 60, 16, new TranslatableComponent("text.hudcompass.waypoint_editor.header_z")));
+            addWidget(zCoord = new EditBox(minecraft.font, x + 1, 2, 60, 16, Component.translatable("text.hudcompass.waypoint_editor.header_z")));
             x += 63;
-            addWidget(changeSymbol = new Button(x, 0, 20, 20, new TranslatableComponent("text.hudcompass.waypoint_editor.change_symbol"), (button) -> {
+            addWidget(changeSymbol = new Button(x, 0, 20, 20, Component.translatable("text.hudcompass.waypoint_editor.change_symbol"), (button) -> {
             }));
             x += 21;
-            addWidget(delete = new Button(x, 0, 20, 20, new TranslatableComponent("text.hudcompass.waypoint_editor.delete"), (button) -> {
+            addWidget(delete = new Button(x, 0, 20, 20, Component.translatable("text.hudcompass.waypoint_editor.delete"), (button) -> {
                 deletePoint(this);
             }));
 

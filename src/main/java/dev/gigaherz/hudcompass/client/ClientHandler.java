@@ -12,10 +12,14 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.ClientRegistry;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
+@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ClientHandler
 {
     public static KeyMapping ADD_WAYPOINT;
@@ -27,15 +31,16 @@ public class ClientHandler
         MinecraftForge.EVENT_BUS.addListener(ClientHandler::clientTickEvent);
     }
 
-    public static void initKeybinds()
+    @SubscribeEvent
+    public static void initKeybinds(RegisterKeyMappingsEvent event)
     {
-        ClientRegistry.registerKeyBinding(ADD_WAYPOINT =
+        event.register(ADD_WAYPOINT =
                 new KeyMapping("key.hudcompass.add_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
 
-        ClientRegistry.registerKeyBinding(REMOVE_WAYPOINT =
+        event.register(REMOVE_WAYPOINT =
                 new KeyMapping("key.hudcompass.remove_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
 
-        ClientRegistry.registerKeyBinding(EDIT_WAYPOINTS =
+        event.register(EDIT_WAYPOINTS =
                 new KeyMapping("key.hudcompass.edit_waypoints", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
 
         MinecraftForge.EVENT_BUS.addListener(ClientHandler::handleKeys);

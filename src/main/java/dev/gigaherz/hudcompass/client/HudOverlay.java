@@ -5,6 +5,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Matrix4f;
 import dev.gigaherz.hudcompass.ConfigData;
+import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.client.PointRenderer;
@@ -25,17 +26,23 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.client.gui.ForgeIngameGui;
-import net.minecraftforge.client.gui.IIngameOverlay;
-import net.minecraftforge.client.gui.OverlayRegistry;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraftforge.client.event.RenderGuiOverlayEvent;
+import net.minecraftforge.client.gui.overlay.ForgeGui;
+import net.minecraftforge.client.gui.overlay.IGuiOverlay;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent;
 
 import java.util.List;
 
-public class HudOverlay extends GuiComponent implements IIngameOverlay
+@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+public class HudOverlay extends GuiComponent implements IGuiOverlay
 {
     public static final ResourceLocation LOCATION_MAP_ICONS = new ResourceLocation("minecraft", "textures/map/map_icons.png");
     public static final ResourceLocation LOCATION_POI_ICONS = new ResourceLocation("hudcompass", "textures/poi_icons.png");
@@ -46,7 +53,8 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
 
     private static final HudOverlay INSTANCE = new HudOverlay();
 
-    public static void init()
+    @SubscribeEvent
+    public static void init(FMLConstructModEvent event)
     {
         MinecraftForge.EVENT_BUS.register(INSTANCE);
     }
@@ -56,18 +64,22 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         this.mc = Minecraft.getInstance();
         this.font = mc.font;
         this.textureManager = mc.textureManager;
-
-        OverlayRegistry.registerOverlayBelow(ForgeIngameGui.BOSS_HEALTH_ELEMENT, "Hud Compass", this);
     }
 
     boolean needsPop = false;
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void preOverlayHigh(RenderGameOverlayEvent.PreLayer event)
+    @SubscribeEvent
+    public void clientLogOut(RegisterGuiOverlaysEvent event)
     {
-        if (event.getOverlay() == ForgeIngameGui.BOSS_HEALTH_ELEMENT && !mc.options.hideGui && canRender())
+        event.registerAbove(VanillaGuiOverlay.BOSS_EVENT_PROGRESS.id(), "Hud Compass", this);
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void preOverlayHigh(RenderGuiOverlayEvent.Pre event)
+    {
+        if (event.getOverlay() == VanillaGuiOverlay.BOSS_EVENT_PROGRESS.type() && !mc.options.hideGui && canRender())
         {
-            PoseStack matrixStack = event.getMatrixStack();
+            PoseStack matrixStack = event.getPoseStack();
             matrixStack.pushPose();
             matrixStack.translate(0, 28, 0);
             needsPop = true;
@@ -75,31 +87,28 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
-    public void preOverlay(RenderGameOverlayEvent.Pre event)
+    public void preOverlay(RenderGuiEvent.Pre event)
     {
-        if (event.getType() == RenderGameOverlayEvent.ElementType.ALL)
-        {
-            needsPop = false;
-        }
+        needsPop = false;
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void postOverlay(RenderGameOverlayEvent.PostLayer event)
+    public void postOverlay(RenderGuiOverlayEvent.Post event)
     {
-        if (event.getOverlay() == ForgeIngameGui.BOSS_HEALTH_ELEMENT && needsPop)
+        if (event.getOverlay() == VanillaGuiOverlay.BOSS_EVENT_PROGRESS.type() && needsPop)
         {
-            PoseStack matrixStack = event.getMatrixStack();
+            PoseStack matrixStack = event.getPoseStack();
             matrixStack.popPose();
             needsPop = false;
         }
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void postOverlay(RenderGameOverlayEvent.Post event)
+    public void postOverlay(RenderGuiEvent.Post event)
     {
-        if (event.getType() == RenderGameOverlayEvent.ElementType.ALL && needsPop)
+        if (needsPop)
         {
-            PoseStack matrixStack = event.getMatrixStack();
+            PoseStack matrixStack = event.getPoseStack();
             matrixStack.popPose();
             needsPop = false;
         }
@@ -107,7 +116,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
 
 
     @Override
-    public void render(ForgeIngameGui gui, PoseStack matrixStack, float _partialTicks, int width, int height)
+    public void render(ForgeGui gui, PoseStack matrixStack, float _partialTicks, int width, int height)
     {
         if (!canRender()) return;
 
@@ -219,7 +228,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         {
             float nPos = xPos + nDist;
             fillRect(matrixStack, nPos - 0.5f, 10, nPos + 0.5f, 18, 0x7FFFFFFF);
-            if (mc.options.backgroundForChatOnly)
+            if (mc.options.backgroundForChatOnly().get())
                 drawCenteredShadowString(matrixStack, font, text, nPos, 1, 0xFFFFFF);
             else
                 drawCenteredBoxedString(matrixStack, font, text, nPos, 1, 0xFFFFFF);
@@ -240,7 +249,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         float width1 = width + 4;
         float height1 = height + 3;
         float x0 = x - width1 / 2;
-        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity * ((color >> 24) & 0xFF), 0, 255)) << 24);
+        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity().get() * ((color >> 24) & 0xFF), 0, 255)) << 24);
         font.drawShadow(matrixStack, text, x - width / 2, y + 2, color);
 
         RenderSystem.enableBlend();
@@ -255,7 +264,7 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
         float width1 = width + 4;
         float height1 = height + 3;
         float x0 = x - width1 / 2;
-        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity * ((color >> 24) & 0xFF), 0, 255)) << 24);
+        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity().get() * ((color >> 24) & 0xFF), 0, 255)) << 24);
         font.drawShadow(matrixStack, reodering, x - width / 2, y + 2, color);
 
         RenderSystem.enableBlend();

@@ -1,5 +1,7 @@
 package dev.gigaherz.hudcompass.waypoints;
 
+import dev.gigaherz.hudcompass.HudCompass;
+import dev.gigaherz.hudcompass.icons.IIconData;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -10,29 +12,39 @@ import javax.annotation.Nonnull;
 
 public class PointInfoRegistry
 {
-    public static IForgeRegistry<PointInfoType<?>> REGISTRY = RegistryManager.ACTIVE.getRegistry(PointInfoType.class);
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Nonnull
-    public static CompoundTag serializePoint(@Nonnull PointInfo<?> iconData)
+    public static <T extends PointInfo<T>> CompoundTag serializePoint(@Nonnull T pointInfo)
     {
-        PointInfoType type = iconData.getType();
-        ResourceLocation typeId = type.getRegistryName();
+        PointInfoType<? extends T> type = pointInfo.getType();
+        ResourceLocation typeId = HudCompass.POINT_INFO_TYPES_REGISTRY.get().getKey(type);
         if (typeId == null)
         {
             throw new IllegalStateException(String.format("Serializer name is null %s", type.getClass().getName()));
         }
         CompoundTag tag = new CompoundTag();
-        tag.putString("Type", type.getRegistryName().toString());
-        tag = iconData.write(tag);
-        return tag;
+        tag.putString("Type", typeId.toString());
+        return pointInfo.write(tag);
+    }
+
+    public static <T extends PointInfo<T>> void serializePoint(T pointInfo, FriendlyByteBuf buffer)
+    {
+        PointInfoType<?> type = pointInfo.getType();
+        buffer.writeRegistryIdUnsafe(HudCompass.POINT_INFO_TYPES_REGISTRY.get(), type);
+        pointInfo.writeToPacket(buffer);
+    }
+
+    public static <T extends PointInfo<T>> void serializePointWithoutId(T pointInfo, FriendlyByteBuf buffer)
+    {
+        PointInfoType<? extends T> type = pointInfo.getType();
+        buffer.writeRegistryIdUnsafe(HudCompass.POINT_INFO_TYPES_REGISTRY.get(), type);
+        pointInfo.writeToPacketWithoutId(buffer);
     }
 
     @Nonnull
     public static PointInfo<?> deserializePoint(CompoundTag tag)
     {
         ResourceLocation typeId = new ResourceLocation(tag.getString("Type"));
-        PointInfoType<?> type = REGISTRY.getValue(typeId);
+        PointInfoType<?> type = HudCompass.POINT_INFO_TYPES_REGISTRY.get().getValue(typeId);
         if (type == null)
         {
             throw new IllegalStateException(String.format("Serializer not registered %s", typeId));
@@ -42,26 +54,10 @@ public class PointInfoRegistry
         return info;
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public static void serializePoint(PointInfo<?> iconData, FriendlyByteBuf buffer)
-    {
-        PointInfoType type = iconData.getType();
-        buffer.writeRegistryIdUnsafe(REGISTRY, type);
-        iconData.writeToPacket(buffer);
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public static void serializePointWithoutId(PointInfo<?> iconData, FriendlyByteBuf buffer)
-    {
-        PointInfoType type = iconData.getType();
-        buffer.writeRegistryIdUnsafe(REGISTRY, type);
-        iconData.writeToPacketWithoutId(buffer);
-    }
-
     @Nonnull
     public static PointInfo<?> deserializePoint(FriendlyByteBuf buffer)
     {
-        PointInfoType<?> serializer = buffer.readRegistryIdUnsafe(REGISTRY);
+        PointInfoType<?> serializer = buffer.readRegistryIdUnsafe(HudCompass.POINT_INFO_TYPES_REGISTRY.get());
         if (serializer == null)
         {
             throw new IllegalStateException("Server returned unknown serializer");
@@ -74,7 +70,7 @@ public class PointInfoRegistry
     @Nonnull
     public static PointInfo<?> deserializePointWithoutId(FriendlyByteBuf buffer)
     {
-        PointInfoType<?> serializer = buffer.readRegistryIdUnsafe(REGISTRY);
+        PointInfoType<?> serializer = buffer.readRegistryIdUnsafe(HudCompass.POINT_INFO_TYPES_REGISTRY.get());
         if (serializer == null)
         {
             throw new IllegalStateException("Server returned unknown serializer");

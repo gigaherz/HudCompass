@@ -1,10 +1,10 @@
 package dev.gigaherz.hudcompass.waypoints;
 
-import net.minecraftforge.registries.ForgeRegistryEntry;
+import dev.gigaherz.hudcompass.icons.IIconData;
 
 import java.util.function.Supplier;
 
-public final class PointInfoType<T extends PointInfo<T>> extends ForgeRegistryEntry<PointInfoType<?>>
+public final class PointInfoType<T extends PointInfo<T>>
 {
     private final Supplier<T> factory;
 

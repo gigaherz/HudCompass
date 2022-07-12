@@ -2,9 +2,8 @@ package dev.gigaherz.hudcompass.icons;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.registries.ForgeRegistryEntry;
 
-public abstract class IconDataSerializer<T extends IIconData<T>> extends ForgeRegistryEntry<IconDataSerializer<?>>
+public abstract class IconDataSerializer<T extends IIconData<T>>
 {
     public abstract CompoundTag write(T data, CompoundTag tag);
 

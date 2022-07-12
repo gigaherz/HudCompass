@@ -10,6 +10,7 @@ import dev.gigaherz.hudcompass.integrations.server.SpawnPointPoints;
 import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
 import dev.gigaherz.hudcompass.network.*;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
+import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.core.Registry;
@@ -19,9 +20,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
-import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.IExtensionPoint;
@@ -40,12 +40,13 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryBuilder;
+import net.minecraftforge.registries.RegistryObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 @Mod(HudCompass.MODID)
 public class HudCompass
@@ -56,25 +57,19 @@ public class HudCompass
 
     public static final Logger LOGGER = LogManager.getLogger(MODID);
 
-    private static class Generify
-    {
-        @SuppressWarnings("unchecked")
-        public static <T extends IForgeRegistryEntry<T>> Class<T> from(Class<? super T> cls)
-        {
-            return (Class<T>) cls;
-        }
-    }
-
     public static final ResourceKey<Registry<PointInfoType<?>>> POINT_INFO_TYPES_KEY = ResourceKey.createRegistryKey(location("point_info_types"));
     public static final ResourceKey<Registry<IconDataSerializer<?>>> ICON_DATA_SERIALIZERS_KEY = ResourceKey.createRegistryKey(location("icon_data_serializers"));
 
     public static final DeferredRegister<PointInfoType<?>> POINT_INFO_TYPES = DeferredRegister.create(POINT_INFO_TYPES_KEY, MODID);
     public static final DeferredRegister<IconDataSerializer<?>> ICON_DATA_SERIALIZERS = DeferredRegister.create(ICON_DATA_SERIALIZERS_KEY, MODID);
 
-    public static final Supplier<IForgeRegistry<PointInfoType<?>>> POINT_INFO_TYPES_REGISTRY = POINT_INFO_TYPES
-            .makeRegistry(Generify.from(PointInfoType.class), () -> new RegistryBuilder<PointInfoType<?>>().disableSaving());
-    public static final Supplier<IForgeRegistry<IconDataSerializer<?>>> ICON_DATA_SERIALIZERS_REGISTRY = ICON_DATA_SERIALIZERS
-            .makeRegistry(Generify.from(IconDataSerializer.class), () -> new RegistryBuilder<IconDataSerializer<?>>().disableSaving());
+    public static final Supplier<IForgeRegistry<PointInfoType<?>>> POINT_INFO_TYPES_REGISTRY = POINT_INFO_TYPES.makeRegistry(() -> new RegistryBuilder<PointInfoType<?>>().disableSaving());
+    public static final Supplier<IForgeRegistry<IconDataSerializer<?>>> ICON_DATA_SERIALIZERS_REGISTRY = ICON_DATA_SERIALIZERS.makeRegistry(() -> new RegistryBuilder<IconDataSerializer<?>>().disableSaving());
+
+    public static final RegistryObject<IconDataSerializer<BasicIconData>> POI_SERIALIZER = ICON_DATA_SERIALIZERS.register("poi", BasicIconData.Serializer::new);
+    public static final RegistryObject<IconDataSerializer<BasicIconData>> MAP_MARKER_SERIALIZER = ICON_DATA_SERIALIZERS.register("map_marker", BasicIconData.Serializer::new);
+
+    public static final RegistryObject<PointInfoType<BasicWaypoint>> BASIC_WAYPOINT = POINT_INFO_TYPES.register("basic", () -> new PointInfoType<>(BasicWaypoint::new));
 
     private static final String PROTOCOL_VERSION = "1.1";
     public static SimpleChannel channel = NetworkRegistry.ChannelBuilder
@@ -90,11 +85,8 @@ public class HudCompass
 
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        modEventBus.addGenericListener(IconDataSerializer.class, this::iconDataSerializers);
-        modEventBus.addGenericListener(PointInfoType.class, this::pointInfoTypes);
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::clientSetup);
-        modEventBus.addListener(this::loadComplete);
         modEventBus.addListener(this::modConfig);
         modEventBus.addListener(this::registerCapabilities);
 
@@ -131,21 +123,6 @@ public class HudCompass
             ConfigData.refreshCommon();
     }
 
-    public void iconDataSerializers(RegistryEvent.Register<IconDataSerializer<?>> event)
-    {
-        event.getRegistry().registerAll(
-                BasicIconData.Serializer.POI_SERIALIZER.setRegistryName("poi"),
-                BasicIconData.Serializer.MAP_SERIALIZER.setRegistryName("map_marker")
-        );
-    }
-
-    public void pointInfoTypes(RegistryEvent.Register<PointInfoType<?>> event)
-    {
-        event.getRegistry().registerAll(
-                new PointInfoType<>(BasicWaypoint::new).setRegistryName("basic")
-        );
-    }
-
     public void registerCapabilities(RegisterCapabilitiesEvent event)
     {
         PointsOfInterest.init(event);
@@ -168,14 +145,6 @@ public class HudCompass
         ClientHandler.init();
     }
 
-    public void loadComplete(FMLLoadCompleteEvent event)
-    {
-        DistExecutor.runWhenOn(Dist.CLIENT, () -> () -> {
-            ClientHandler.initKeybinds();
-            HudOverlay.init();
-        });
-    }
-
     public void playerTickEvent(TickEvent.PlayerTickEvent event)
     {
         if (event.phase != TickEvent.Phase.END)
@@ -187,7 +156,7 @@ public class HudCompass
         PointsOfInterest.onTick(player);
     }
 
-    public void playerLoggedIn(EntityJoinWorldEvent event)
+    public void playerLoggedIn(EntityJoinLevelEvent event)
     {
         if (ConfigData.COMMON.disableServerHello.get())
             return;

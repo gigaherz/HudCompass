@@ -39,7 +39,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
     }
 
     /* For CLIENT side use */
-    public PointInfo(PointInfoType<? extends T> type, boolean isDynamic, @Nullable Component label, IIconData<?> iconData)
+    public PointInfo(PointInfoType<T> type, boolean isDynamic, @Nullable Component label, IIconData<?> iconData)
     {
         this(type, isDynamic);
         this.label = label;
@@ -149,7 +149,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
     {
         tag.putString("ID", internalId.toString());
         if (label != null) tag.putString("Label", Component.Serializer.toJson(label));
-        tag.put("Icon", IconDataRegistry.serializeIcon(iconData));
+        tag.put("Icon", IconDataRegistry.serializeIcon((IIconData)iconData));
         tag.putBoolean("DisplayVerticalDistance", displayVerticalDistance);
         serializeAdditional(tag);
         return tag;
@@ -162,6 +162,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
             label = Component.Serializer.fromJson(tag.getString("Label"));
         else
             label = null;
+        //noinspection unchecked
         iconData = IconDataRegistry.deserializeIcon(tag.getCompound("Icon"));
         displayVerticalDistance = tag.getBoolean("DisplayVerticalDistance");
         deserializeAdditional(tag);
@@ -179,7 +180,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
         buffer.writeBoolean(hasLabel);
         if (hasLabel)
             buffer.writeComponent(label);
-        IconDataRegistry.serializeIcon(iconData, buffer);
+        IconDataRegistry.serializeIcon((IIconData)iconData, buffer);
         buffer.writeBoolean(displayVerticalDistance);
         buffer.writeBoolean(isDynamic);
         serializeAdditional(buffer);
@@ -212,3 +213,4 @@ public abstract class PointInfo<T extends PointInfo<T>>
 
     protected abstract void deserializeAdditional(FriendlyByteBuf tag);
 }
+

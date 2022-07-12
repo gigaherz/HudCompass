@@ -8,6 +8,7 @@ import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
+import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -158,7 +159,7 @@ public class VanillaMapPoints
         return seenMaps;
     }
 
-    public static class MapBannerWaypoint extends PointInfo<MapBannerWaypoint>
+    public static class MapBannerWaypoint extends SpecificPointInfo<MapBannerWaypoint, BasicIconData>
     {
         private final MapBanner banner;
         private Vec3 position;
@@ -232,7 +233,7 @@ public class VanillaMapPoints
         }
     }
 
-    public static class MapDecorationWaypoint extends PointInfo<MapDecorationWaypoint>
+    public static class MapDecorationWaypoint extends SpecificPointInfo<MapDecorationWaypoint, BasicIconData>
     {
         private final MapDecoration decoration;
         private Vec3 position;

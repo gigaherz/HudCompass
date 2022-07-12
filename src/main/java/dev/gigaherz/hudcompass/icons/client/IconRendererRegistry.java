@@ -2,6 +2,7 @@ package dev.gigaherz.hudcompass.icons.client;
 
 import com.google.common.collect.Maps;
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IIconData;
@@ -19,8 +20,10 @@ public class IconRendererRegistry
 
     public static final Map<IconDataSerializer<?>, IIconRenderer<?>> REGISTRY = Maps.newHashMap();
 
-    private static final BasicIconRenderer POI_RENDERER = registerRenderer(BasicIconData.POI_SERIALIZER, new BasicIconRenderer(HudOverlay.LOCATION_POI_ICONS, 128, 128, 8, 8));
-    private static final BasicIconRenderer MAP_RENDERER = registerRenderer(BasicIconData.MAP_SERIALIZER, new BasicIconRenderer(HudOverlay.LOCATION_MAP_ICONS, 128, 128, 8, 8));
+    private static final BasicIconRenderer POI_RENDERER = registerRenderer(HudCompass.POI_SERIALIZER.get(),
+            new BasicIconRenderer(HudOverlay.LOCATION_POI_ICONS, 128, 128, 8, 8));
+    private static final BasicIconRenderer MAP_RENDERER = registerRenderer(HudCompass.MAP_MARKER_SERIALIZER.get(),
+            new BasicIconRenderer(HudOverlay.LOCATION_MAP_ICONS, 128, 128, 8, 8));
 
     private static final IIconRenderer MISSING_ICON_RENDERER = (data, player, textureManager, matrixStack, x, y, alpha) ->
             POI_RENDERER.renderIcon(BasicIconData.MISSING_ICON, player, textureManager, matrixStack, x, y, alpha);
@@ -35,7 +38,7 @@ public class IconRendererRegistry
     public static void renderIcon(IIconData<?> data, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y, int alpha)
     {
         IIconRenderer renderer = REGISTRY.computeIfAbsent(data.getSerializer(), (key) -> {
-            LOGGER.warn("Missing icon renderer for {}", data.getSerializer().getRegistryName());
+            LOGGER.warn("Missing icon renderer for {}", HudCompass.ICON_DATA_SERIALIZERS_REGISTRY.get().getKey(data.getSerializer()));
             return MISSING_ICON_RENDERER;
         });
 

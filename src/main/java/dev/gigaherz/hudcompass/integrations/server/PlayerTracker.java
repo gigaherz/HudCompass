@@ -12,6 +12,7 @@ import dev.gigaherz.hudcompass.icons.client.IconRendererRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
+import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
 import net.minecraft.Util;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.GameRenderer;
@@ -71,7 +72,7 @@ public class PlayerTracker
 
     private void startTracking(PlayerEvent.StartTracking event)
     {
-        Player player = event.getPlayer();
+        Player player = event.getEntity();
         if (player.level.isClientSide)
             return;
 
@@ -98,7 +99,7 @@ public class PlayerTracker
 
     private void stopTracking(PlayerEvent.StopTracking event)
     {
-        Player player = event.getPlayer();
+        Player player = event.getEntity();
         if (player.level.isClientSide)
             return;
 
@@ -166,7 +167,7 @@ public class PlayerTracker
         }
     }
 
-    public static class PlayerWaypoint extends PointInfo<PlayerWaypoint>
+    public static class PlayerWaypoint extends SpecificPointInfo<PlayerWaypoint, PlayerIconData>
     {
         private UUID playerUUID;
         private Vec3 position;
@@ -217,8 +218,7 @@ public class PlayerTracker
         protected void deserializeAdditional(CompoundTag tag)
         {
             playerUUID = tag.getUUID("Player");
-            if (this.getIconData() instanceof PlayerIconData p)
-                p.setPlayer(playerUUID);
+            this.getIconData().setPlayer(playerUUID);
         }
 
         @Override
@@ -231,8 +231,7 @@ public class PlayerTracker
         protected void deserializeAdditional(FriendlyByteBuf buffer)
         {
             playerUUID = buffer.readUUID();
-            if (this.getIconData() instanceof PlayerIconData p)
-                p.setPlayer(playerUUID);
+            this.getIconData().setPlayer(playerUUID);
         }
 
         @Override
@@ -269,7 +268,7 @@ public class PlayerTracker
         @Override
         public IconDataSerializer<PlayerIconData> getSerializer()
         {
-            return Serializer.INSTANCE;
+            return ICON_DATA.get();
         }
 
         public void setPlayer(UUID playerId)
@@ -279,9 +278,6 @@ public class PlayerTracker
 
         private static class Serializer extends IconDataSerializer<PlayerIconData>
         {
-            @ObjectHolder("hudcompass:player")
-            public static Serializer INSTANCE;
-
             @Override
             public CompoundTag write(PlayerIconData data, CompoundTag tag)
             {
@@ -349,8 +345,7 @@ public class PlayerTracker
             bufferbuilder.vertex(pMatrix, x2, y2, 0).uv(u2, 16f / 64f).endVertex();
             bufferbuilder.vertex(pMatrix, x2, y1, 0).uv(u2, 8f / 64f).endVertex();
             bufferbuilder.vertex(pMatrix, x1, y1, 0).uv(u1, 8f / 64f).endVertex();
-            bufferbuilder.end();
-            BufferUploader.end(bufferbuilder);
+            Tesselator.getInstance().end();
         }
     }
 }

@@ -1,10 +1,11 @@
 package dev.gigaherz.hudcompass.waypoints;
 
+import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.IIconData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
@@ -15,16 +16,13 @@ import java.util.Objects;
 
 public class BasicWaypoint extends PointInfo<BasicWaypoint>
 {
-    @ObjectHolder("hudcompass:basic")
-    public static PointInfoType<BasicWaypoint> TYPE = null;
-
     private String label;
 
     private Vec3 position;
 
     public BasicWaypoint()
     {
-        super(TYPE, false);
+        super(HudCompass.BASIC_WAYPOINT.get(), false);
     }
 
     public BasicWaypoint(BlockPos exactPosition, @Nullable String label, IIconData<?> iconData)
@@ -34,12 +32,12 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
 
     public BasicWaypoint(Vec3 exactPosition, @Nullable String label, IIconData<?> iconData)
     {
-        this(TYPE, exactPosition, label, iconData);
+        this(HudCompass.BASIC_WAYPOINT.get(), exactPosition, label, iconData);
     }
 
-    public BasicWaypoint(PointInfoType<? extends BasicWaypoint> type, Vec3 exactPosition, @Nullable String label, IIconData<?> iconData)
+    public BasicWaypoint(PointInfoType<BasicWaypoint> type, Vec3 exactPosition, @Nullable String label, IIconData<?> iconData)
     {
-        super(type, false, label == null ? null : new TextComponent(label), iconData);
+        super(type, false, label == null ? null : Component.literal(label), iconData);
         this.position = exactPosition;
         this.label = label == null ? "" : label;
     }
@@ -73,7 +71,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
     public void setLabelText(String label)
     {
         this.label = Objects.requireNonNull(label);
-        super.setLabel(label.length() > 0 ? new TextComponent(label) : null);
+        super.setLabel(label.length() > 0 ? Component.literal(label) : null);
     }
 
     @Override

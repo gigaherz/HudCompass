@@ -1,5 +1,6 @@
 package dev.gigaherz.hudcompass.network;
 
+import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
@@ -36,7 +37,7 @@ public class AddWaypoint
         this.y = position.y;
         this.z = position.z;
         BasicIconData data = (BasicIconData) point.getIconData();
-        this.isMarker = data.getSerializer() == BasicIconData.Serializer.MAP_SERIALIZER;
+        this.isMarker = data.getSerializer() == HudCompass.MAP_MARKER_SERIALIZER.get();
         this.iconIndex = data.iconIndex;
     }
 
