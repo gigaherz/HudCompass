@@ -41,7 +41,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent;
 
 import java.util.List;
 
-@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class HudOverlay extends GuiComponent implements IGuiOverlay
 {
     public static final ResourceLocation LOCATION_MAP_ICONS = new ResourceLocation("minecraft", "textures/map/map_icons.png");
@@ -51,12 +51,15 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
     private final Font font;
     private final TextureManager textureManager;
 
-    private static final HudOverlay INSTANCE = new HudOverlay();
-
     @SubscribeEvent
     public static void init(FMLConstructModEvent event)
     {
-        MinecraftForge.EVENT_BUS.register(INSTANCE);
+    }
+
+    @SubscribeEvent
+    public static void registerOverlay(RegisterGuiOverlaysEvent event)
+    {
+        event.registerAbove(VanillaGuiOverlay.BOSS_EVENT_PROGRESS.id(), "compass", new HudOverlay());
     }
 
     private HudOverlay()
@@ -64,15 +67,10 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         this.mc = Minecraft.getInstance();
         this.font = mc.font;
         this.textureManager = mc.textureManager;
+        MinecraftForge.EVENT_BUS.register(this);
     }
 
     boolean needsPop = false;
-
-    @SubscribeEvent
-    public void clientLogOut(RegisterGuiOverlaysEvent event)
-    {
-        event.registerAbove(VanillaGuiOverlay.BOSS_EVENT_PROGRESS.id(), "Hud Compass", this);
-    }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void preOverlayHigh(RenderGuiOverlayEvent.Pre event)
@@ -86,12 +84,6 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
-    public void preOverlay(RenderGuiEvent.Pre event)
-    {
-        needsPop = false;
-    }
-
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void postOverlay(RenderGuiOverlayEvent.Post event)
     {
@@ -103,8 +95,14 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         }
     }
 
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
+    public void preRender(RenderGuiEvent.Pre event)
+    {
+        needsPop = false;
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void postOverlay(RenderGuiEvent.Post event)
+    public void postRender(RenderGuiEvent.Post event)
     {
         if (needsPop)
         {

@@ -10,10 +10,6 @@ buildscript {
     }
 }
 
-plugins {
-    //id "com.wynprice.cursemaven" version "2.1.5"
-}
-
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.parchmentmc.librarian.forgegradle'
 apply plugin: 'maven-publish'
@@ -25,7 +21,7 @@ repositories {
     flatDir { dirs 'deps' }
 }
 
-version = "0.5.5"
+version = "0.5.6"
 group= "dev.gigaherz.hudcompass" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "HudCompass-UNKNOWN"
 
@@ -100,8 +96,7 @@ minecraft {
 dependencies {
     minecraft 'net.minecraftforge:forge:1.19-41.0.94'
 
-    implementation fg.deobf('curse.maven:journeymap-32274:3834645') // https://www.curseforge.com/minecraft/mc-mods/journeymap/files/3834645
-
+    compileOnly fg.deobf('curse.maven:journeymap-32274:3834645') // https://www.curseforge.com/minecraft/mc-mods/journeymap/files/3834645
 }
 
 jar {
