@@ -14,7 +14,6 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -26,26 +25,24 @@ public class ClientHandler
     public static KeyMapping REMOVE_WAYPOINT;
     public static KeyMapping EDIT_WAYPOINTS;
 
-    public static void init()
+    @Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
+    public static class ModBus
     {
-        MinecraftForge.EVENT_BUS.addListener(ClientHandler::clientTickEvent);
+        @SubscribeEvent
+        public static void initKeybinds(RegisterKeyMappingsEvent event)
+        {
+            event.register(ADD_WAYPOINT =
+                    new KeyMapping("key.hudcompass.add_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
+
+            event.register(REMOVE_WAYPOINT =
+                    new KeyMapping("key.hudcompass.remove_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
+
+            event.register(EDIT_WAYPOINTS =
+                    new KeyMapping("key.hudcompass.edit_waypoints", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
+        }
     }
 
     @SubscribeEvent
-    public static void initKeybinds(RegisterKeyMappingsEvent event)
-    {
-        event.register(ADD_WAYPOINT =
-                new KeyMapping("key.hudcompass.add_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
-
-        event.register(REMOVE_WAYPOINT =
-                new KeyMapping("key.hudcompass.remove_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
-
-        event.register(EDIT_WAYPOINTS =
-                new KeyMapping("key.hudcompass.edit_waypoints", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
-
-        MinecraftForge.EVENT_BUS.addListener(ClientHandler::handleKeys);
-    }
-
     public static void handleKeys(TickEvent.ClientTickEvent ev)
     {
         Minecraft mc = Minecraft.getInstance();
@@ -108,6 +105,7 @@ public class ClientHandler
         }
     }
 
+    @SubscribeEvent
     public static void clientTickEvent(TickEvent.ClientTickEvent event)
     {
         LocalPlayer player = Minecraft.getInstance().player;

@@ -249,8 +249,8 @@ public class VanillaMapPoints
             float decoZ = (decoration.getY() - 0.5f) * 0.5f;
 
             int scale = 1 << mapData.scale;
-            float worldX = mapData.x + decoX * scale;
-            float worldZ = mapData.z + decoZ * scale;
+            float worldX = mapData.centerX + decoX * scale;
+            float worldZ = mapData.centerZ + decoZ * scale;
 
             this.decoration = decoration;
             this.position = new Vec3(worldX, 0, worldZ);

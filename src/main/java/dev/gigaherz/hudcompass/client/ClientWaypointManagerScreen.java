@@ -10,17 +10,17 @@ import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.Widget;
-import net.minecraft.client.gui.components.events.AbstractContainerEventHandler;
+import net.minecraft.client.gui.ComponentPath;
+import net.minecraft.client.gui.components.*;
+import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.navigation.FocusNavigationEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -112,7 +112,7 @@ public class ClientWaypointManagerScreen extends Screen
         scrollPanel = new ItemsScrollPanel(minecraft, width - MARGIN_RIGHT - MARGIN_LEFT, height - MARGIN_TOP - MARGIN_BOTTOM, MARGIN_TOP, MARGIN_LEFT);
         addWidget(scrollPanel);
 
-        addRenderableWidget(saveButton = new Button(8, height - 28, 120, 20, Component.translatable("text.hudcompass.waypoint_editor.save"), (button) -> {
+        addRenderableWidget(saveButton = Button.builder(Component.translatable("text.hudcompass.waypoint_editor.save"), (button) -> {
             scrollPanel.saveAll();
             pois.updateFromGui(
                     toAdd.stream().map(i -> Pair.<ResourceLocation, PointInfo<?>>of(i.worldItem.worldKey.location(), i.pointInfo)).collect(ImmutableList.toImmutableList()),
@@ -120,10 +120,10 @@ public class ClientWaypointManagerScreen extends Screen
                     toRemove.stream().map(i -> i.pointInfo.getInternalId()).collect(ImmutableList.toImmutableList())
             );
             onClose();
-        }));
-        addRenderableWidget(new Button(width - 128, height - 28, 120, 20, Component.translatable("text.hudcompass.waypoint_editor.cancel"), (button) -> {
+        }).pos(8, height - 28).size(120, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("text.hudcompass.waypoint_editor.cancel"), (button) -> {
             onClose();
-        }));
+        }).pos(width - 128, height - 28).size(120, 20).build());
 
         loadWaypoints();
 
@@ -157,7 +157,7 @@ public class ClientWaypointManagerScreen extends Screen
         if (world.dimensionTypeKey != null)
         {
             RegistryAccess dyn = player.connection.registryAccess();
-            DimensionType type = dyn.registryOrThrow(Registry.DIMENSION_TYPE_REGISTRY).getOrThrow(world.dimensionTypeKey);
+            DimensionType type = dyn.registryOrThrow(Registries.DIMENSION_TYPE).getOrThrow(world.dimensionTypeKey);
             double scale = DimensionType.getTeleportationScale(player.level.dimensionType(), type);
             return new Vec3(pos.x * scale, pos.y, pos.z * scale);
         }
@@ -258,7 +258,7 @@ public class ClientWaypointManagerScreen extends Screen
         {
             super.init();
 
-            addWidget(new Button(1, 1, 20, 20, Component.translatable("text.hudcompass.waypoint_editor.fold"), (button) -> {
+            addWidget(Button.builder(Component.translatable("text.hudcompass.waypoint_editor.fold"), (button) -> {
                 folded = !folded;
                 if (folded)
                 {
@@ -271,7 +271,7 @@ public class ClientWaypointManagerScreen extends Screen
                 waypoints.forEach(w -> w.setVisible(!folded));
                 newWaypoint.setVisible(!folded);
                 scrollPanel.recalculateHeight();
-            }));
+            }).pos(1, 1).size(20, 20).build());
         }
 
         @Override
@@ -309,9 +309,9 @@ public class ClientWaypointManagerScreen extends Screen
         {
             super.init();
 
-            addWidget(new Button(getWidth() - 121, 1, 120, 20, Component.translatable("text.hudcompass.waypoint_editor.new_waypoint"), (button) -> {
+            addWidget(Button.builder(Component.translatable("text.hudcompass.waypoint_editor.new_waypoint"), (button) -> {
                 createNewPoint(owner);
-            }));
+            }).pos(getWidth() - 121, 1).size(120, 20).build());
         }
     }
 
@@ -356,12 +356,12 @@ public class ClientWaypointManagerScreen extends Screen
             x += 41;
             addWidget(zCoord = new EditBox(minecraft.font, x + 1, 2, 60, 16, Component.translatable("text.hudcompass.waypoint_editor.header_z")));
             x += 63;
-            addWidget(changeSymbol = new Button(x, 0, 20, 20, Component.translatable("text.hudcompass.waypoint_editor.change_symbol"), (button) -> {
-            }));
+            addWidget(changeSymbol = Button.builder(Component.translatable("text.hudcompass.waypoint_editor.change_symbol"), (button) -> {
+            }).pos(x, 0).size(20, 20).build());
             x += 21;
-            addWidget(delete = new Button(x, 0, 20, 20, Component.translatable("text.hudcompass.waypoint_editor.delete"), (button) -> {
+            addWidget(delete = Button.builder(Component.translatable("text.hudcompass.waypoint_editor.delete"), (button) -> {
                 deletePoint(this);
-            }));
+            }).pos(x, 0).size(20, 20).build());
 
             changeSymbol.active = false;
 
@@ -418,7 +418,7 @@ public class ClientWaypointManagerScreen extends Screen
 
     private static class CompositeListItem extends ListItem
     {
-        private final List<Widget> renderables = Lists.newArrayList();
+        private final List<AbstractWidget> renderables = Lists.newArrayList();
         private final List<GuiEventListener> listeners = Lists.newArrayList();
 
         public CompositeListItem(Minecraft minecraft, int height)
@@ -435,7 +435,7 @@ public class ClientWaypointManagerScreen extends Screen
             listeners.clear();
         }
 
-        public CompositeListItem addWidget(Widget widget)
+        public CompositeListItem addWidget(AbstractWidget widget)
         {
             if (widget instanceof GuiEventListener)
                 addListener((GuiEventListener) widget);
@@ -485,7 +485,7 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public void render(PoseStack matrixStack, int mouseX, int mouseY, float partialTicks)
+        public void renderWidget(PoseStack matrixStack, int mouseX, int mouseY, float partialTicks)
         {
             if (!isVisible())
                 return;
@@ -495,7 +495,7 @@ public class ClientWaypointManagerScreen extends Screen
             {
                 fill(matrixStack, 0, 0, getWidth(), getHeight(), 0x1fFFFFFF);
             }
-            for (Widget i : renderables)
+            for (AbstractWidget i : renderables)
             {
                 i.render(matrixStack, actualMouseX, actualMouseY, partialTicks);
             }
@@ -568,6 +568,12 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
+        protected void updateWidgetNarration(NarrationElementOutput pNarrationElementOutput)
+        {
+
+        }
+
+        @Override
         public boolean mouseScrolled(double mouseX, double mouseY, double delta)
         {
             if (!isVisible())
@@ -579,56 +585,57 @@ public class ClientWaypointManagerScreen extends Screen
             }).isPresent();
         }
 
+        @Nullable
         @Override
-        public boolean changeFocus(boolean focus)
+        public ComponentPath nextFocusPath(FocusNavigationEvent event)
         {
             if (!isVisible())
-                return false;
+                return null;
+
             GuiEventListener iguieventlistener = this.getFocused();
             boolean flag = iguieventlistener != null;
-            if (flag && iguieventlistener.changeFocus(focus))
+            var nextFocusPath = flag ? iguieventlistener.nextFocusPath(event) : null;
+            if (nextFocusPath != null)
             {
-                return true;
+                return nextFocusPath;
+            }
+
+            List<? extends GuiEventListener> list = this.children();
+            int j = list.indexOf(iguieventlistener);
+            int i;
+            if (flag && j >= 0)
+            {
+                i = j + (focus ? 1 : 0);
+            }
+            else if (focus)
+            {
+                i = 0;
             }
             else
             {
-                List<? extends GuiEventListener> list = this.children();
-                int j = list.indexOf(iguieventlistener);
-                int i;
-                if (flag && j >= 0)
-                {
-                    i = j + (focus ? 1 : 0);
-                }
-                else if (focus)
-                {
-                    i = 0;
-                }
-                else
-                {
-                    i = list.size();
-                }
-
-                ListIterator<? extends GuiEventListener> listiterator = list.listIterator(i);
-                BooleanSupplier booleansupplier = focus ? listiterator::hasNext : listiterator::hasPrevious;
-                Supplier<? extends GuiEventListener> supplier = focus ? listiterator::next : listiterator::previous;
-
-                while (booleansupplier.getAsBoolean())
-                {
-                    GuiEventListener iguieventlistener1 = supplier.get();
-                    if (iguieventlistener1.changeFocus(focus))
-                    {
-                        this.setFocused(iguieventlistener1);
-                        return true;
-                    }
-                }
-
-                this.setFocused((GuiEventListener) null);
-                return false;
+                i = list.size();
             }
+
+            ListIterator<? extends GuiEventListener> listiterator = list.listIterator(i);
+            BooleanSupplier booleansupplier = focus ? listiterator::hasNext : listiterator::hasPrevious;
+            Supplier<? extends GuiEventListener> supplier = focus ? listiterator::next : listiterator::previous;
+
+            while (booleansupplier.getAsBoolean())
+            {
+                GuiEventListener iguieventlistener1 = supplier.get();
+                if (iguieventlistener1.changeFocus(focus))
+                {
+                    this.setFocused(iguieventlistener1);
+                    return true;
+                }
+            }
+
+            this.setFocused((GuiEventListener) null);
+            return false;
         }
     }
 
-    private static abstract class ListItem extends AbstractContainerEventHandler implements Widget
+    private static abstract class ListItem extends AbstractWidget implements ContainerEventHandler
     {
         protected final Minecraft minecraft;
 
@@ -640,6 +647,7 @@ public class ClientWaypointManagerScreen extends Screen
 
         public ListItem(Minecraft minecraft, int height)
         {
+            super();
             this.minecraft = minecraft;
             this.height = height;
         }
@@ -727,47 +735,63 @@ public class ClientWaypointManagerScreen extends Screen
                 this.visible = visible;
             }
         }
+
+        // AbstractContainerEventHandler
+        @Nullable
+        private GuiEventListener focused;
+        private boolean isDragging;
+
+        @Override
+        public final boolean isDragging() {
+            return this.isDragging;
+        }
+
+        @Override
+        public final void setDragging(boolean pDragging) {
+            this.isDragging = pDragging;
+        }
+
+        @Override
+        @Nullable
+        public GuiEventListener getFocused() {
+            return this.focused;
+        }
+
+        @Override
+        public void setFocused(@Nullable GuiEventListener pListener) {
+            if (this.focused != null) {
+                this.focused.setFocused(false);
+            }
+
+            if (pListener != null) {
+                pListener.setFocused(true);
+            }
+
+            this.focused = pListener;
+        }
     }
 
     private class ItemsScrollPanel extends ScrollPanel implements NarratableEntry
     {
-        private final List<ListItem> items = Lists.newArrayList();
-        private final Minecraft minecraft;
+        private final SizedItemsContainer contents;
 
-        private int contentHeight;
         private float partialTicks;
 
-        public ItemsScrollPanel(Minecraft client, int width, int height, int top, int left)
+        public ItemsScrollPanel(Minecraft client, int width, int height, int top, int left, SizedItemsContainer contents)
         {
             super(client, width, height, top, left);
-            this.minecraft = client;
+            this.contents = contents;
         }
 
-        public void addItem(ListItem item)
+        public void addItem(SizedWidget item)
         {
-            addItem(items.size(), item);
+            contents.addItem(item);
         }
-
-        public void insertAfter(WaypointListItem item, ListItem after)
-        {
-            int index = items.indexOf(after);
-            addItem(index >= 0 ? (index + 1) : items.size(), item);
-        }
-
-        public void addItem(int index, ListItem item)
-        {
-            items.add(index, item);
-            item.setParent(this);
-            recalculateHeight();
-            item.setWidth(getContentWidth());
-            item.init();
-        }
-
 
         @Override
         protected int getContentHeight()
         {
-            return contentHeight;
+            return contents.getHeight();
         }
 
         public void setPartialTicks(float partialTicks)
@@ -776,41 +800,25 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
+        protected void drawBackground(PoseStack matrix, Tesselator tess, float partialTick)
+        {
+            super.drawBackground(matrix, tess, partialTick);
+            this.partialTicks = partialTick;
+        }
+
+        @Override
         protected void drawPanel(PoseStack mStack, int entryRight, int relativeY, Tesselator tess, int mouseX, int mouseY)
         {
             mStack.pushPose();
             mStack.translate(left, relativeY, 0);
-            for (ListItem item : items)
-            {
-                if (item.isVisible())
-                {
-                    mStack.pushPose();
-                    mStack.translate(0, item.getTop(), 0);
-                    item.render(mStack, mouseX, mouseY, partialTicks);
-                    mStack.popPose();
-                }
-            }
+            contents.render(mStack, mouseX, mouseY, partialTicks);
             mStack.popPose();
         }
 
         @Override
         public List<? extends GuiEventListener> children()
         {
-            return items;
-        }
-
-        public void recalculateHeight()
-        {
-            int totalHeight = 0;
-            for (ListItem item : items)
-            {
-                if (item.isVisible())
-                {
-                    item.setTop(totalHeight);
-                    totalHeight += item.getHeight();
-                }
-            }
-            contentHeight = totalHeight;
+            return contents.children();
         }
 
         public int getLeft()
@@ -839,13 +847,6 @@ public class ClientWaypointManagerScreen extends Screen
             return right - left - 6;
         }
 
-        public void removeItem(ListItem item)
-        {
-            item.setParent(null);
-            items.remove(item);
-            recalculateHeight();
-        }
-
         public void scrollToItem(ListItem item)
         {
             int scrollOffset = item.getTop() - height / 2 - item.getHeight();
@@ -863,13 +864,6 @@ public class ClientWaypointManagerScreen extends Screen
         {
             scrollDistance = 0;
         }
-
-        public void clear()
-        {
-            items.forEach(item -> item.setParent(null));
-            items.clear();
-        }
-
 
         private boolean dirty;
 
@@ -889,6 +883,48 @@ public class ClientWaypointManagerScreen extends Screen
         public void updateNarration(NarrationElementOutput narrationElementOutput)
         {
 
+        }
+    }
+
+    public interface SizedWidget extends Renderable, NarratableEntry
+    {
+
+        int getHeight();
+    }
+
+    private interface SizedItemsContainer extends SizedWidget
+    {
+        void addItem(SizedWidget item);
+
+        List<? extends GuiEventListener> children();
+
+        public void insertAfter(WaypointListItem item, ListItem after)
+        {
+            int index = contents.indexOf(after);
+            addItem(index >= 0 ? (index + 1) : items.size(), item);
+        }
+
+        public void addItem(int index, ListItem item)
+        {
+            items.add(index, item);
+            item.setParent(this);
+            recalculateHeight();
+            item.setWidth(getContentWidth());
+            item.init();
+        }
+
+
+        public void removeItem(ListItem item)
+        {
+            item.setParent(null);
+            items.remove(item);
+            recalculateHeight();
+        }
+
+        public void clear()
+        {
+            items.forEach(item -> item.setParent(null));
+            items.clear();
         }
     }
 }

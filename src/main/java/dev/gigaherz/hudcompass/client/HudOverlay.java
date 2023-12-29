@@ -3,7 +3,6 @@ package dev.gigaherz.hudcompass.client;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import com.mojang.math.Matrix4f;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
@@ -16,6 +15,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -38,6 +38,7 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent;
+import org.joml.Matrix4f;
 
 import java.util.List;
 
@@ -188,7 +189,7 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
                 };
     }
 
-    private static final TagKey<Item> MAKES_HUDCOMPASS_VISIBLE = TagKey.create(Registry.ITEM_REGISTRY, new ResourceLocation("hudcompass:makes_hudcompass_visible"));
+    private static final TagKey<Item> MAKES_HUDCOMPASS_VISIBLE = TagKey.create(Registries.ITEM, new ResourceLocation("hudcompass:makes_hudcompass_visible"));
 
     private boolean findCompassInHands()
     {
@@ -247,7 +248,10 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         float width1 = width + 4;
         float height1 = height + 3;
         float x0 = x - width1 / 2;
-        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity().get() * ((color >> 24) & 0xFF), 0, 255)) << 24);
+
+        int backgroundColor = ((int) Mth.clamp(mc.options.textBackgroundOpacity().get() * ((color >> 24) & 0xFF), 0, 255)) << 24;
+        fillRect(matrixStack, x0, y, x0 + width1, y + height1, backgroundColor);
+
         font.drawShadow(matrixStack, text, x - width / 2, y + 2, color);
 
         RenderSystem.enableBlend();
@@ -355,7 +359,6 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
     {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.disableTexture();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 
@@ -372,7 +375,6 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         builder.vertex(matrix, x1, y0, 0.0f).color(r, g, b, a).endVertex();
         builder.vertex(matrix, x0, y0, 0.0f).color(r, g, b, a).endVertex();
         tess.end();
-        RenderSystem.enableTexture();
     }
 
     private static void blitRect(PoseStack matrixStack, float x0, float y0, float xt, float yt, float width, float height, int tWidth, int tHeight, ResourceLocation texture, int alpha)

@@ -15,6 +15,7 @@ import dev.gigaherz.hudcompass.network.UpdateWaypointsFromGui;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -203,10 +204,10 @@ public class PointsOfInterest
         for (int i = 0; i < nbt.size(); i++)
         {
             CompoundTag tag = nbt.getCompound(i);
-            ResourceKey<Level> key = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation(tag.getString("World")));
+            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(tag.getString("World")));
             ResourceKey<DimensionType> dimType = null;
             if (tag.contains("DimensionKey", Tag.TAG_STRING))
-                dimType = ResourceKey.create(Registry.DIMENSION_TYPE_REGISTRY, new ResourceLocation(tag.getString("DimensionKey")));
+                dimType = ResourceKey.create(Registries.DIMENSION_TYPE, new ResourceLocation(tag.getString("DimensionKey")));
             WorldPoints p = get(key, dimType);
             p.read(tag.getList("POIs", Tag.TAG_COMPOUND));
         }
@@ -219,10 +220,10 @@ public class PointsOfInterest
         int numWorlds = buffer.readVarInt();
         for (int i = 0; i < numWorlds; i++)
         {
-            ResourceKey<Level> key = ResourceKey.create(Registry.DIMENSION_REGISTRY, buffer.readResourceLocation());
+            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, buffer.readResourceLocation());
             boolean hasDimensionType = buffer.readBoolean();
             ResourceKey<DimensionType> dimType = hasDimensionType
-                    ? ResourceKey.create(Registry.DIMENSION_TYPE_REGISTRY, buffer.readResourceLocation())
+                    ? ResourceKey.create(Registries.DIMENSION_TYPE, buffer.readResourceLocation())
                     : null;
             WorldPoints p = get(key, dimType);
             p.read(buffer);
@@ -344,10 +345,10 @@ public class PointsOfInterest
     private static ResourceKey<DimensionType> getDimensionTypeKey(Level world, @Nullable ResourceKey<DimensionType> fallback)
     {
         DimensionType dimType = world.dimensionType();
-        ResourceLocation key = world.registryAccess().registryOrThrow(Registry.DIMENSION_TYPE_REGISTRY).getKey(dimType);
+        ResourceLocation key = world.registryAccess().registryOrThrow(Registries.DIMENSION_TYPE).getKey(dimType);
         if (key == null)
             return fallback;
-        return ResourceKey.create(Registry.DIMENSION_TYPE_REGISTRY, key);
+        return ResourceKey.create(Registries.DIMENSION_TYPE, key);
     }
 
     private WorldPoints getInternal(ResourceKey<Level> worldKey, Supplier<ResourceKey<DimensionType>> dimensionTypeKey)
@@ -403,11 +404,11 @@ public class PointsOfInterest
         }
         for (Pair<ResourceLocation, PointInfo<?>> pt : pointsAdded)
         {
-            get(ResourceKey.create(Registry.DIMENSION_REGISTRY, pt.getFirst())).addPoint(pt.getSecond());
+            get(ResourceKey.create(Registries.DIMENSION, pt.getFirst())).addPoint(pt.getSecond());
         }
         for (Pair<ResourceLocation, PointInfo<?>> pt : pointsUpdated)
         {
-            get(ResourceKey.create(Registry.DIMENSION_REGISTRY, pt.getFirst())).addPoint(pt.getSecond());
+            get(ResourceKey.create(Registries.DIMENSION, pt.getFirst())).addPoint(pt.getSecond());
         }
     }
 
