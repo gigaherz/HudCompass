@@ -19,13 +19,12 @@ import net.minecraft.world.level.saveddata.maps.MapBanner;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -41,17 +40,15 @@ public class VanillaMapPoints
     private static final ResourceLocation ADDON_ID = HudCompass.location("vanilla_map");
 
     private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.POINT_INFO_TYPES;
-    public static final RegistryObject<PointInfoType<MapDecorationWaypoint>> DECORATION_TYPE = PIT.register("map_decoration", () -> new PointInfoType<>(MapDecorationWaypoint::new));
-    public static final RegistryObject<PointInfoType<MapBannerWaypoint>> BANNER_TYPE = PIT.register("map_banner", () -> new PointInfoType<>(MapBannerWaypoint::new));
+    public static final DeferredHolder<PointInfoType<?>, PointInfoType<MapDecorationWaypoint>> DECORATION_TYPE = PIT.register("map_decoration", () -> new PointInfoType<>(MapDecorationWaypoint::new));
+    public static final DeferredHolder<PointInfoType<?>, PointInfoType<MapBannerWaypoint>> BANNER_TYPE = PIT.register("map_banner", () -> new PointInfoType<>(MapBannerWaypoint::new));
 
-    public static void init()
+    public static void init(IEventBus modEventBus)
     {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-
         modEventBus.addListener(INSTANCE::clientSetup);
 
         //MinecraftForge.EVENT_BUS.addListener(INSTANCE::clientTick);
-        MinecraftForge.EVENT_BUS.addListener(INSTANCE::playerTick);
+        NeoForge.EVENT_BUS.addListener(INSTANCE::playerTick);
     }
 
     private void clientSetup(FMLClientSetupEvent event)
@@ -71,11 +68,12 @@ public class VanillaMapPoints
             counter = 0;
 
             Player player = event.player;
-            if (player.level.isClientSide)
+            if (player.level().isClientSide)
                 return;
 
-            player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level);
+            var pois = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+            {
+                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level());
 
                 VanillaMapData addon = pois.getOrCreateAddonData(ADDON_ID, VanillaMapData::new);
 
@@ -95,7 +93,7 @@ public class VanillaMapPoints
 
                     addon.mapDecorations.remove(remove);
                 }
-            });
+            }
         }
     }
 
@@ -109,7 +107,7 @@ public class VanillaMapPoints
         for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++)
         {
             ItemStack stack = player.getInventory().getItem(slot);
-            MapItemSavedData mapData = MapItem.getSavedData(stack, player.level);
+            MapItemSavedData mapData = MapItem.getSavedData(stack, player.level());
             if (mapData != null && !seenMaps.contains(mapData) && mapData.dimension == worldPoints.getWorldKey())
             {
                 seenMaps.add(mapData);
@@ -133,9 +131,9 @@ public class VanillaMapPoints
                     MapDecoration decoration = kvp.getValue();
 
                     // skip players, they will be handled separately.
-                    if (decoration.getType() == MapDecoration.Type.PLAYER ||
-                            decoration.getType() == MapDecoration.Type.PLAYER_OFF_LIMITS ||
-                            decoration.getType() == MapDecoration.Type.PLAYER_OFF_MAP)
+                    if (decoration.type() == MapDecoration.Type.PLAYER ||
+                            decoration.type() == MapDecoration.Type.PLAYER_OFF_LIMITS ||
+                            decoration.type() == MapDecoration.Type.PLAYER_OFF_MAP)
                         continue;
 
                     if (!decorationPointInfoMap.containsKey(decoration))
@@ -166,7 +164,7 @@ public class VanillaMapPoints
 
         public MapBannerWaypoint(MapBanner banner, MapDecoration decoration)
         {
-            super(BANNER_TYPE.get(), true, banner.getName(), BasicIconData.mapMarker(decoration.getType().getIcon()));
+            super(BANNER_TYPE.get(), true, banner.getName(), BasicIconData.mapMarker(decoration.type().getIcon()));
             dynamic();
             this.banner = banner;
             this.position = Vec3.atCenterOf(banner.getPos());
@@ -240,13 +238,13 @@ public class VanillaMapPoints
 
         public MapDecorationWaypoint(MapItemSavedData mapData, MapDecoration decoration)
         {
-            super(DECORATION_TYPE.get(), true, null, BasicIconData.mapMarker(decoration.getType().getIcon()));
+            super(DECORATION_TYPE.get(), true, null, BasicIconData.mapMarker(decoration.type().getIcon()));
 
             dynamic();
             noVerticalDistance();
 
-            float decoX = (decoration.getX() - 0.5f) * 0.5f;
-            float decoZ = (decoration.getY() - 0.5f) * 0.5f;
+            float decoX = (decoration.x() - 0.5f) * 0.5f;
+            float decoZ = (decoration.y() - 0.5f) * 0.5f;
 
             int scale = 1 << mapData.scale;
             float worldX = mapData.centerX + decoX * scale;

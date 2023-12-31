@@ -3,7 +3,7 @@ package dev.gigaherz.hudcompass.network;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.NetworkEvent;
 
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -32,9 +32,8 @@ public class RemoveWaypoint
         buffer.writeUUID(id);
     }
 
-    public boolean handle(Supplier<NetworkEvent.Context> ctx)
+    public boolean handle(NetworkEvent.Context context)
     {
-        NetworkEvent.Context context = ctx.get();
         context.enqueueWork(() -> {
             PointsOfInterest.handleRemoveWaypoint(context.getSender(), this);
         });

@@ -3,7 +3,6 @@ package dev.gigaherz.hudcompass.icons;
 import dev.gigaherz.hudcompass.HudCompass;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.registries.ObjectHolder;
 
 public class BasicIconData implements IIconData<BasicIconData>
 {

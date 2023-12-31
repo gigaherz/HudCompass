@@ -1,9 +1,5 @@
 package dev.gigaherz.hudcompass;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.Lifecycle;
-import dev.gigaherz.hudcompass.client.ClientHandler;
-import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import dev.gigaherz.hudcompass.integrations.journeymap.JourneymapIntegration;
@@ -12,54 +8,39 @@ import dev.gigaherz.hudcompass.integrations.server.SpawnPointPoints;
 import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
 import dev.gigaherz.hudcompass.network.*;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
-import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryCodecs;
-import net.minecraft.resources.RegistryFileCodec;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
-import net.minecraftforge.common.world.BiomeModifier;
-import net.minecraftforge.common.world.ModifiableBiomeInfo;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.fml.IExtensionPoint;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.network.simple.SimpleChannel;
-import net.minecraftforge.registries.*;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.IExtensionPoint;
+import net.neoforged.fml.ModList;
+import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.attachment.AttachmentType;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.network.NetworkRegistry;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.PlayNetworkDirection;
+import net.neoforged.neoforge.network.simple.SimpleChannel;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 @Mod(HudCompass.MODID)
 public class HudCompass
 {
     public static final String MODID = "hudcompass";
-
-    public static HudCompass instance;
 
     public static final Logger LOGGER = LogManager.getLogger(MODID);
 
@@ -68,14 +49,19 @@ public class HudCompass
 
     public static final DeferredRegister<PointInfoType<?>> POINT_INFO_TYPES = DeferredRegister.create(POINT_INFO_TYPES_KEY, MODID);
     public static final DeferredRegister<IconDataSerializer<?>> ICON_DATA_SERIALIZERS = DeferredRegister.create(ICON_DATA_SERIALIZERS_KEY, MODID);
+    public static final DeferredRegister<AttachmentType<?>> ATTACHMENT_TYPES = DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES, MODID);
 
-    public static final Supplier<IForgeRegistry<PointInfoType<?>>> POINT_INFO_TYPES_REGISTRY = POINT_INFO_TYPES.makeRegistry(() -> new RegistryBuilder<PointInfoType<?>>().disableSaving());
-    public static final Supplier<IForgeRegistry<IconDataSerializer<?>>> ICON_DATA_SERIALIZERS_REGISTRY = ICON_DATA_SERIALIZERS.makeRegistry(() -> new RegistryBuilder<IconDataSerializer<?>>().disableSaving());
+    public static final Registry<PointInfoType<?>> POINT_INFO_TYPES_REGISTRY = POINT_INFO_TYPES.makeRegistry(builder -> {});
+    public static final Registry<IconDataSerializer<?>> ICON_DATA_SERIALIZERS_REGISTRY = ICON_DATA_SERIALIZERS.makeRegistry(builder -> {});
 
-    public static final RegistryObject<IconDataSerializer<BasicIconData>> POI_SERIALIZER = ICON_DATA_SERIALIZERS.register("poi", BasicIconData.Serializer::new);
-    public static final RegistryObject<IconDataSerializer<BasicIconData>> MAP_MARKER_SERIALIZER = ICON_DATA_SERIALIZERS.register("map_marker", BasicIconData.Serializer::new);
+    public static final DeferredHolder<IconDataSerializer<?>, IconDataSerializer<BasicIconData>> POI_SERIALIZER = ICON_DATA_SERIALIZERS.register("poi", BasicIconData.Serializer::new);
+    public static final DeferredHolder<IconDataSerializer<?>, IconDataSerializer<BasicIconData>> MAP_MARKER_SERIALIZER = ICON_DATA_SERIALIZERS.register("map_marker", BasicIconData.Serializer::new);
 
-    public static final RegistryObject<PointInfoType<BasicWaypoint>> BASIC_WAYPOINT = POINT_INFO_TYPES.register("basic", () -> new PointInfoType<>(BasicWaypoint::new));
+    public static final DeferredHolder<PointInfoType<?>, PointInfoType<BasicWaypoint>> BASIC_WAYPOINT = POINT_INFO_TYPES.register("basic", () -> new PointInfoType<>(BasicWaypoint::new));
+
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<PointsOfInterest>> POINTS_OF_INTEREST_ATTACHMENT = ATTACHMENT_TYPES.register("poi_provider", () ->
+            AttachmentType.serializable(PointsOfInterest::new).build()
+    );
 
     private static final String PROTOCOL_VERSION = "1.1";
     public static SimpleChannel channel = NetworkRegistry.ChannelBuilder
@@ -85,25 +71,23 @@ public class HudCompass
             .networkProtocolVersion(() -> PROTOCOL_VERSION)
             .simpleChannel();
 
-    public HudCompass()
+    public HudCompass(IEventBus modEventBus)
     {
-        instance = this;
-
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::modConfig);
         modEventBus.addListener(this::registerCapabilities);
 
         POINT_INFO_TYPES.register(modEventBus);
         ICON_DATA_SERIALIZERS.register(modEventBus);
+        ATTACHMENT_TYPES.register(modEventBus);
 
-        MinecraftForge.EVENT_BUS.addListener(this::playerTickEvent);
-        MinecraftForge.EVENT_BUS.addListener(this::playerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(this::playerTickEvent);
+        NeoForge.EVENT_BUS.addListener(this::playerLoggedIn);
 
         SpawnPointPoints.init();
-        VanillaMapPoints.init();
-        PlayerTracker.init();
+        VanillaMapPoints.init(modEventBus);
+        PlayerTracker.init(modEventBus);
+        PointsOfInterest.init(modEventBus);
 
         if (ModList.get().isLoaded("journeymap"))
         {
@@ -130,18 +114,17 @@ public class HudCompass
 
     public void registerCapabilities(RegisterCapabilitiesEvent event)
     {
-        PointsOfInterest.init(event);
     }
 
     public void commonSetup(FMLCommonSetupEvent event)
     {
         int messageNumber = 0;
-        channel.messageBuilder(AddWaypoint.class, messageNumber++, NetworkDirection.PLAY_TO_SERVER).encoder(AddWaypoint::encode).decoder(AddWaypoint::new).consumerNetworkThread(AddWaypoint::handle).add();
-        channel.messageBuilder(RemoveWaypoint.class, messageNumber++, NetworkDirection.PLAY_TO_SERVER).encoder(RemoveWaypoint::encode).decoder(RemoveWaypoint::new).consumerNetworkThread(RemoveWaypoint::handle).add();
-        channel.messageBuilder(ServerHello.class, messageNumber++, NetworkDirection.PLAY_TO_CLIENT).encoder(ServerHello::encode).decoder(ServerHello::new).consumerNetworkThread(ServerHello::handle).add();
-        channel.messageBuilder(ClientHello.class, messageNumber++, NetworkDirection.PLAY_TO_SERVER).encoder(ClientHello::encode).decoder(ClientHello::new).consumerNetworkThread(ClientHello::handle).add();
-        channel.messageBuilder(SyncWaypointData.class, messageNumber++, NetworkDirection.PLAY_TO_CLIENT).encoder(SyncWaypointData::encode).decoder(SyncWaypointData::new).consumerNetworkThread(SyncWaypointData::handle).add();
-        channel.messageBuilder(UpdateWaypointsFromGui.class, messageNumber++, NetworkDirection.PLAY_TO_SERVER).encoder(UpdateWaypointsFromGui::encode).decoder(UpdateWaypointsFromGui::new).consumerNetworkThread(UpdateWaypointsFromGui::handle).add();
+        channel.messageBuilder(AddWaypoint.class, messageNumber++, PlayNetworkDirection.PLAY_TO_SERVER).encoder(AddWaypoint::encode).decoder(AddWaypoint::new).consumerNetworkThread(AddWaypoint::handle).add();
+        channel.messageBuilder(RemoveWaypoint.class, messageNumber++, PlayNetworkDirection.PLAY_TO_SERVER).encoder(RemoveWaypoint::encode).decoder(RemoveWaypoint::new).consumerNetworkThread(RemoveWaypoint::handle).add();
+        channel.messageBuilder(ServerHello.class, messageNumber++, PlayNetworkDirection.PLAY_TO_CLIENT).encoder(ServerHello::encode).decoder(ServerHello::new).consumerNetworkThread(ServerHello::handle).add();
+        channel.messageBuilder(ClientHello.class, messageNumber++, PlayNetworkDirection.PLAY_TO_SERVER).encoder(ClientHello::encode).decoder(ClientHello::new).consumerNetworkThread(ClientHello::handle).add();
+        channel.messageBuilder(SyncWaypointData.class, messageNumber++, PlayNetworkDirection.PLAY_TO_CLIENT).encoder(SyncWaypointData::encode).decoder(SyncWaypointData::new).consumerNetworkThread(SyncWaypointData::handle).add();
+        channel.messageBuilder(UpdateWaypointsFromGui.class, messageNumber++, PlayNetworkDirection.PLAY_TO_SERVER).encoder(UpdateWaypointsFromGui::encode).decoder(UpdateWaypointsFromGui::new).consumerNetworkThread(UpdateWaypointsFromGui::handle).add();
         LOGGER.debug("Final message number: " + messageNumber);
     }
 

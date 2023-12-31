@@ -1,52 +1,52 @@
 package dev.gigaherz.hudcompass;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class ConfigData
 {
     public static final ServerConfig SERVER;
-    public static final ForgeConfigSpec SERVER_SPEC;
+    public static final ModConfigSpec SERVER_SPEC;
 
     static
     {
-        final Pair<ServerConfig, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(ServerConfig::new);
+        final Pair<ServerConfig, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(ServerConfig::new);
         SERVER_SPEC = specPair.getRight();
         SERVER = specPair.getLeft();
     }
 
     public static final ClientConfig CLIENT;
-    public static final ForgeConfigSpec CLIENT_SPEC;
+    public static final ModConfigSpec CLIENT_SPEC;
 
     static
     {
-        final Pair<ClientConfig, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(ClientConfig::new);
+        final Pair<ClientConfig, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(ClientConfig::new);
         CLIENT_SPEC = specPair.getRight();
         CLIENT = specPair.getLeft();
     }
 
     public static final CommonConfig COMMON;
-    public static final ForgeConfigSpec COMMON_SPEC;
+    public static final ModConfigSpec COMMON_SPEC;
 
     static
     {
-        final Pair<CommonConfig, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(CommonConfig::new);
+        final Pair<CommonConfig, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(CommonConfig::new);
         COMMON_SPEC = specPair.getRight();
         COMMON = specPair.getLeft();
     }
 
     public static class ClientConfig
     {
-        public final ForgeConfigSpec.BooleanValue alwaysShowLabels;
-        public final ForgeConfigSpec.BooleanValue alwaysShowFocusedLabel;
-        public final ForgeConfigSpec.BooleanValue showAllLabelsOnSneak;
-        public final ForgeConfigSpec.BooleanValue animateLabels;
-        public final ForgeConfigSpec.BooleanValue enableJourneymapIntegration;
-        public final ForgeConfigSpec.EnumValue<DisplayWhen> displayWhen;
-        public final ForgeConfigSpec.DoubleValue waypointFadeDistance;
-        public final ForgeConfigSpec.DoubleValue waypointViewDistance;
+        public final ModConfigSpec.BooleanValue alwaysShowLabels;
+        public final ModConfigSpec.BooleanValue alwaysShowFocusedLabel;
+        public final ModConfigSpec.BooleanValue showAllLabelsOnSneak;
+        public final ModConfigSpec.BooleanValue animateLabels;
+        public final ModConfigSpec.BooleanValue enableJourneymapIntegration;
+        public final ModConfigSpec.EnumValue<DisplayWhen> displayWhen;
+        public final ModConfigSpec.DoubleValue waypointFadeDistance;
+        public final ModConfigSpec.DoubleValue waypointViewDistance;
 
-        ClientConfig(ForgeConfigSpec.Builder builder)
+        ClientConfig(ModConfigSpec.Builder builder)
         {
             builder.push("display");
             alwaysShowLabels = builder
@@ -98,12 +98,12 @@ public class ConfigData
 
     public static class CommonConfig
     {
-        public final ForgeConfigSpec.BooleanValue enableVanillaMapIntegration;
-        public final ForgeConfigSpec.BooleanValue enableSpawnPointWaypoint;
-        public final ForgeConfigSpec.BooleanValue disableServerHello;
-        public final ForgeConfigSpec.EnumValue<PlayerDisplay> playerDisplay;
+        public final ModConfigSpec.BooleanValue enableVanillaMapIntegration;
+        public final ModConfigSpec.BooleanValue enableSpawnPointWaypoint;
+        public final ModConfigSpec.BooleanValue disableServerHello;
+        public final ModConfigSpec.EnumValue<PlayerDisplay> playerDisplay;
 
-        CommonConfig(ForgeConfigSpec.Builder builder)
+        CommonConfig(ModConfigSpec.Builder builder)
         {
             builder.push("general");
             enableVanillaMapIntegration = builder
@@ -127,7 +127,7 @@ public class ConfigData
 
     public static class ServerConfig
     {
-        ServerConfig(ForgeConfigSpec.Builder builder)
+        ServerConfig(ModConfigSpec.Builder builder)
         {
             builder.push("general");
             builder.pop();

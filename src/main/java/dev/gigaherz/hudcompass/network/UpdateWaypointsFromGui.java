@@ -7,7 +7,7 @@ import dev.gigaherz.hudcompass.waypoints.PointInfoRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.NetworkEvent;
 
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -77,9 +77,8 @@ public class UpdateWaypointsFromGui
         pointsRemoved.forEach(buffer::writeUUID);
     }
 
-    public boolean handle(Supplier<NetworkEvent.Context> ctx)
+    public boolean handle(NetworkEvent.Context context)
     {
-        NetworkEvent.Context context = ctx.get();
         context.enqueueWork(() -> {
             if (context.getSender() != null)
                 PointsOfInterest.handleUpdateFromGui(context.getSender(), this);

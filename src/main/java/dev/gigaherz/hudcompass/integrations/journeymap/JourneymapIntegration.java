@@ -3,8 +3,6 @@ package dev.gigaherz.hudcompass.integrations.journeymap;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
-import dev.gigaherz.hudcompass.icons.IIconData;
-import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
@@ -20,8 +18,8 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
@@ -35,7 +33,7 @@ public class JourneymapIntegration implements IClientPlugin
 {
     private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.POINT_INFO_TYPES;
 
-    public static final RegistryObject<PointInfoType<JmWaypoint>> JM_WAYPOINT = PIT.register("journeymap", () -> new PointInfoType<>(JmWaypoint::new));
+    public static final DeferredHolder<PointInfoType<?>, PointInfoType<JmWaypoint>> JM_WAYPOINT = PIT.register("journeymap", () -> new PointInfoType<>(JmWaypoint::new));
 
     public static void staticInit()
     {
@@ -66,10 +64,11 @@ public class JourneymapIntegration implements IClientPlugin
         if (!ConfigData.enableJourneymapIntegration)
             return;
 
-        player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-            PointsOfInterest.WorldPoints worldPoints = pois.get(player.level);
+        var pois = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+        {
+            PointsOfInterest.WorldPoints worldPoints = pois.get(player.level());
 
-            String dimensionName = player.level.dimension().location().toString();
+            String dimensionName = player.level().dimension().location().toString();
 
             var jmwp = wpEvent.waypoint;
             var id = getId(jmwp);
@@ -98,7 +97,7 @@ public class JourneymapIntegration implements IClientPlugin
                     }
                     break;
             }
-        });
+        }
     }
 
     @Nonnull

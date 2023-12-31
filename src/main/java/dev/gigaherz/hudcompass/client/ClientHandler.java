@@ -12,11 +12,11 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.event.TickEvent;
 
 @Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ClientHandler
@@ -52,12 +52,13 @@ public class ClientHandler
 
         if (ADD_WAYPOINT.consumeClick())
         {
-            mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
+            var pois = mc.player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+            {
                 Vec3 position = mc.player.position();
                 String label = String.format("{%1.2f, %1.2f, %1.2f}", position.x(), position.y(), position.z());
 
-                pois.get(mc.player.level).addPointRequest(new BasicWaypoint(position, label, BasicIconData.mapMarker(7)));
-            });
+                pois.get(mc.player.level()).addPointRequest(new BasicWaypoint(position, label, BasicIconData.mapMarker(7)));
+            }
 
             //noinspection StatementWithEmptyBody
             while (ADD_WAYPOINT.consumeClick())
@@ -68,7 +69,8 @@ public class ClientHandler
 
         if (REMOVE_WAYPOINT.consumeClick())
         {
-            mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
+            var pois = mc.player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+            {
                 PointInfo<?> targetted = pois.getTargetted();
 
                 if (targetted != null && !targetted.isDynamic())
@@ -79,10 +81,10 @@ public class ClientHandler
                     }
                     else
                     {
-                        pois.get(mc.player.level).removePointRequest(targetted);
+                        pois.get(mc.player.level()).removePointRequest(targetted);
                     }
                 }
-            });
+            }
 
             //noinspection StatementWithEmptyBody
             while (ADD_WAYPOINT.consumeClick())
@@ -93,9 +95,10 @@ public class ClientHandler
 
         if (EDIT_WAYPOINTS.consumeClick())
         {
-            mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
+            var pois = mc.player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+            {
                 mc.setScreen(new ClientWaypointManagerScreen(pois));
-            });
+            }
 
             //noinspection StatementWithEmptyBody
             while (ADD_WAYPOINT.consumeClick())

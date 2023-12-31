@@ -1,6 +1,5 @@
 package dev.gigaherz.hudcompass.client;
 
-import com.google.common.io.Files;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.client.Minecraft;
@@ -11,12 +10,12 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -25,6 +24,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
 
 @Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ClientWaypointDatabase
@@ -50,7 +51,7 @@ public class ClientWaypointDatabase
             {
                 address = addr.toString();
             }
-            ResourceLocation dim = mc.player.level.dimension().location();
+            ResourceLocation dim = mc.player.level().dimension().location();
             String dimension = dim.getNamespace() + "_" + dim.getPath();
             return FMLPaths.GAMEDIR.get().resolve("server_waypoints").resolve(address).resolve(dimension).resolve("waypoints.dat").toAbsolutePath();
         }
@@ -58,33 +59,33 @@ public class ClientWaypointDatabase
 
     private static void populateFromDisk(Minecraft mc)
     {
-        mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
+        var pois = mc.player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+        {
             if (pois.otherSideHasMod)
                 return;
 
             LOGGER.debug("Joined new dimension, loading...");
 
-            Path filePath = getPath(mc);
-            File file = filePath.toFile();
-            if (!file.exists())
+            Path path = getPath(mc);
+            if (!Files.exists(path))
             {
-                File backup = new File(file.getAbsolutePath() + ".bak");
-                if (backup.exists())
+                Path backup = Paths.get(path.toString() + ".bak");
+                if (Files.exists(backup))
                 {
-                    file = backup;
+                    path = backup;
                     LOGGER.debug("File did not exist, but a backup was found...");
                 }
             }
-            if (file.exists())
+            if (Files.exists(path))
             {
                 try
                 {
-                    CompoundTag tag = NbtIo.read(file);
+                    CompoundTag tag = NbtIo.read(path);
 
                     pois.clear();
 
                     ListTag list0 = tag.getList("Worlds", Tag.TAG_COMPOUND);
-                    pois.read(list0);
+                    pois.deserializeNBT(list0);
                 }
                 catch (IOException e)
                 {
@@ -96,12 +97,13 @@ public class ClientWaypointDatabase
             {
                 LOGGER.debug("File did not exist.");
             }
-        });
+        }
     }
 
     private static void saveToDisk(Minecraft mc)
     {
-        mc.player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
+        var pois = mc.player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+        {
             if (pois.otherSideHasMod)
                 return;
 
@@ -110,27 +112,25 @@ public class ClientWaypointDatabase
                 LOGGER.debug("Changes detected, saving.");
                 try
                 {
-                    Path filePath = getPath(mc);
-                    File file = filePath.toFile();
-                    if (file.exists())
+                    Path path = getPath(mc);
+                    if (Files.exists(path))
                     {
                         LOGGER.debug("File already exists, keeping as backup.");
-                        File backup = new File(file.getAbsolutePath() + ".bak");
-                        //noinspection UnstableApiUsage
-                        Files.copy(file, backup);
+                        Path backup = Paths.get(path.toString() + ".bak");
+                        Files.copy(path, backup);
                     }
                     else
                     {
-                        file.getParentFile().mkdirs();
+                        Files.createDirectories(path);
                     }
 
                     CompoundTag tag0 = new CompoundTag();
 
-                    ListTag list0 = pois.write();
+                    ListTag list0 = pois.serializeNBT();
 
                     tag0.put("Worlds", list0);
 
-                    NbtIo.write(tag0, file);
+                    NbtIo.write(tag0, path);
 
                     pois.savedNumber = pois.changeNumber;
 
@@ -141,7 +141,7 @@ public class ClientWaypointDatabase
                     e.printStackTrace();
                 }
             }
-        });
+        }
     }
 
     @SubscribeEvent

@@ -5,8 +5,6 @@ import dev.gigaherz.hudcompass.icons.IIconData;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryManager;
 
 import javax.annotation.Nonnull;
 
@@ -16,7 +14,7 @@ public class PointInfoRegistry
     public static <T extends PointInfo<T>> CompoundTag serializePoint(@Nonnull T pointInfo)
     {
         PointInfoType<? extends T> type = pointInfo.getType();
-        ResourceLocation typeId = HudCompass.POINT_INFO_TYPES_REGISTRY.get().getKey(type);
+        ResourceLocation typeId = HudCompass.POINT_INFO_TYPES_REGISTRY.getKey(type);
         if (typeId == null)
         {
             throw new IllegalStateException(String.format("Serializer name is null %s", type.getClass().getName()));
@@ -29,14 +27,14 @@ public class PointInfoRegistry
     public static <T extends PointInfo<T>> void serializePoint(T pointInfo, FriendlyByteBuf buffer)
     {
         PointInfoType<?> type = pointInfo.getType();
-        buffer.writeRegistryIdUnsafe(HudCompass.POINT_INFO_TYPES_REGISTRY.get(), type);
+        buffer.writeId(HudCompass.POINT_INFO_TYPES_REGISTRY, type);
         pointInfo.writeToPacket(buffer);
     }
 
     public static <T extends PointInfo<T>> void serializePointWithoutId(T pointInfo, FriendlyByteBuf buffer)
     {
         PointInfoType<? extends T> type = pointInfo.getType();
-        buffer.writeRegistryIdUnsafe(HudCompass.POINT_INFO_TYPES_REGISTRY.get(), type);
+        buffer.writeId(HudCompass.POINT_INFO_TYPES_REGISTRY, type);
         pointInfo.writeToPacketWithoutId(buffer);
     }
 
@@ -44,7 +42,7 @@ public class PointInfoRegistry
     public static PointInfo<?> deserializePoint(CompoundTag tag)
     {
         ResourceLocation typeId = new ResourceLocation(tag.getString("Type"));
-        PointInfoType<?> type = HudCompass.POINT_INFO_TYPES_REGISTRY.get().getValue(typeId);
+        PointInfoType<?> type = HudCompass.POINT_INFO_TYPES_REGISTRY.get(typeId);
         if (type == null)
         {
             throw new IllegalStateException(String.format("Serializer not registered %s", typeId));
@@ -57,7 +55,7 @@ public class PointInfoRegistry
     @Nonnull
     public static PointInfo<?> deserializePoint(FriendlyByteBuf buffer)
     {
-        PointInfoType<?> serializer = buffer.readRegistryIdUnsafe(HudCompass.POINT_INFO_TYPES_REGISTRY.get());
+        PointInfoType<?> serializer = buffer.readById(HudCompass.POINT_INFO_TYPES_REGISTRY);
         if (serializer == null)
         {
             throw new IllegalStateException("Server returned unknown serializer");
@@ -70,7 +68,7 @@ public class PointInfoRegistry
     @Nonnull
     public static PointInfo<?> deserializePointWithoutId(FriendlyByteBuf buffer)
     {
-        PointInfoType<?> serializer = buffer.readRegistryIdUnsafe(HudCompass.POINT_INFO_TYPES_REGISTRY.get());
+        PointInfoType<?> serializer = buffer.readById(HudCompass.POINT_INFO_TYPES_REGISTRY);
         if (serializer == null)
         {
             throw new IllegalStateException("Server returned unknown serializer");

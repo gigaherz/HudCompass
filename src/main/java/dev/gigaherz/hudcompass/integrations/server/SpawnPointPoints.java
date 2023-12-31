@@ -12,8 +12,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.TickEvent;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -26,7 +26,7 @@ public class SpawnPointPoints
 
     public static void init()
     {
-        MinecraftForge.EVENT_BUS.addListener(INSTANCE::playerTick);
+        NeoForge.EVENT_BUS.addListener(INSTANCE::playerTick);
     }
 
     private int counter = 0;
@@ -41,13 +41,13 @@ public class SpawnPointPoints
             counter = 0;
 
             Player player = event.player;
-            if (player.level.isClientSide)
+            if (player.level().isClientSide)
                 return;
 
             ServerPlayer serverPlayer = (ServerPlayer) player;
 
-            player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-
+            var pois = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+            {
                 SpawnPointAddon addon = pois.getOrCreateAddonData(ADDON_ID, SpawnPointAddon::new);
 
                 ResourceKey<Level> worldKey = serverPlayer.getRespawnDimension();
@@ -77,7 +77,7 @@ public class SpawnPointPoints
                             .dynamic();
                     pois.get(addon.spawnWorld).addPoint(addon.waypoint);
                 }
-            });
+            }
         }
     }
 

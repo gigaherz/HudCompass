@@ -9,7 +9,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.registries.ObjectHolder;
 
 import javax.annotation.Nullable;
 import java.util.Objects;

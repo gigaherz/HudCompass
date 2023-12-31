@@ -6,9 +6,7 @@ import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.network.NetworkEvent;
-
-import java.util.function.Supplier;
+import net.neoforged.neoforge.network.NetworkEvent;
 
 public class AddWaypoint
 {
@@ -61,12 +59,10 @@ public class AddWaypoint
         buffer.writeVarInt(iconIndex);
     }
 
-    public boolean handle(Supplier<NetworkEvent.Context> ctx)
+    public void handle(NetworkEvent.Context context)
     {
-        NetworkEvent.Context context = ctx.get();
         context.enqueueWork(() -> {
             PointsOfInterest.handleAddWaypoint(context.getSender(), this);
         });
-        return true;
     }
 }

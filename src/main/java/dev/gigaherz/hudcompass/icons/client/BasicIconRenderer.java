@@ -3,7 +3,7 @@ package dev.gigaherz.hudcompass.icons.client;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
-import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.resources.ResourceLocation;
@@ -36,13 +36,11 @@ public class BasicIconRenderer implements IIconRenderer<BasicIconData>
         this.iconsPerCol = texH / iconH;
     }
 
-    public void renderIcon(BasicIconData data, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y, int alpha)
+    public void renderIcon(BasicIconData data, Player player, TextureManager textureManager, GuiGraphics graphics, int x, int y, int alpha)
     {
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderTexture(0, texture);
         RenderSystem.setShaderColor(data.r, data.g, data.b, data.a * (alpha / 255.0f));
         int indexX = data.iconIndex % iconsPerRow;
         int indexY = data.iconIndex / iconsPerCol;
-        GuiComponent.blit(matrixStack, x - iconW / 2, y - iconH / 2, indexX * iconW, indexY * iconH, iconW, iconH, texW, texH);
+        graphics.blit(texture, x - iconW / 2, y - iconH / 2, indexX * iconW, indexY * iconH, iconW, iconH, texW, texH);
     }
 }

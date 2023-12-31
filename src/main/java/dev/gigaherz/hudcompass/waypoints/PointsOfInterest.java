@@ -13,8 +13,6 @@ import dev.gigaherz.hudcompass.network.RemoveWaypoint;
 import dev.gigaherz.hudcompass.network.SyncWaypointData;
 import dev.gigaherz.hudcompass.network.UpdateWaypointsFromGui;
 import io.netty.buffer.Unpooled;
-import net.minecraft.core.Direction;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -24,28 +22,23 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.*;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.network.PacketDistributor;
-import org.jetbrains.annotations.NotNull;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Supplier;
 
-public class PointsOfInterest
+public class PointsOfInterest implements INBTSerializable<ListTag>
 {
-    public static Capability<PointsOfInterest> INSTANCE = CapabilityManager.get(new CapabilityToken<>()
-    {
-    });
     private PointInfo<?> targetted;
 
     public int changeNumber;
@@ -54,58 +47,29 @@ public class PointsOfInterest
     private final Map<ResourceLocation, Object> addonData = Maps.newHashMap();
     private List<Runnable> listeners = Lists.newArrayList();
 
+    public static void init(IEventBus modEventBus)
+    {
+        NeoForge.EVENT_BUS.addListener(PointsOfInterest::serverLogIn);
+        NeoForge.EVENT_BUS.addListener(PointsOfInterest::clientLogIn);
+        NeoForge.EVENT_BUS.addListener(PointsOfInterest::playerClone);
+    }
+
     @SuppressWarnings("unchecked")
     public <T> T getOrCreateAddonData(ResourceLocation addonId, Supplier<T> factory)
     {
         return (T) addonData.computeIfAbsent(addonId, key -> factory.get());
     }
 
-    public static void init(RegisterCapabilitiesEvent event)
+    private static void serverLogIn(PlayerEvent.PlayerLoggedInEvent event)
     {
-        MinecraftForge.EVENT_BUS.addGenericListener(Entity.class, PointsOfInterest::attachEvent);
-        MinecraftForge.EVENT_BUS.addListener(PointsOfInterest::playerClone);
-
-        event.register(PointsOfInterest.class);
+        var player = event.getEntity();
+        player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT).setPlayer(player);
     }
 
-    private static final ResourceLocation PROVIDER_KEY = HudCompass.location("poi_provider");
-
-    private static void attachEvent(AttachCapabilitiesEvent<Entity> event)
+    private static void clientLogIn(ClientPlayerNetworkEvent.LoggingIn event)
     {
-        Entity entity = event.getObject();
-        if (entity instanceof Player)
-        {
-            event.addCapability(PROVIDER_KEY, new ICapabilitySerializable<ListTag>()
-            {
-                private final PointsOfInterest poi = new PointsOfInterest();
-                private final LazyOptional<PointsOfInterest> poiSupplier = LazyOptional.of(() -> poi);
-
-                {
-                    poi.setPlayer((Player) entity);
-                }
-
-                @Override
-                public ListTag serializeNBT()
-                {
-                    return poi.write();
-                }
-
-                @Override
-                public void deserializeNBT(ListTag nbt)
-                {
-                    poi.read(nbt);
-                }
-
-                @NotNull
-                @Override
-                public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side)
-                {
-                    if (cap == INSTANCE)
-                        return poiSupplier.cast();
-                    return LazyOptional.empty();
-                }
-            });
-        }
+        var player = event.getPlayer();
+        player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT).setPlayer(player);
     }
 
     private static void playerClone(PlayerEvent.Clone event)
@@ -117,11 +81,9 @@ public class PointsOfInterest
         oldPlayer.revive();
 
         Player newPlayer = event.getEntity();
-        newPlayer.getCapability(INSTANCE).ifPresent(newPois -> {
-            oldPlayer.getCapability(INSTANCE).ifPresent(oldPois -> {
-                newPois.transferFrom(oldPois);
-            });
-        });
+        var newPois = newPlayer.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+        var oldPois = oldPlayer.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+        newPois.transferFrom(oldPois);
     }
 
     private void transferFrom(PointsOfInterest oldPois)
@@ -134,7 +96,7 @@ public class PointsOfInterest
 
     public static void onTick(Player player)
     {
-        player.getCapability(PointsOfInterest.INSTANCE).ifPresent(PointsOfInterest::tick);
+        player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT).tick();
     }
 
     public Collection<WorldPoints> getAllWorlds()
@@ -159,7 +121,8 @@ public class PointsOfInterest
         //points.put(spawn.getInternalId(), spawn);
     }
 
-    public ListTag write()
+    @Override
+    public ListTag serializeNBT()
     {
         ListTag list = new ListTag();
 
@@ -198,7 +161,8 @@ public class PointsOfInterest
         }
     }
 
-    public void read(ListTag nbt)
+    @Override
+    public void deserializeNBT(ListTag nbt)
     {
         perWorld.clear();
         for (int i = 0; i < nbt.size(); i++)
@@ -288,14 +252,15 @@ public class PointsOfInterest
 
     public static void handleAddWaypoint(ServerPlayer sender, AddWaypoint addWaypoint)
     {
-        sender.getCapability(INSTANCE).ifPresent(points -> {
+        var points = sender.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+        {
             BasicWaypoint waypoint = new BasicWaypoint(new Vec3(addWaypoint.x, addWaypoint.y, addWaypoint.z), addWaypoint.label,
                     addWaypoint.isMarker
                             ? BasicIconData.mapMarker(addWaypoint.iconIndex)
                             : BasicIconData.poi(addWaypoint.iconIndex)
             );
-            points.get(sender.level).addPoint(waypoint);
-        });
+            points.get(sender.level()).addPoint(waypoint);
+        }
     }
 
     public void updateFromGui(
@@ -303,7 +268,7 @@ public class PointsOfInterest
             ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toUpdate,
             ImmutableList<UUID> toRemove)
     {
-        if (player.level.isClientSide && otherSideHasMod)
+        if (player.level().isClientSide && otherSideHasMod)
         {
             sendUpdateFromGui(toAdd, toUpdate, toRemove);
         }
@@ -326,10 +291,10 @@ public class PointsOfInterest
     public WorldPoints get(ResourceKey<Level> worldKey, @Nullable ResourceKey<DimensionType> dimensionTypeKey)
     {
         return getInternal(worldKey, () -> {
-            if (player.level.dimension() == worldKey)
-                return getDimensionTypeKey(player.level, dimensionTypeKey);
+            if (player.level().dimension() == worldKey)
+                return getDimensionTypeKey(player.level(), dimensionTypeKey);
 
-            MinecraftServer server = player.level.getServer();
+            MinecraftServer server = player.level().getServer();
             if (server == null)
                 return dimensionTypeKey;
 
@@ -358,16 +323,15 @@ public class PointsOfInterest
 
     public static void handleRemoveWaypoint(ServerPlayer sender, RemoveWaypoint removeWaypoint)
     {
-        sender.getCapability(INSTANCE).ifPresent(points -> points
-                .find(removeWaypoint.id)
-                .ifPresent(pt -> {
-                    if (!pt.isDynamic())
-                    {
-                        var owner = pt.getOwner();
-                        if (owner != null)
-                            owner.removePoint(removeWaypoint.id);
-                    }
-                }));
+        var points = sender.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+        points.find(removeWaypoint.id).ifPresent(pt -> {
+            if (!pt.isDynamic())
+            {
+                var owner = pt.getOwner();
+                if (owner != null)
+                    owner.removePoint(removeWaypoint.id);
+            }
+        });
     }
 
     private Optional<PointInfo<?>> find(UUID id)
@@ -382,18 +346,19 @@ public class PointsOfInterest
 
     public static void handleSync(Player player, byte[] packet)
     {
-        player.getCapability(PointsOfInterest.INSTANCE).ifPresent(points -> 
-                points.read(new FriendlyByteBuf(Unpooled.wrappedBuffer(packet))));
+        var points = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+        points.read(new FriendlyByteBuf(Unpooled.wrappedBuffer(packet)));
     }
 
     public static void handleUpdateFromGui(ServerPlayer sender, UpdateWaypointsFromGui packet)
     {
-        sender.getCapability(INSTANCE).ifPresent(points -> {
+        var points = sender.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+        {
             ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsAdded = packet.pointsAdded;
             ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsUpdated = packet.pointsUpdated;
             ImmutableList<UUID> pointsRemoved = packet.pointsRemoved;
             points.applyUpdatesFromGui(pointsAdded, pointsUpdated, pointsRemoved);
-        });
+        }
     }
 
     private void applyUpdatesFromGui(ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsAdded, ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsUpdated, ImmutableList<UUID> pointsRemoved)
@@ -415,11 +380,12 @@ public class PointsOfInterest
     public static void remoteHello(@Nullable Player player)
     {
         if (player == null) return;
-        player.getCapability(INSTANCE).ifPresent(points -> {
+        var points = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+        {
             points.otherSideHasMod = true;
-            if (!player.level.isClientSide)
+            if (!player.level().isClientSide)
                 points.sendInitialSync();
-        });
+        }
     }
 
     public void addListener(Runnable onSyncReceived)
@@ -457,7 +423,7 @@ public class PointsOfInterest
                 point.tick(player);
             }
 
-            if (player.level.isClientSide && player.level.dimension() == worldKey)
+            if (player.level().isClientSide && player.level().dimension() == worldKey)
             {
                 PointInfo<?> closest = null;
                 double closestAngle = Double.POSITIVE_INFINITY;
@@ -488,7 +454,7 @@ public class PointsOfInterest
                 }
             }
 
-            if (!player.level.isClientSide && (changed.size() > 0 || removed.size() > 0))
+            if (!player.level().isClientSide && (changed.size() > 0 || removed.size() > 0))
             {
                 sendSync();
                 changed.clear();
@@ -498,7 +464,7 @@ public class PointsOfInterest
 
         public void addPointRequest(PointInfo<?> point)
         {
-            if (otherSideHasMod && player.level.isClientSide && point instanceof BasicWaypoint)
+            if (otherSideHasMod && player.level().isClientSide && point instanceof BasicWaypoint)
             {
                 HudCompass.channel.sendToServer(new AddWaypoint((BasicWaypoint) point));
             }
@@ -516,7 +482,7 @@ public class PointsOfInterest
             {
                 oldPoint.setOwner(null);
             }
-            if (!player.level.isClientSide && otherSideHasMod)
+            if (!player.level().isClientSide && otherSideHasMod)
             {
                 changed.add(point);
             }
@@ -527,7 +493,7 @@ public class PointsOfInterest
         public void removePointRequest(PointInfo<?> point)
         {
             UUID id = point.getInternalId();
-            if (otherSideHasMod && player.level.isClientSide)
+            if (otherSideHasMod && player.level().isClientSide)
             {
                 HudCompass.channel.sendToServer(new RemoveWaypoint(id));
             }
@@ -549,7 +515,7 @@ public class PointsOfInterest
             {
                 point.setOwner(null);
                 points.remove(point.getInternalId());
-                if (!player.level.isClientSide && otherSideHasMod)
+                if (!player.level().isClientSide && otherSideHasMod)
                 {
                     removed.add(point);
                 }
@@ -569,7 +535,7 @@ public class PointsOfInterest
 
         public void markDirty(PointInfo<?> point)
         {
-            if (!player.level.isClientSide && otherSideHasMod)
+            if (!player.level().isClientSide && otherSideHasMod)
             {
                 changed.add(point);
             }

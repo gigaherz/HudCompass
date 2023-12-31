@@ -14,6 +14,7 @@ import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
 import net.minecraft.Util;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -24,16 +25,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.Team;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.util.FakePlayer;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ObjectHolder;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.util.FakePlayer;
+import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -49,20 +48,18 @@ public class PlayerTracker
     private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.POINT_INFO_TYPES;
     private static final DeferredRegister<IconDataSerializer<?>> IDS = HudCompass.ICON_DATA_SERIALIZERS;
 
-    public static final RegistryObject<PointInfoType<PlayerWaypoint>> PLAYER_POINT = PIT.register("player", () -> new PointInfoType<>(PlayerWaypoint::new));
+    public static final DeferredHolder<PointInfoType<?>, PointInfoType<PlayerWaypoint>> PLAYER_POINT = PIT.register("player", () -> new PointInfoType<>(PlayerWaypoint::new));
 
-    public static final RegistryObject<PlayerIconData.Serializer> ICON_DATA = IDS.register("player", PlayerIconData.Serializer::new);
+    public static final DeferredHolder<IconDataSerializer<?>, PlayerIconData.Serializer> ICON_DATA = IDS.register("player", PlayerIconData.Serializer::new);
 
-    public static void init()
+    public static void init(IEventBus modEventBus)
     {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-
         modEventBus.addListener(INSTANCE::clientSetup);
 
         //MinecraftForge.EVENT_BUS.addListener(INSTANCE::clientTick);
-        MinecraftForge.EVENT_BUS.addListener(INSTANCE::playerTick);
-        MinecraftForge.EVENT_BUS.addListener(INSTANCE::startTracking);
-        MinecraftForge.EVENT_BUS.addListener(INSTANCE::stopTracking);
+        NeoForge.EVENT_BUS.addListener(INSTANCE::playerTick);
+        NeoForge.EVENT_BUS.addListener(INSTANCE::startTracking);
+        NeoForge.EVENT_BUS.addListener(INSTANCE::stopTracking);
     }
 
     private void clientSetup(FMLClientSetupEvent event)
@@ -73,13 +70,14 @@ public class PlayerTracker
     private void startTracking(PlayerEvent.StartTracking event)
     {
         Player player = event.getEntity();
-        if (player.level.isClientSide)
+        if (player.level().isClientSide)
             return;
 
         if (event.getTarget() instanceof ServerPlayer target && !(target instanceof FakePlayer))
         {
-            player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level);
+            var pois = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+            {
+                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level());
 
                 PlayerDataAddon addon = pois.getOrCreateAddonData(ADDON_ID, PlayerDataAddon::new);
 
@@ -93,20 +91,21 @@ public class PlayerTracker
                 {
                     worldPoints.addPoint(wp);
                 }
-            });
+            }
         }
     }
 
     private void stopTracking(PlayerEvent.StopTracking event)
     {
         Player player = event.getEntity();
-        if (player.level.isClientSide)
+        if (player.level().isClientSide)
             return;
 
         if (event.getTarget() instanceof ServerPlayer target && !(target instanceof FakePlayer))
         {
-            player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level);
+            var pois = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+            {
+                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level());
 
                 PlayerDataAddon addon = pois.getOrCreateAddonData(ADDON_ID, PlayerDataAddon::new);
 
@@ -119,7 +118,7 @@ public class PlayerTracker
 
                 addon.players.remove(uuid);
                 addon.teams.remove(uuid);
-            });
+            }
         }
     }
 
@@ -138,11 +137,12 @@ public class PlayerTracker
             counter = 0;
 
             Player player = event.player;
-            if (player.level.isClientSide)
+            if (player.level().isClientSide)
                 return;
 
-            player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level);
+            var pois = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+            {
+                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level());
                 PlayerDataAddon addon = pois.getOrCreateAddonData(ADDON_ID, PlayerDataAddon::new);
 
                 boolean changedTeam = addon.playerTeam != player.getTeam();
@@ -150,7 +150,7 @@ public class PlayerTracker
 
                 for (var wp : addon.players.values())
                 {
-                    Player target = player.level.getPlayerByUUID(wp.playerUUID);
+                    Player target = player.level().getPlayerByUUID(wp.playerUUID);
                     if (target == null)
                         continue;
 
@@ -163,7 +163,7 @@ public class PlayerTracker
                             worldPoints.addPoint(wp);
                     }
                 }
-            });
+            }
         }
     }
 
@@ -201,7 +201,7 @@ public class PlayerTracker
         @Override
         public Vec3 getPosition(Player player, float partialTicks)
         {
-            var target = player.level.getPlayerByUUID(playerUUID);
+            var target = player.level().getPlayerByUUID(playerUUID);
             if (target == null)
                 return position;
 
@@ -237,10 +237,10 @@ public class PlayerTracker
         @Override
         public void tick(Player player)
         {
-            if (!player.level.isClientSide)
+            if (!player.level().isClientSide)
                 return;
 
-            var target = player.level.getPlayerByUUID(playerUUID);
+            var target = player.level().getPlayerByUUID(playerUUID);
             if (target == null)
                 return;
 
@@ -316,23 +316,23 @@ public class PlayerTracker
     private static class OtherPlayerRenderer implements IIconRenderer<PlayerIconData>
     {
         @Override
-        public void renderIcon(PlayerIconData data, Player player, TextureManager textureManager, PoseStack matrixStack, int x, int y, int alpha)
+        public void renderIcon(PlayerIconData data, Player player, TextureManager textureManager, GuiGraphics graphics, int x, int y, int alpha)
         {
-            if (player.level.getPlayerByUUID(data.playerId) instanceof AbstractClientPlayer clientPlayer)
+            if (player.level().getPlayerByUUID(data.playerId) instanceof AbstractClientPlayer clientPlayer)
             {
-                var tex = clientPlayer.getSkinTextureLocation();
+                var tex = clientPlayer.getSkin().texture();
 
                 RenderSystem.setShaderTexture(0, tex);
                 RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha / 255.0f);
 
-                drawFaceLayer(matrixStack, x - 4, y - 4, 8, 8, 8);
-                drawFaceLayer(matrixStack, x - 4.5f, y - 4.5f, 9, 9, 40);
+                drawFaceLayer(graphics, x - 4, y - 4, 8, 8, 8);
+                drawFaceLayer(graphics, x - 4.5f, y - 4.5f, 9, 9, 40);
             }
         }
 
-        private static void drawFaceLayer(PoseStack pose, float x1, float y1, float w, float h, int tx)
+        private static void drawFaceLayer(GuiGraphics graphics, float x1, float y1, float w, float h, int tx)
         {
-            var pMatrix = pose.last().pose();
+            var pMatrix = graphics.pose().last().pose();
             var x2 = x1 + w;
             var y2 = y1 + h;
             var u1 = tx / 64f;

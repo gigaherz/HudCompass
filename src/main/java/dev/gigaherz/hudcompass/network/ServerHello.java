@@ -2,9 +2,7 @@ package dev.gigaherz.hudcompass.network;
 
 import dev.gigaherz.hudcompass.client.ClientHandler;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
-
-import java.util.function.Supplier;
+import net.neoforged.neoforge.network.NetworkEvent;
 
 public class ServerHello
 {
@@ -21,9 +19,8 @@ public class ServerHello
     {
     }
 
-    public boolean handle(Supplier<NetworkEvent.Context> ctx)
+    public void handle(NetworkEvent.Context ctx)
     {
-        ctx.get().enqueueWork(ClientHandler::handleServerHello);
-        return true;
+        ctx.enqueueWork(ClientHandler::handleServerHello);
     }
 }

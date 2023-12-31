@@ -2,9 +2,7 @@ package dev.gigaherz.hudcompass.network;
 
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
-
-import java.util.function.Supplier;
+import net.neoforged.neoforge.network.NetworkEvent;
 
 public class ClientHello
 {
@@ -21,10 +19,8 @@ public class ClientHello
     {
     }
 
-    public boolean handle(Supplier<NetworkEvent.Context> ctx)
+    public void handle(NetworkEvent.Context context)
     {
-        NetworkEvent.Context context = ctx.get();
         context.enqueueWork(() -> PointsOfInterest.remoteHello(context.getSender()));
-        return true;
     }
 }
