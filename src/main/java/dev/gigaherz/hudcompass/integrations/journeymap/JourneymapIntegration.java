@@ -67,9 +67,9 @@ public class JourneymapIntegration implements IClientPlugin
             return;
 
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-            PointsOfInterest.WorldPoints worldPoints = pois.get(player.level);
+            PointsOfInterest.WorldPoints worldPoints = pois.get(player.level());
 
-            String dimensionName = player.level.dimension().location().toString();
+            String dimensionName = player.level().dimension().location().toString();
 
             var jmwp = wpEvent.waypoint;
             var id = getId(jmwp);

@@ -10,6 +10,7 @@ import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -149,7 +150,7 @@ public class ClientWaypointManagerScreen extends Screen
     {
         LocalPlayer player = minecraft.player;
         Vec3 pos = player.position();
-        if (player.level.dimension() == world.worldKey)
+        if (player.level().dimension() == world.worldKey)
         {
             return pos;
         }
@@ -158,16 +159,16 @@ public class ClientWaypointManagerScreen extends Screen
         {
             RegistryAccess dyn = player.connection.registryAccess();
             DimensionType type = dyn.registryOrThrow(Registries.DIMENSION_TYPE).getOrThrow(world.dimensionTypeKey);
-            double scale = DimensionType.getTeleportationScale(player.level.dimensionType(), type);
+            double scale = DimensionType.getTeleportationScale(player.level().dimensionType(), type);
             return new Vec3(pos.x * scale, pos.y, pos.z * scale);
         }
 
-        if (player.level.dimension() == Level.NETHER && world.worldKey != Level.NETHER)
+        if (player.level().dimension() == Level.NETHER && world.worldKey != Level.NETHER)
         {
             return new Vec3(pos.x * 8, pos.y, pos.z * 8);
         }
 
-        if (player.level.dimension() != Level.NETHER && world.worldKey == Level.NETHER)
+        if (player.level().dimension() != Level.NETHER && world.worldKey == Level.NETHER)
         {
             return new Vec3(pos.x / 8, pos.y, pos.z / 8);
         }
@@ -206,27 +207,27 @@ public class ClientWaypointManagerScreen extends Screen
     }
 
     @Override
-    public void render(PoseStack matrixStack, int mouseX, int mouseY, float partialTicks)
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
     {
-        renderBackground(matrixStack);
+        renderBackground(graphics);
 
         scrollPanel.setPartialTicks(partialTicks);
-        scrollPanel.render(matrixStack, mouseX, mouseY, partialTicks);
+        scrollPanel.render(graphics, mouseX, mouseY, partialTicks);
 
-        super.render(matrixStack, mouseX, mouseY, partialTicks);
+        super.render(graphics, mouseX, mouseY, partialTicks);
 
-        drawCenteredString(matrixStack, minecraft.font, title, width / 2, 7, 0xFFFFFFFF);
+        graphics.drawCenteredString(minecraft.font, title, width / 2, 7, 0xFFFFFFFF);
 
         int nameWidth = Math.max(scrollPanel.getContentWidth() - (61 * 2 + 41 + 23 + 23 + 3), 50);
         int x = scrollPanel.getLeft() + 6;
         int y = scrollPanel.getTop() - 10;
-        drawString(matrixStack, minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_label"), x, y, 0xFFFFFFFF);
+        graphics.drawString(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_label"), x, y, 0xFFFFFFFF, false);
         x += nameWidth + 3;
-        drawString(matrixStack, minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_x"), x, y, 0xFFFFFFFF);
+        graphics.drawString(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_x"), x, y, 0xFFFFFFFF, false);
         x += 61;
-        drawString(matrixStack, minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_y"), x, y, 0xFFFFFFFF);
+        graphics.drawString(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_y"), x, y, 0xFFFFFFFF, false);
         x += 41;
-        drawString(matrixStack, minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_z"), x, y, 0xFFFFFFFF);
+        graphics.drawString(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_z"), x, y, 0xFFFFFFFF, false);
     }
 
     private class WorldListItem extends CompositeListItem
@@ -275,11 +276,11 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public void render(PoseStack matrixStack, int mouseX, int mouseY, float partialTicks)
+        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
         {
-            super.render(matrixStack, mouseX, mouseY, partialTicks);
+            super.render(graphics, mouseX, mouseY, partialTicks);
 
-            drawString(matrixStack, minecraft.font, title, 4 + 20, 10, 0xFFFFFFFF);
+            graphics.drawString(minecraft.font, title, 4 + 20, 10, 0xFFFFFFFF, false);
         }
 
         public void addWaypoint(WaypointListItem item)
@@ -475,7 +476,7 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public void render(PoseStack matrixStack, int mouseX, int mouseY, float partialTicks)
+        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
         {
             if (!isVisible())
                 return;
@@ -483,11 +484,11 @@ public class ClientWaypointManagerScreen extends Screen
             int actualMouseY = getActualY(mouseY);
             if (actualMouseX >= 0 && actualMouseX < getWidth() && actualMouseY >= 0 && actualMouseY <= getHeight())
             {
-                fill(matrixStack, 0, 0, getWidth(), getHeight(), 0x1fFFFFFF);
+                graphics.fill(0, 0, getWidth(), getHeight(), 0x1fFFFFFF);
             }
             for (AbstractWidget i : renderables)
             {
-                i.render(matrixStack, actualMouseX, actualMouseY, partialTicks);
+                i.render(graphics, actualMouseX, actualMouseY, partialTicks);
             }
         }
 
@@ -646,7 +647,7 @@ public class ClientWaypointManagerScreen extends Screen
         {
         }
 
-        public abstract void render(PoseStack matrixStack, int mouseX, int mouseY, float partialTicks);
+        public abstract void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks);
 
         public void save()
         {
@@ -760,15 +761,16 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        protected void drawBackground(PoseStack matrix, Tesselator tess, float partialTick)
+        protected void drawBackground(GuiGraphics graphics, Tesselator tess, float partialTick)
         {
-            super.drawBackground(matrix, tess, partialTick);
+            super.drawBackground(graphics, tess, partialTick);
             this.partialTicks = partialTick;
         }
 
         @Override
-        protected void drawPanel(PoseStack mStack, int entryRight, int relativeY, Tesselator tess, int mouseX, int mouseY)
+        protected void drawPanel(GuiGraphics graphics, int entryRight, int relativeY, Tesselator tess, int mouseX, int mouseY)
         {
+            var mStack = graphics.pose();
             mStack.pushPose();
             mStack.translate(left, relativeY, 0);
             for (ListItem item : items)
@@ -777,7 +779,7 @@ public class ClientWaypointManagerScreen extends Screen
                 {
                     mStack.pushPose();
                     mStack.translate(0, item.getTop(), 0);
-                    item.render(mStack, mouseX, mouseY, partialTicks);
+                    item.render(graphics, mouseX, mouseY, partialTicks);
                     mStack.popPose();
                 }
             }
@@ -844,10 +846,10 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public void render(PoseStack matrix, int mouseX, int mouseY, float partialTicks)
+        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
         {
             this.scrollDistance = Mth.clamp(scrollDistance, 0, Math.max(0, getContentHeight() - (height - border)));
-            super.render(matrix, mouseX, mouseY, partialTicks);
+            super.render(graphics, mouseX, mouseY, partialTicks);
         }
 
         public void scrollTop()

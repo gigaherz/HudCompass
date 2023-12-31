@@ -41,7 +41,7 @@ public class SpawnPointPoints
             counter = 0;
 
             Player player = event.player;
-            if (player.level.isClientSide)
+            if (player.level().isClientSide)
                 return;
 
             ServerPlayer serverPlayer = (ServerPlayer) player;

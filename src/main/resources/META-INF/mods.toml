@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[41,)"
+loaderVersion="[47,)"
 license="BSD (3 clause)"
 issueTrackerURL="https://github.com/gigaherz/HudCompass/issues"
 
@@ -17,18 +17,18 @@ See where you go
 [[dependencies.hudcompass]]
    modId="forge"
    mandatory=true
-   versionRange="[41.0.94,)"
+   versionRange="[47.1.3,)"
    ordering="NONE"
    side="BOTH"
 [[dependencies.hudcompass]]
    modId="minecraft"
    mandatory=true
-   versionRange="[1.19,1.20)"
+   versionRange="[1.20.1,1.20.2)"
    ordering="NONE"
    side="BOTH"
 [[dependencies.hudcompass]]
    modId="journeymap"
    mandatory=false
-   versionRange="[5.8.5rc3,)"
+   versionRange="[5.9.8,)"
    ordering="NONE"
    side="BOTH"

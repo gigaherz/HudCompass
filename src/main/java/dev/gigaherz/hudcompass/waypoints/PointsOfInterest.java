@@ -294,7 +294,7 @@ public class PointsOfInterest
                             ? BasicIconData.mapMarker(addWaypoint.iconIndex)
                             : BasicIconData.poi(addWaypoint.iconIndex)
             );
-            points.get(sender.level).addPoint(waypoint);
+            points.get(sender.level()).addPoint(waypoint);
         });
     }
 
@@ -303,7 +303,7 @@ public class PointsOfInterest
             ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toUpdate,
             ImmutableList<UUID> toRemove)
     {
-        if (player.level.isClientSide && otherSideHasMod)
+        if (player.level().isClientSide && otherSideHasMod)
         {
             sendUpdateFromGui(toAdd, toUpdate, toRemove);
         }
@@ -326,10 +326,10 @@ public class PointsOfInterest
     public WorldPoints get(ResourceKey<Level> worldKey, @Nullable ResourceKey<DimensionType> dimensionTypeKey)
     {
         return getInternal(worldKey, () -> {
-            if (player.level.dimension() == worldKey)
-                return getDimensionTypeKey(player.level, dimensionTypeKey);
+            if (player.level().dimension() == worldKey)
+                return getDimensionTypeKey(player.level(), dimensionTypeKey);
 
-            MinecraftServer server = player.level.getServer();
+            MinecraftServer server = player.level().getServer();
             if (server == null)
                 return dimensionTypeKey;
 
@@ -417,7 +417,7 @@ public class PointsOfInterest
         if (player == null) return;
         player.getCapability(INSTANCE).ifPresent(points -> {
             points.otherSideHasMod = true;
-            if (!player.level.isClientSide)
+            if (!player.level().isClientSide)
                 points.sendInitialSync();
         });
     }
@@ -457,7 +457,7 @@ public class PointsOfInterest
                 point.tick(player);
             }
 
-            if (player.level.isClientSide && player.level.dimension() == worldKey)
+            if (player.level().isClientSide && player.level().dimension() == worldKey)
             {
                 PointInfo<?> closest = null;
                 double closestAngle = Double.POSITIVE_INFINITY;
@@ -488,7 +488,7 @@ public class PointsOfInterest
                 }
             }
 
-            if (!player.level.isClientSide && (changed.size() > 0 || removed.size() > 0))
+            if (!player.level().isClientSide && (changed.size() > 0 || removed.size() > 0))
             {
                 sendSync();
                 changed.clear();
@@ -498,7 +498,7 @@ public class PointsOfInterest
 
         public void addPointRequest(PointInfo<?> point)
         {
-            if (otherSideHasMod && player.level.isClientSide && point instanceof BasicWaypoint)
+            if (otherSideHasMod && player.level().isClientSide && point instanceof BasicWaypoint)
             {
                 HudCompass.channel.sendToServer(new AddWaypoint((BasicWaypoint) point));
             }
@@ -516,7 +516,7 @@ public class PointsOfInterest
             {
                 oldPoint.setOwner(null);
             }
-            if (!player.level.isClientSide && otherSideHasMod)
+            if (!player.level().isClientSide && otherSideHasMod)
             {
                 changed.add(point);
             }
@@ -527,7 +527,7 @@ public class PointsOfInterest
         public void removePointRequest(PointInfo<?> point)
         {
             UUID id = point.getInternalId();
-            if (otherSideHasMod && player.level.isClientSide)
+            if (otherSideHasMod && player.level().isClientSide)
             {
                 HudCompass.channel.sendToServer(new RemoveWaypoint(id));
             }
@@ -549,7 +549,7 @@ public class PointsOfInterest
             {
                 point.setOwner(null);
                 points.remove(point.getInternalId());
-                if (!player.level.isClientSide && otherSideHasMod)
+                if (!player.level().isClientSide && otherSideHasMod)
                 {
                     removed.add(point);
                 }
@@ -569,7 +569,7 @@ public class PointsOfInterest
 
         public void markDirty(PointInfo<?> point)
         {
-            if (!player.level.isClientSide && otherSideHasMod)
+            if (!player.level().isClientSide && otherSideHasMod)
             {
                 changed.add(point);
             }

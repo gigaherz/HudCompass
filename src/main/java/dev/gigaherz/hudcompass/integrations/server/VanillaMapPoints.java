@@ -71,11 +71,11 @@ public class VanillaMapPoints
             counter = 0;
 
             Player player = event.player;
-            if (player.level.isClientSide)
+            if (player.level().isClientSide)
                 return;
 
             player.getCapability(PointsOfInterest.INSTANCE).ifPresent((pois) -> {
-                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level);
+                PointsOfInterest.WorldPoints worldPoints = pois.get(player.level());
 
                 VanillaMapData addon = pois.getOrCreateAddonData(ADDON_ID, VanillaMapData::new);
 
@@ -109,7 +109,7 @@ public class VanillaMapPoints
         for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++)
         {
             ItemStack stack = player.getInventory().getItem(slot);
-            MapItemSavedData mapData = MapItem.getSavedData(stack, player.level);
+            MapItemSavedData mapData = MapItem.getSavedData(stack, player.level());
             if (mapData != null && !seenMaps.contains(mapData) && mapData.dimension == worldPoints.getWorldKey())
             {
                 seenMaps.add(mapData);

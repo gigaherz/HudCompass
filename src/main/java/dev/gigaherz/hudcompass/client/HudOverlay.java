@@ -10,7 +10,7 @@ import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.client.PointRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -43,7 +43,7 @@ import org.joml.Matrix4f;
 import java.util.List;
 
 @Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
-public class HudOverlay extends GuiComponent implements IGuiOverlay
+public class HudOverlay implements IGuiOverlay
 {
     public static final ResourceLocation LOCATION_MAP_ICONS = new ResourceLocation("minecraft", "textures/map/map_icons.png");
     public static final ResourceLocation LOCATION_POI_ICONS = new ResourceLocation("hudcompass", "textures/poi_icons.png");
@@ -78,7 +78,7 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
     {
         if (event.getOverlay() == VanillaGuiOverlay.BOSS_EVENT_PROGRESS.type() && !mc.options.hideGui && canRender())
         {
-            PoseStack matrixStack = event.getPoseStack();
+            PoseStack matrixStack = event.getGuiGraphics().pose();
             matrixStack.pushPose();
             matrixStack.translate(0, 28, 0);
             needsPop = true;
@@ -90,7 +90,7 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
     {
         if (event.getOverlay() == VanillaGuiOverlay.BOSS_EVENT_PROGRESS.type() && needsPop)
         {
-            PoseStack matrixStack = event.getPoseStack();
+            PoseStack matrixStack = event.getGuiGraphics().pose();
             matrixStack.popPose();
             needsPop = false;
         }
@@ -107,7 +107,7 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
     {
         if (needsPop)
         {
-            PoseStack matrixStack = event.getPoseStack();
+            PoseStack matrixStack = event.getGuiGraphics().pose();
             matrixStack.popPose();
             needsPop = false;
         }
@@ -115,7 +115,7 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
 
 
     @Override
-    public void render(ForgeGui gui, PoseStack matrixStack, float _partialTicks, int width, int height)
+    public void render(ForgeGui gui, GuiGraphics graphics, float _partialTicks, int width, int height)
     {
         if (!canRender()) return;
 
@@ -134,20 +134,20 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
 
         RenderSystem.enableBlend();
 
-        fillRect(matrixStack, xPos - 90, 10, xPos + 90, 18, 0x3f000000);
+        fillRect(graphics, xPos - 90, 10, xPos + 90, 18, 0x3f000000);
 
         //drawCenteredString(font, String.format("%f", yaw), xPos, 28, 0xFFFFFF);
 
-        drawCardinalDirection(matrixStack, yaw, 0, xPos, "S");
-        drawCardinalDirection(matrixStack, yaw, 90, xPos, "W");
-        drawCardinalDirection(matrixStack, yaw, 180, xPos, "N");
-        drawCardinalDirection(matrixStack, yaw, 270, xPos, "E");
+        drawCardinalDirection(graphics, yaw, 0, xPos, "S");
+        drawCardinalDirection(graphics, yaw, 90, xPos, "W");
+        drawCardinalDirection(graphics, yaw, 180, xPos, "N");
+        drawCardinalDirection(graphics, yaw, 270, xPos, "E");
 
-        fillRect(matrixStack, xPos - 1.5f, 10, xPos - 0.5f, 18, 0x3FFFFFFF);
-        fillRect(matrixStack, xPos + 0.5f, 10, xPos + 1.5f, 18, 0x3FFFFFFF);
+        fillRect(graphics, xPos - 1.5f, 10, xPos - 0.5f, 18, 0x3FFFFFFF);
+        fillRect(graphics, xPos + 0.5f, 10, xPos + 1.5f, 18, 0x3FFFFFFF);
 
-        fillRect(matrixStack, xPos - 45 - 0.5f, 10, xPos - 45 + 0.5f, 18, 0x3FFFFFFF);
-        fillRect(matrixStack, xPos + 45 - 0.5f, 10, xPos + 45 + 0.5f, 18, 0x3FFFFFFF);
+        fillRect(graphics, xPos - 45 - 0.5f, 10, xPos - 45 + 0.5f, 18, 0x3FFFFFFF);
+        fillRect(graphics, xPos + 45 - 0.5f, 10, xPos + 45 + 0.5f, 18, 0x3FFFFFFF);
 
         final Player player = mc.player;
         double playerPosX = Mth.lerp(partialTicks, mc.player.xo, mc.player.getX());
@@ -159,7 +159,7 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         final float yaw0 = yaw;
         final float elapsed0 = elapsed;
         player.getCapability(PointsOfInterest.INSTANCE).ifPresent(pts -> {
-            List<PointInfo<?>> sortedPoints = Lists.newArrayList(pts.get(player.level).getPoints());
+            List<PointInfo<?>> sortedPoints = Lists.newArrayList(pts.get(player.level()).getPoints());
             sortedPoints.sort((a, b) -> {
                 Vec3 positionA = a.getPosition(player, partialTicks);
                 Vec3 positionB = b.getPosition(player, partialTicks);
@@ -171,7 +171,7 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
             {
                 Vec3 position = point.getPosition(player, partialTicks);
                 Vec2 angleYd = angleFromPoint(position, playerPosX, playerPosY, playerPosZ);
-                drawPoi(player, matrixStack, yaw0, angleYd.x, angleYd.y, xPos, point, point == pts.getTargetted(), elapsed0, position.subtract(playerPosition));
+                drawPoi(player, graphics, yaw0, angleYd.x, angleYd.y, xPos, point, point == pts.getTargetted(), elapsed0, position.subtract(playerPosition));
             }
         });
     }
@@ -220,27 +220,27 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         return new Vec2((float) Math.toDegrees(-Math.atan2(xd, zd)), (float) yd);
     }
 
-    private void drawCardinalDirection(PoseStack matrixStack, float yaw, float angle, int xPos, String text)
+    private void drawCardinalDirection(GuiGraphics graphics, float yaw, float angle, int xPos, String text)
     {
         float nDist = angleDistance(yaw, angle);
         if (Math.abs(nDist) <= 90)
         {
             float nPos = xPos + nDist;
-            fillRect(matrixStack, nPos - 0.5f, 10, nPos + 0.5f, 18, 0x7FFFFFFF);
+            fillRect(graphics, nPos - 0.5f, 10, nPos + 0.5f, 18, 0x7FFFFFFF);
             if (mc.options.backgroundForChatOnly().get())
-                drawCenteredShadowString(matrixStack, font, text, nPos, 1, 0xFFFFFF);
+                drawCenteredShadowString(graphics, font, text, nPos, 1, 0xFFFFFF);
             else
-                drawCenteredBoxedString(matrixStack, font, text, nPos, 1, 0xFFFFFF);
+                drawCenteredBoxedString(graphics, font, text, nPos, 1, 0xFFFFFF);
         }
     }
 
-    public void drawCenteredShadowString(PoseStack matrixStack, Font font, String text, float x, float y, int color)
+    public void drawCenteredShadowString(GuiGraphics graphics, Font font, String text, float x, float y, int color)
     {
         float width = font.width(text);
-        font.drawShadow(matrixStack, text, x - width / 2, y, color);
+        graphics.drawString(font, text, (x - width / 2), y, color, true);
     }
 
-    public static void drawCenteredBoxedString(PoseStack matrixStack, Font font, String text, float x, float y, int color)
+    public static void drawCenteredBoxedString(GuiGraphics graphics, Font font, String text, float x, float y, int color)
     {
         Minecraft mc = Minecraft.getInstance();
         float width = font.width(text);
@@ -250,14 +250,14 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         float x0 = x - width1 / 2;
 
         int backgroundColor = ((int) Mth.clamp(mc.options.textBackgroundOpacity().get() * ((color >> 24) & 0xFF), 0, 255)) << 24;
-        fillRect(matrixStack, x0, y, x0 + width1, y + height1, backgroundColor);
+        fillRect(graphics, x0, y, x0 + width1, y + height1, backgroundColor);
 
-        font.drawShadow(matrixStack, text, x - width / 2, y + 2, color);
+        graphics.drawString(font, text, x - width / 2, y + 2, color, false);
 
         RenderSystem.enableBlend();
     }
 
-    public static void drawCenteredBoxedString(PoseStack matrixStack, Font font, Component text, float x, float y, int color)
+    public static void drawCenteredBoxedString(GuiGraphics graphics, Font font, Component text, float x, float y, int color)
     {
         FormattedCharSequence reodering = text.getVisualOrderText();
         Minecraft mc = Minecraft.getInstance();
@@ -266,13 +266,13 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         float width1 = width + 4;
         float height1 = height + 3;
         float x0 = x - width1 / 2;
-        fillRect(matrixStack, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity().get() * ((color >> 24) & 0xFF), 0, 255)) << 24);
-        font.drawShadow(matrixStack, reodering, x - width / 2, y + 2, color);
+        fillRect(graphics, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity().get() * ((color >> 24) & 0xFF), 0, 255)) << 24);
+        graphics.drawString(font, reodering, x - width / 2, y + 2, color, true);
 
         RenderSystem.enableBlend();
     }
 
-    private void drawPoi(Player player, PoseStack matrixStack, float yaw, float angle, float yDelta, int xPos, PointInfo<?> point, boolean isTargetted, float elapsed, Vec3 subtract)
+    private void drawPoi(Player player, GuiGraphics graphics, float yaw, float angle, float yDelta, int xPos, PointInfo<?> point, boolean isTargetted, float elapsed, Vec3 subtract)
     {
         var fadeSqr = ConfigData.waypointViewDistance * ConfigData.waypointViewDistance;
         double distance2 = subtract.lengthSqr();
@@ -292,10 +292,11 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         if (alpha > 0 && Math.abs(nDist) <= 90)
         {
             float nPos = xPos + nDist;
-            matrixStack.pushPose();
-            matrixStack.translate(nPos, 0, 0);
+            var poseStack = graphics.pose();
+            poseStack.pushPose();
+            poseStack.translate(nPos, 0, 0);
 
-            PointRenderer.renderIcon(point, player, textureManager, matrixStack, 0, 14, alpha);
+            PointRenderer.renderIcon(point, player, textureManager, graphics, 0, 14, alpha);
             boolean showLabel =
                     ConfigData.alwaysShowLabels ||
                             (ConfigData.alwaysShowFocusedLabel && isTargetted) ||
@@ -320,30 +321,30 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
             var pointFade = distanceFade * point.fade;
 
             if (pointFade > 4)
-                PointRenderer.renderLabel(point, font, matrixStack, 0, 20, (int) pointFade);
+                PointRenderer.renderLabel(point, font, graphics, 0, 20, (int) pointFade);
 
             if (point.displayVerticalDistance(player))
             {
-                if (yDelta >= 2) drawAboveArrow(matrixStack, yDelta, alpha);
-                if (yDelta <= -2) drawBelowArrow(matrixStack, yDelta, alpha);
+                if (yDelta >= 2) drawAboveArrow(graphics, yDelta, alpha);
+                if (yDelta <= -2) drawBelowArrow(graphics, yDelta, alpha);
             }
 
-            matrixStack.popPose();
+            poseStack.popPose();
         }
     }
 
-    private void drawAboveArrow(PoseStack matrixStack, float yDelta, int alpha)
+    private void drawAboveArrow(GuiGraphics graphics, float yDelta, int alpha)
     {
         int x = yDelta > 10 ? 8 : 0;
         int y = 0;
-        blitRect(matrixStack, -4.5f, 4, x, y, 8, 8, 128, 128, LOCATION_POI_ICONS, alpha);
+        blitRect(graphics, -4.5f, 4, x, y, 8, 8, 128, 128, LOCATION_POI_ICONS, alpha);
     }
 
-    private void drawBelowArrow(PoseStack matrixStack, float yDelta, int alpha)
+    private void drawBelowArrow(GuiGraphics graphics, float yDelta, int alpha)
     {
         int x = yDelta < -10 ? 24 : 16;
         int y = 0;
-        blitRect(matrixStack, -4.5f, 16, x, y, 8, 8, 128, 128, LOCATION_POI_ICONS, alpha);
+        blitRect(graphics, -4.5f, 16, x, y, 8, 8, 128, 128, LOCATION_POI_ICONS, alpha);
     }
 
     /**
@@ -355,7 +356,7 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
      * @param y1    Second Y coord
      * @param color Rectangle color
      */
-    private static void fillRect(PoseStack matrixStack, float x0, float y0, float x1, float y1, int color)
+    private static void fillRect(GuiGraphics graphics, float x0, float y0, float x1, float y1, int color)
     {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -369,7 +370,7 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         Tesselator tess = Tesselator.getInstance();
         BufferBuilder builder = tess.getBuilder();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        Matrix4f matrix = matrixStack.last().pose();
+        Matrix4f matrix = graphics.pose().last().pose();
         builder.vertex(matrix, x0, y1, 0.0f).color(r, g, b, a).endVertex();
         builder.vertex(matrix, x1, y1, 0.0f).color(r, g, b, a).endVertex();
         builder.vertex(matrix, x1, y0, 0.0f).color(r, g, b, a).endVertex();
@@ -377,7 +378,7 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         tess.end();
     }
 
-    private static void blitRect(PoseStack matrixStack, float x0, float y0, float xt, float yt, float width, float height, int tWidth, int tHeight, ResourceLocation texture, int alpha)
+    private static void blitRect(GuiGraphics graphics, float x0, float y0, float xt, float yt, float width, float height, int tWidth, int tHeight, ResourceLocation texture, int alpha)
     {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -396,7 +397,7 @@ public class HudOverlay extends GuiComponent implements IGuiOverlay
         Tesselator tess = Tesselator.getInstance();
         BufferBuilder builder = tess.getBuilder();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        Matrix4f matrix = matrixStack.last().pose();
+        Matrix4f matrix = graphics.pose().last().pose();
         builder.vertex(matrix, x0, y1, 0.0f).uv(tx0, ty1).endVertex();
         builder.vertex(matrix, x1, y1, 0.0f).uv(tx1, ty1).endVertex();
         builder.vertex(matrix, x1, y0, 0.0f).uv(tx1, ty0).endVertex();

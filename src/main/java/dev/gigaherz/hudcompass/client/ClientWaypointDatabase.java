@@ -50,7 +50,7 @@ public class ClientWaypointDatabase
             {
                 address = addr.toString();
             }
-            ResourceLocation dim = mc.player.level.dimension().location();
+            ResourceLocation dim = mc.player.level().dimension().location();
             String dimension = dim.getNamespace() + "_" + dim.getPath();
             return FMLPaths.GAMEDIR.get().resolve("server_waypoints").resolve(address).resolve(dimension).resolve("waypoints.dat").toAbsolutePath();
         }

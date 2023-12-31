@@ -56,7 +56,7 @@ public class ClientHandler
                 Vec3 position = mc.player.position();
                 String label = String.format("{%1.2f, %1.2f, %1.2f}", position.x(), position.y(), position.z());
 
-                pois.get(mc.player.level).addPointRequest(new BasicWaypoint(position, label, BasicIconData.mapMarker(7)));
+                pois.get(mc.player.level()).addPointRequest(new BasicWaypoint(position, label, BasicIconData.mapMarker(7)));
             });
 
             //noinspection StatementWithEmptyBody
@@ -79,7 +79,7 @@ public class ClientHandler
                     }
                     else
                     {
-                        pois.get(mc.player.level).removePointRequest(targetted);
+                        pois.get(mc.player.level()).removePointRequest(targetted);
                     }
                 }
             });
