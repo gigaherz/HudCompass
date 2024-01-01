@@ -2,18 +2,22 @@ package dev.gigaherz.hudcompass.network;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
+import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.PlayPayloadContext;
 
 import java.util.UUID;
 import java.util.function.Supplier;
 
-public class UpdateWaypointsFromGui
+public class UpdateWaypointsFromGui implements CustomPacketPayload
 {
+    public static final ResourceLocation ID = HudCompass.location("update_waypoints_from_gui");
+
     public final ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsAdded;
     public final ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsUpdated;
     public final ImmutableList<UUID> pointsRemoved;
@@ -59,7 +63,7 @@ public class UpdateWaypointsFromGui
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public void encode(FriendlyByteBuf buffer)
+    public void write(FriendlyByteBuf buffer)
     {
         buffer.writeVarInt(pointsAdded.size());
         pointsAdded.forEach(pt -> {
@@ -77,12 +81,14 @@ public class UpdateWaypointsFromGui
         pointsRemoved.forEach(buffer::writeUUID);
     }
 
-    public boolean handle(NetworkEvent.Context context)
+    @Override
+    public ResourceLocation id()
     {
-        context.enqueueWork(() -> {
-            if (context.getSender() != null)
-                PointsOfInterest.handleUpdateFromGui(context.getSender(), this);
-        });
-        return true;
+        return ID;
+    }
+
+    public void handle(PlayPayloadContext context)
+    {
+        context.workHandler().execute(() -> PointsOfInterest.handleUpdateFromGui(context.player().orElseThrow(), this));
     }
 }

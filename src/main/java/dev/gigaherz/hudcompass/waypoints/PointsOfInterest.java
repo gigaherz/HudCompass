@@ -233,9 +233,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
 
         if (otherSideHasMod)
         {
-            HudCompass.channel.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) player),
-                    new SyncWaypointData(this)
-            );
+            PacketDistributor.PLAYER.with((ServerPlayer) player).send(new SyncWaypointData(this));
         }
     }
 
@@ -245,12 +243,10 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
             ImmutableList<UUID> toRemove)
     {
 
-        HudCompass.channel.sendToServer(
-                new UpdateWaypointsFromGui(toAdd, toUpdate, toRemove)
-        );
+        PacketDistributor.SERVER.noArg().send(new UpdateWaypointsFromGui(toAdd, toUpdate, toRemove));
     }
 
-    public static void handleAddWaypoint(ServerPlayer sender, AddWaypoint addWaypoint)
+    public static void handleAddWaypoint(Player sender, AddWaypoint addWaypoint)
     {
         var points = sender.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
         {
@@ -321,7 +317,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
         return perWorld.computeIfAbsent(Objects.requireNonNull(worldKey), worldKey1 -> new WorldPoints(worldKey1, dimensionTypeKey.get()));
     }
 
-    public static void handleRemoveWaypoint(ServerPlayer sender, RemoveWaypoint removeWaypoint)
+    public static void handleRemoveWaypoint(Player sender, RemoveWaypoint removeWaypoint)
     {
         var points = sender.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
         points.find(removeWaypoint.id).ifPresent(pt -> {
@@ -350,7 +346,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
         points.read(new FriendlyByteBuf(Unpooled.wrappedBuffer(packet)));
     }
 
-    public static void handleUpdateFromGui(ServerPlayer sender, UpdateWaypointsFromGui packet)
+    public static void handleUpdateFromGui(Player sender, UpdateWaypointsFromGui packet)
     {
         var points = sender.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
         {
@@ -466,7 +462,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
         {
             if (otherSideHasMod && player.level().isClientSide && point instanceof BasicWaypoint)
             {
-                HudCompass.channel.sendToServer(new AddWaypoint((BasicWaypoint) point));
+                PacketDistributor.SERVER.noArg().send(new AddWaypoint((BasicWaypoint) point));
             }
             else
             {
@@ -495,7 +491,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
             UUID id = point.getInternalId();
             if (otherSideHasMod && player.level().isClientSide)
             {
-                HudCompass.channel.sendToServer(new RemoveWaypoint(id));
+                PacketDistributor.SERVER.noArg().send(new RemoveWaypoint(id));
             }
             else
             {

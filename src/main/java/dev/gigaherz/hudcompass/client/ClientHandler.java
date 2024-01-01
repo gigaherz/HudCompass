@@ -17,6 +17,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 @Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ClientHandler
@@ -77,7 +78,7 @@ public class ClientHandler
                 {
                     if (pois.otherSideHasMod)
                     {
-                        HudCompass.channel.sendToServer(new RemoveWaypoint(targetted));
+                        PacketDistributor.SERVER.noArg().send(new RemoveWaypoint(targetted));
                     }
                     else
                     {
@@ -133,6 +134,6 @@ public class ClientHandler
         {
             PointsOfInterest.remoteHello(player);
         }
-        HudCompass.channel.sendToServer(new ClientHello());
+        PacketDistributor.SERVER.noArg().send(new ClientHello());
     }
 }

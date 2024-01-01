@@ -1,13 +1,18 @@
 package dev.gigaherz.hudcompass.network;
 
+import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
-import net.neoforged.neoforge.network.NetworkEvent;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.PlayPayloadContext;
 
-public class SyncWaypointData
+public class SyncWaypointData implements CustomPacketPayload
 {
+    public static final ResourceLocation ID = HudCompass.location("sync_waypoint_data");
+
     public byte[] bytes;
 
     public SyncWaypointData(PointsOfInterest pointsData)
@@ -23,14 +28,19 @@ public class SyncWaypointData
         bytes = buffer.readByteArray();
     }
 
-    public void encode(FriendlyByteBuf buffer)
+    public void write(FriendlyByteBuf buffer)
     {
         buffer.writeByteArray(bytes);
     }
 
-    public boolean handle(NetworkEvent.Context ctx)
+    @Override
+    public ResourceLocation id()
     {
-        ctx.enqueueWork(() -> ClientHandler.handleWaypointSync(bytes));
-        return true;
+        return ID;
+    }
+
+    public void handle(PlayPayloadContext context)
+    {
+        context.workHandler().execute(() -> ClientHandler.handleWaypointSync(bytes));
     }
 }

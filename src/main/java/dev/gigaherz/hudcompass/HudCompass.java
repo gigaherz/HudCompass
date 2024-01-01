@@ -21,16 +21,14 @@ import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
-import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.TickEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
-import net.neoforged.neoforge.network.NetworkRegistry;
 import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.network.PlayNetworkDirection;
-import net.neoforged.neoforge.network.simple.SimpleChannel;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlerEvent;
+import net.neoforged.neoforge.network.registration.IPayloadRegistrar;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
@@ -63,17 +61,9 @@ public class HudCompass
             AttachmentType.serializable(PointsOfInterest::new).build()
     );
 
-    private static final String PROTOCOL_VERSION = "1.1";
-    public static SimpleChannel channel = NetworkRegistry.ChannelBuilder
-            .named(new ResourceLocation(MODID, "main"))
-            .clientAcceptedVersions((v) -> PROTOCOL_VERSION.equals(v) || NetworkRegistry.ABSENT.equals(v) || NetworkRegistry.ACCEPTVANILLA.equals(v))
-            .serverAcceptedVersions((v) -> PROTOCOL_VERSION.equals(v) || NetworkRegistry.ABSENT.equals(v) || NetworkRegistry.ACCEPTVANILLA.equals(v))
-            .networkProtocolVersion(() -> PROTOCOL_VERSION)
-            .simpleChannel();
-
     public HudCompass(IEventBus modEventBus)
     {
-        modEventBus.addListener(this::commonSetup);
+        modEventBus.addListener(this::registerPackets);
         modEventBus.addListener(this::modConfig);
         modEventBus.addListener(this::registerCapabilities);
 
@@ -116,16 +106,15 @@ public class HudCompass
     {
     }
 
-    public void commonSetup(FMLCommonSetupEvent event)
+    private void registerPackets(RegisterPayloadHandlerEvent event)
     {
-        int messageNumber = 0;
-        channel.messageBuilder(AddWaypoint.class, messageNumber++, PlayNetworkDirection.PLAY_TO_SERVER).encoder(AddWaypoint::encode).decoder(AddWaypoint::new).consumerNetworkThread(AddWaypoint::handle).add();
-        channel.messageBuilder(RemoveWaypoint.class, messageNumber++, PlayNetworkDirection.PLAY_TO_SERVER).encoder(RemoveWaypoint::encode).decoder(RemoveWaypoint::new).consumerNetworkThread(RemoveWaypoint::handle).add();
-        channel.messageBuilder(ServerHello.class, messageNumber++, PlayNetworkDirection.PLAY_TO_CLIENT).encoder(ServerHello::encode).decoder(ServerHello::new).consumerNetworkThread(ServerHello::handle).add();
-        channel.messageBuilder(ClientHello.class, messageNumber++, PlayNetworkDirection.PLAY_TO_SERVER).encoder(ClientHello::encode).decoder(ClientHello::new).consumerNetworkThread(ClientHello::handle).add();
-        channel.messageBuilder(SyncWaypointData.class, messageNumber++, PlayNetworkDirection.PLAY_TO_CLIENT).encoder(SyncWaypointData::encode).decoder(SyncWaypointData::new).consumerNetworkThread(SyncWaypointData::handle).add();
-        channel.messageBuilder(UpdateWaypointsFromGui.class, messageNumber++, PlayNetworkDirection.PLAY_TO_SERVER).encoder(UpdateWaypointsFromGui::encode).decoder(UpdateWaypointsFromGui::new).consumerNetworkThread(UpdateWaypointsFromGui::handle).add();
-        LOGGER.debug("Final message number: " + messageNumber);
+        final IPayloadRegistrar registrar = event.registrar(MODID).versioned("1.1.0").optional();
+        registrar.play(AddWaypoint.ID, AddWaypoint::new, play -> play.server(AddWaypoint::handle));
+        registrar.play(RemoveWaypoint.ID, RemoveWaypoint::new, play -> play.server(RemoveWaypoint::handle));
+        registrar.play(ClientHello.ID, ClientHello::new, play -> play.server(ClientHello::handle));
+        registrar.play(UpdateWaypointsFromGui.ID, UpdateWaypointsFromGui::new, play -> play.server(UpdateWaypointsFromGui::handle));
+        registrar.play(ServerHello.ID, ServerHello::new, play -> play.client(ServerHello::handle));
+        registrar.play(SyncWaypointData.ID, SyncWaypointData::new, play -> play.client(SyncWaypointData::handle));
     }
 
     public void playerTickEvent(TickEvent.PlayerTickEvent event)
@@ -144,9 +133,9 @@ public class HudCompass
         if (ConfigData.COMMON.disableServerHello.get())
             return;
 
-        if (event.getEntity() instanceof ServerPlayer sp && channel.isRemotePresent(sp.connection.connection))
+        if (event.getEntity() instanceof ServerPlayer sp && sp.connection.isConnected(ServerHello.ID))
         {
-            channel.send(PacketDistributor.PLAYER.with(() -> sp), new ServerHello());
+            PacketDistributor.PLAYER.with(sp).send(new ServerHello());
         }
     }
 

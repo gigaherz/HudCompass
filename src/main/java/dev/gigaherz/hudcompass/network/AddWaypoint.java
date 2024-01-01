@@ -5,11 +5,15 @@ import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.PlayPayloadContext;
 
-public class AddWaypoint
+public class AddWaypoint implements CustomPacketPayload
 {
+    public static final ResourceLocation ID = HudCompass.location("add_waypoint");
+
     public final String label;
     public final double x;
     public final double y;
@@ -49,7 +53,7 @@ public class AddWaypoint
         this.iconIndex = buffer.readVarInt();
     }
 
-    public void encode(FriendlyByteBuf buffer)
+    public void write(FriendlyByteBuf buffer)
     {
         buffer.writeUtf(label);
         buffer.writeDouble(x);
@@ -59,10 +63,16 @@ public class AddWaypoint
         buffer.writeVarInt(iconIndex);
     }
 
-    public void handle(NetworkEvent.Context context)
+    @Override
+    public ResourceLocation id()
     {
-        context.enqueueWork(() -> {
-            PointsOfInterest.handleAddWaypoint(context.getSender(), this);
+        return ID;
+    }
+
+    public void handle(PlayPayloadContext context)
+    {
+        context.workHandler().execute(() -> {
+            PointsOfInterest.handleAddWaypoint(context.player().orElseThrow(), this);
         });
     }
 }

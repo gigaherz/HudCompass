@@ -1,11 +1,15 @@
 package dev.gigaherz.hudcompass.network;
 
+import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.network.FriendlyByteBuf;
-import net.neoforged.neoforge.network.NetworkEvent;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.PlayPayloadContext;
 
-public class ClientHello
+public class ClientHello implements CustomPacketPayload
 {
+    public static final ResourceLocation ID = HudCompass.location("client_hello");
 
     public ClientHello()
     {
@@ -15,12 +19,18 @@ public class ClientHello
     {
     }
 
-    public void encode(FriendlyByteBuf buffer)
+    public void write(FriendlyByteBuf buffer)
     {
     }
 
-    public void handle(NetworkEvent.Context context)
+    @Override
+    public ResourceLocation id()
     {
-        context.enqueueWork(() -> PointsOfInterest.remoteHello(context.getSender()));
+        return ID;
+    }
+
+    public void handle(PlayPayloadContext context)
+    {
+        context.workHandler().execute(() -> PointsOfInterest.remoteHello(context.player().orElseThrow()));
     }
 }
