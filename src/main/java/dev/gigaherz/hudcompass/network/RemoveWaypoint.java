@@ -3,50 +3,40 @@ package dev.gigaherz.hudcompass.network;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.network.handling.PlayPayloadContext;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.UUID;
-import java.util.function.Supplier;
 
-public class RemoveWaypoint implements CustomPacketPayload
+public record RemoveWaypoint(UUID id) implements CustomPacketPayload
 {
     public static final ResourceLocation ID = HudCompass.location("remove_waypoint");
+    public static final Type<RemoveWaypoint> TYPE = new Type<>(ID);
 
-    public final UUID id;
+    public static final StreamCodec<FriendlyByteBuf, RemoveWaypoint> STREAM_CODEC = StreamCodec.composite(
+            UUIDUtil.STREAM_CODEC, RemoveWaypoint::id,
+            RemoveWaypoint::new
+    );
+
+    @Override
+    public Type<? extends CustomPacketPayload> type()
+    {
+        return TYPE;
+    }
 
     public RemoveWaypoint(PointInfo<?> point)
     {
-        this.id = point.getInternalId();
+        this(point.getInternalId());
     }
 
-    public RemoveWaypoint(UUID point)
+    public void handle(IPayloadContext context)
     {
-        this.id = point;
-    }
-
-    public RemoveWaypoint(FriendlyByteBuf buffer)
-    {
-        this.id = buffer.readUUID();
-    }
-
-    public void write(FriendlyByteBuf buffer)
-    {
-        buffer.writeUUID(id);
-    }
-
-    @Override
-    public ResourceLocation id()
-    {
-        return ID;
-    }
-
-    public void handle(PlayPayloadContext context)
-    {
-        context.workHandler().execute(() -> {
-            PointsOfInterest.handleRemoveWaypoint(context.player().orElseThrow(), this);
+        context.enqueueWork(() -> {
+            PointsOfInterest.handleRemoveWaypoint(context.player(), this);
         });
     }
 }

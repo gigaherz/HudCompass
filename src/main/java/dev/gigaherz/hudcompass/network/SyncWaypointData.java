@@ -3,44 +3,43 @@ package dev.gigaherz.hudcompass.network;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.network.handling.PlayPayloadContext;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public class SyncWaypointData implements CustomPacketPayload
+public record SyncWaypointData(byte[] bytes) implements CustomPacketPayload
 {
+    public static final StreamCodec<ByteBuf, SyncWaypointData> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.byteArray(1 << 20L), SyncWaypointData::bytes,
+            SyncWaypointData::new
+    );
+
     public static final ResourceLocation ID = HudCompass.location("sync_waypoint_data");
-
-    public byte[] bytes;
-
-    public SyncWaypointData(PointsOfInterest pointsData)
-    {
-        FriendlyByteBuf temp = new FriendlyByteBuf(Unpooled.buffer());
-        pointsData.write(temp);
-        bytes = new byte[temp.readableBytes()];
-        temp.readBytes(bytes, 0, bytes.length);
-    }
-
-    public SyncWaypointData(FriendlyByteBuf buffer)
-    {
-        bytes = buffer.readByteArray();
-    }
-
-    public void write(FriendlyByteBuf buffer)
-    {
-        buffer.writeByteArray(bytes);
-    }
+    public static final Type<SyncWaypointData> TYPE = new Type<>(ID);
 
     @Override
-    public ResourceLocation id()
+    public Type<? extends CustomPacketPayload> type()
     {
-        return ID;
+        return TYPE;
     }
 
-    public void handle(PlayPayloadContext context)
+    public static SyncWaypointData of(PointsOfInterest pointsData, RegistryAccess registryAccess)
     {
-        context.workHandler().execute(() -> ClientHandler.handleWaypointSync(bytes));
+        var temp = new RegistryFriendlyByteBuf(Unpooled.buffer(), registryAccess);
+        pointsData.write(temp);
+        var bytes = new byte[temp.readableBytes()];
+        temp.readBytes(bytes, 0, bytes.length);
+        return new SyncWaypointData(bytes);
+    }
+
+    public void handle(IPayloadContext context)
+    {
+        context.enqueueWork(() -> ClientHandler.handleWaypointSync(bytes));
     }
 }

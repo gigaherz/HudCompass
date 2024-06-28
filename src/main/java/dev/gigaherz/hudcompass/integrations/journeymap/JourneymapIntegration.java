@@ -113,7 +113,7 @@ public class JourneymapIntegration implements IClientPlugin
 
         public JmWaypoint(Waypoint jmWaypoint)
         {
-            super(JM_WAYPOINT.get(), true, Component.literal(jmWaypoint.getName()), BasicIconData.poi(5));
+            super(JM_WAYPOINT.get(), true, Component.literal(jmWaypoint.getName()), BasicIconData.generic());
             this.jmWaypoint = jmWaypoint;
 
             this.dynamic();
@@ -137,7 +137,7 @@ public class JourneymapIntegration implements IClientPlugin
 
         public JmWaypoint()
         {
-            super(JM_WAYPOINT.get(), true, null, BasicIconData.poi(5));
+            super(JM_WAYPOINT.get(), true, null, BasicIconData.generic());
 
             throw new IllegalStateException("This waypoint is client-only and cannot be synchronized.");
         }

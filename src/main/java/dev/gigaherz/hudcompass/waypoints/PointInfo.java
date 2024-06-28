@@ -2,11 +2,14 @@ package dev.gigaherz.hudcompass.waypoints;
 
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataRegistry;
-import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
@@ -16,6 +19,13 @@ import java.util.UUID;
 
 public abstract class PointInfo<T extends PointInfo<T>>
 {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static final StreamCodec<RegistryFriendlyByteBuf, PointInfo<?>> STREAM_CODEC = StreamCodec.of(
+            PointInfoRegistry::serializePointWithoutId,
+            PointInfoRegistry::deserializePointWithoutId
+    );
+
+
     private final PointInfoType<? extends T> type;
     @Nullable
     private PointsOfInterest.WorldPoints owner;
@@ -145,21 +155,21 @@ public abstract class PointInfo<T extends PointInfo<T>>
         }
     }
 
-    public final CompoundTag write(CompoundTag tag)
+    public final CompoundTag write(CompoundTag tag, HolderLookup.Provider provider)
     {
         tag.putString("ID", internalId.toString());
-        if (label != null) tag.putString("Label", Component.Serializer.toJson(label));
+        if (label != null) tag.putString("Label", Component.Serializer.toJson(label, provider));
         tag.put("Icon", IconDataRegistry.serializeIcon((IIconData)iconData));
         tag.putBoolean("DisplayVerticalDistance", displayVerticalDistance);
         serializeAdditional(tag);
         return tag;
     }
 
-    public final void read(CompoundTag tag)
+    public final void read(CompoundTag tag, HolderLookup.Provider provider)
     {
         internalId = UUID.fromString(tag.getString("ID"));
         if (tag.contains("Label", Tag.TAG_STRING))
-            label = Component.Serializer.fromJson(tag.getString("Label"));
+            label = Component.Serializer.fromJson(tag.getString("Label"), provider);
         else
             label = null;
         //noinspection unchecked
@@ -168,35 +178,35 @@ public abstract class PointInfo<T extends PointInfo<T>>
         deserializeAdditional(tag);
     }
 
-    public final void writeToPacket(FriendlyByteBuf buffer)
+    public final void writeToPacket(RegistryFriendlyByteBuf buffer)
     {
         buffer.writeUUID(internalId);
         writeToPacketWithoutId(buffer);
     }
 
-    public final void writeToPacketWithoutId(FriendlyByteBuf buffer)
+    public final void writeToPacketWithoutId(RegistryFriendlyByteBuf buffer)
     {
         boolean hasLabel = label != null;
         buffer.writeBoolean(hasLabel);
         if (hasLabel)
-            buffer.writeComponent(label);
+            ComponentSerialization.STREAM_CODEC.encode(buffer, label);
         IconDataRegistry.serializeIcon((IIconData)iconData, buffer);
         buffer.writeBoolean(displayVerticalDistance);
         buffer.writeBoolean(isDynamic);
         serializeAdditional(buffer);
     }
 
-    public final void readFromPacket(FriendlyByteBuf buffer)
+    public final void readFromPacket(RegistryFriendlyByteBuf buffer)
     {
         internalId = buffer.readUUID();
         readFromPacketWithoutId(buffer);
     }
 
-    public final void readFromPacketWithoutId(FriendlyByteBuf buffer)
+    public final void readFromPacketWithoutId(RegistryFriendlyByteBuf buffer)
     {
         boolean hasLabel = buffer.readBoolean();
         if (hasLabel)
-            label = buffer.readComponent();
+            label = ComponentSerialization.STREAM_CODEC.decode(buffer);
         else
             label = null;
         iconData = IconDataRegistry.deserializeIcon(buffer);

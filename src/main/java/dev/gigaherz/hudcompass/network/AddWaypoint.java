@@ -5,74 +5,57 @@ import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.network.handling.PlayPayloadContext;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public class AddWaypoint implements CustomPacketPayload
+public record AddWaypoint(
+        String label,
+        double x,
+        double y,
+        double z,
+        ResourceLocation spriteName
+) implements CustomPacketPayload
 {
     public static final ResourceLocation ID = HudCompass.location("add_waypoint");
 
-    public final String label;
-    public final double x;
-    public final double y;
-    public final double z;
-    public final boolean isMarker;
-    public final int iconIndex;
+    public static final Type<AddWaypoint> TYPE = new Type<>(ID);
 
-    public AddWaypoint(String label, double x, double y, double z, boolean isMarker, int iconIndex)
-    {
-        this.label = label;
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.isMarker = isMarker;
-        this.iconIndex = iconIndex;
-    }
-
-    public AddWaypoint(BasicWaypoint point)
-    {
-        Vec3 position = point.getPosition();
-        this.label = point.getLabelText();
-        this.x = position.x;
-        this.y = position.y;
-        this.z = position.z;
-        BasicIconData data = (BasicIconData) point.getIconData();
-        this.isMarker = data.getSerializer() == HudCompass.MAP_MARKER_SERIALIZER.get();
-        this.iconIndex = data.iconIndex;
-    }
-
-    public AddWaypoint(FriendlyByteBuf buffer)
-    {
-        this.label = buffer.readUtf(256);
-        this.x = buffer.readDouble();
-        this.y = buffer.readDouble();
-        this.z = buffer.readDouble();
-        this.isMarker = buffer.readBoolean();
-        this.iconIndex = buffer.readVarInt();
-    }
-
-    public void write(FriendlyByteBuf buffer)
-    {
-        buffer.writeUtf(label);
-        buffer.writeDouble(x);
-        buffer.writeDouble(y);
-        buffer.writeDouble(z);
-        buffer.writeBoolean(isMarker);
-        buffer.writeVarInt(iconIndex);
-    }
+    public static final StreamCodec<FriendlyByteBuf, AddWaypoint> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.stringUtf8(256), AddWaypoint::label,
+            ByteBufCodecs.DOUBLE, AddWaypoint::x,
+            ByteBufCodecs.DOUBLE, AddWaypoint::y,
+            ByteBufCodecs.DOUBLE, AddWaypoint::z,
+            ResourceLocation.STREAM_CODEC, AddWaypoint::spriteName,
+            AddWaypoint::new
+    );
 
     @Override
-    public ResourceLocation id()
+    public Type<? extends CustomPacketPayload> type()
     {
-        return ID;
+        return TYPE;
     }
 
-    public void handle(PlayPayloadContext context)
+    public static AddWaypoint of(BasicWaypoint point)
     {
-        context.workHandler().execute(() -> {
-            PointsOfInterest.handleAddWaypoint(context.player().orElseThrow(), this);
-        });
+        Vec3 position = point.getPosition();
+        BasicIconData data = (BasicIconData) point.getIconData();
+        return new AddWaypoint(
+                point.getLabelText(),
+                position.x,
+                position.y,
+                position.z,
+                data.spriteName
+        );
+    }
+
+    public void handle(IPayloadContext context)
+    {
+        context.enqueueWork(() ->
+                PointsOfInterest.handleAddWaypoint(context.player(), this)
+        );
     }
 }

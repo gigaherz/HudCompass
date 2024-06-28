@@ -1,7 +1,6 @@
 package dev.gigaherz.hudcompass.icons.client;
 
 import com.google.common.collect.Maps;
-import com.mojang.blaze3d.vertex.PoseStack;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
@@ -21,13 +20,11 @@ public class IconRendererRegistry
 
     public static final Map<IconDataSerializer<?>, IIconRenderer<?>> REGISTRY = Maps.newHashMap();
 
-    private static final BasicIconRenderer POI_RENDERER = registerRenderer(HudCompass.POI_SERIALIZER.get(),
-            new BasicIconRenderer(HudOverlay.LOCATION_POI_ICONS, 128, 128, 8, 8));
-    private static final BasicIconRenderer MAP_RENDERER = registerRenderer(HudCompass.MAP_MARKER_SERIALIZER.get(),
-            new BasicIconRenderer(HudOverlay.LOCATION_MAP_ICONS, 128, 128, 8, 8));
+    private static final BasicIconRenderer BASIC_ICON_RENDERER = registerRenderer(HudCompass.BASIC_SERIALIZER.get(),
+            new BasicIconRenderer());
 
     private static final IIconRenderer MISSING_ICON_RENDERER = (data, player, textureManager, matrixStack, x, y, alpha) ->
-            POI_RENDERER.renderIcon(BasicIconData.MISSING_ICON, player, textureManager, matrixStack, x, y, alpha);
+            BASIC_ICON_RENDERER.renderIcon(BasicIconData.MISSING_ICON, player, textureManager, matrixStack, x, y, alpha);
 
     public static <T extends IIconData<T>, R extends IIconRenderer<T>> R registerRenderer(IconDataSerializer<T> serializer, R renderer)
     {

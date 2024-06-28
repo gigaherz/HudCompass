@@ -1,17 +1,23 @@
 package dev.gigaherz.hudcompass.waypoints;
 
 import dev.gigaherz.hudcompass.HudCompass;
-import dev.gigaherz.hudcompass.icons.IIconData;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nonnull;
 
 public class PointInfoRegistry
 {
+
+    public static final StreamCodec<ByteBuf, PointInfoType<?>> BY_ID_STREAM_CODEC = ByteBufCodecs.idMapper(HudCompass.POINT_INFO_TYPES_REGISTRY);
+
     @Nonnull
-    public static <T extends PointInfo<T>> CompoundTag serializePoint(@Nonnull T pointInfo)
+    public static <T extends PointInfo<T>> CompoundTag serializePoint(@Nonnull T pointInfo, HolderLookup.Provider provider)
     {
         PointInfoType<? extends T> type = pointInfo.getType();
         ResourceLocation typeId = HudCompass.POINT_INFO_TYPES_REGISTRY.getKey(type);
@@ -21,25 +27,25 @@ public class PointInfoRegistry
         }
         CompoundTag tag = new CompoundTag();
         tag.putString("Type", typeId.toString());
-        return pointInfo.write(tag);
+        return pointInfo.write(tag, provider);
     }
 
-    public static <T extends PointInfo<T>> void serializePoint(T pointInfo, FriendlyByteBuf buffer)
+    public static <T extends PointInfo<T>> void serializePoint(RegistryFriendlyByteBuf buffer, T pointInfo)
     {
         PointInfoType<?> type = pointInfo.getType();
-        buffer.writeId(HudCompass.POINT_INFO_TYPES_REGISTRY, type);
+        BY_ID_STREAM_CODEC.encode(buffer, type);
         pointInfo.writeToPacket(buffer);
     }
 
-    public static <T extends PointInfo<T>> void serializePointWithoutId(T pointInfo, FriendlyByteBuf buffer)
+    static void serializePointWithoutId(RegistryFriendlyByteBuf buffer, PointInfo<?> pointInfo)
     {
-        PointInfoType<? extends T> type = pointInfo.getType();
-        buffer.writeId(HudCompass.POINT_INFO_TYPES_REGISTRY, type);
+        PointInfoType<?> type = pointInfo.getType();
+        BY_ID_STREAM_CODEC.encode(buffer, type);
         pointInfo.writeToPacketWithoutId(buffer);
     }
 
     @Nonnull
-    public static PointInfo<?> deserializePoint(CompoundTag tag)
+    public static PointInfo<?> deserializePoint(CompoundTag tag, HolderLookup.Provider provider)
     {
         ResourceLocation typeId = new ResourceLocation(tag.getString("Type"));
         PointInfoType<?> type = HudCompass.POINT_INFO_TYPES_REGISTRY.get(typeId);
@@ -48,14 +54,14 @@ public class PointInfoRegistry
             throw new IllegalStateException(String.format("Serializer not registered %s", typeId));
         }
         PointInfo<?> info = type.create();
-        info.read(tag);
+        info.read(tag, provider);
         return info;
     }
 
     @Nonnull
-    public static PointInfo<?> deserializePoint(FriendlyByteBuf buffer)
+    public static PointInfo<?> deserializePoint(RegistryFriendlyByteBuf buffer)
     {
-        PointInfoType<?> serializer = buffer.readById(HudCompass.POINT_INFO_TYPES_REGISTRY);
+        PointInfoType<?> serializer = BY_ID_STREAM_CODEC.decode(buffer);
         if (serializer == null)
         {
             throw new IllegalStateException("Server returned unknown serializer");
@@ -66,9 +72,9 @@ public class PointInfoRegistry
     }
 
     @Nonnull
-    public static PointInfo<?> deserializePointWithoutId(FriendlyByteBuf buffer)
+    public static PointInfo<?> deserializePointWithoutId(RegistryFriendlyByteBuf buffer)
     {
-        PointInfoType<?> serializer = buffer.readById(HudCompass.POINT_INFO_TYPES_REGISTRY);
+        PointInfoType<?> serializer = BY_ID_STREAM_CODEC.decode(buffer);
         if (serializer == null)
         {
             throw new IllegalStateException("Server returned unknown serializer");

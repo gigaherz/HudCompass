@@ -15,9 +15,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.MapItem;
-import net.minecraft.world.level.saveddata.maps.MapBanner;
-import net.minecraft.world.level.saveddata.maps.MapDecoration;
-import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import net.minecraft.world.level.saveddata.maps.*;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
@@ -131,9 +129,9 @@ public class VanillaMapPoints
                     MapDecoration decoration = kvp.getValue();
 
                     // skip players, they will be handled separately.
-                    if (decoration.type() == MapDecoration.Type.PLAYER ||
-                            decoration.type() == MapDecoration.Type.PLAYER_OFF_LIMITS ||
-                            decoration.type() == MapDecoration.Type.PLAYER_OFF_MAP)
+                    if (decoration.type() == MapDecorationTypes.PLAYER ||
+                            decoration.type() == MapDecorationTypes.PLAYER_OFF_LIMITS ||
+                            decoration.type() == MapDecorationTypes.PLAYER_OFF_MAP)
                         continue;
 
                     if (!decorationPointInfoMap.containsKey(decoration))
@@ -164,10 +162,10 @@ public class VanillaMapPoints
 
         public MapBannerWaypoint(MapBanner banner, MapDecoration decoration)
         {
-            super(BANNER_TYPE.get(), true, banner.getName(), BasicIconData.mapMarker(decoration.type().getIcon()));
+            super(BANNER_TYPE.get(), true, banner.name().orElse(null), BasicIconData.basic(decoration.getSpriteLocation()));
             dynamic();
             this.banner = banner;
-            this.position = Vec3.atCenterOf(banner.getPos());
+            this.position = Vec3.atCenterOf(banner.pos());
         }
 
         public MapBannerWaypoint()
@@ -238,7 +236,7 @@ public class VanillaMapPoints
 
         public MapDecorationWaypoint(MapItemSavedData mapData, MapDecoration decoration)
         {
-            super(DECORATION_TYPE.get(), true, null, BasicIconData.mapMarker(decoration.type().getIcon()));
+            super(DECORATION_TYPE.get(), true, null, BasicIconData.basic(decoration.getSpriteLocation()));
 
             dynamic();
             noVerticalDistance();

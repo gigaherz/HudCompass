@@ -13,17 +13,18 @@ displayURL="https://github.com/gigaherz/HudCompass"
 description='''
 See where you go
 '''
+displayTest="IGNORE_ALL_VERSION"
 
 [[dependencies.hudcompass]]
    modId="neoforge"
    type="required"
-   versionRange="[20.4.72-beta,)"
+   versionRange="[20.5.0-beta,)"
    ordering="NONE"
    side="BOTH"
 [[dependencies.hudcompass]]
    modId="minecraft"
    type="required"
-   versionRange="[1.20.4,1.21)"
+   versionRange="[1.20.5,1.21)"
    ordering="NONE"
    side="BOTH"
 [[dependencies.hudcompass]]

@@ -1,20 +1,17 @@
 package dev.gigaherz.hudcompass.client;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.datafixers.util.Pair;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
+import gigaherz.hudcompass.waypoints.PointAddRemoveEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
@@ -25,7 +22,6 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
@@ -34,10 +30,8 @@ import net.neoforged.neoforge.client.gui.widget.ScrollPanel;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 public class ClientWaypointManagerScreen extends Screen
 {
@@ -115,9 +109,9 @@ public class ClientWaypointManagerScreen extends Screen
         saveButton = addRenderableWidget(Button.builder(Component.translatable("text.hudcompass.waypoint_editor.save"), (button) -> {
             scrollPanel.saveAll();
             pois.updateFromGui(
-                    toAdd.stream().map(i -> Pair.<ResourceLocation, PointInfo<?>>of(i.worldItem.worldKey.location(), i.pointInfo)).collect(ImmutableList.toImmutableList()),
-                    toUpdate.stream().map(i -> Pair.<ResourceLocation, PointInfo<?>>of(i.worldItem.worldKey.location(), i.pointInfo)).collect(ImmutableList.toImmutableList()),
-                    toRemove.stream().map(i -> i.pointInfo.getInternalId()).collect(ImmutableList.toImmutableList())
+                    toAdd.stream().map(i -> new PointAddRemoveEntry(i.worldItem.worldKey.location(), i.pointInfo)).toList(),
+                    toUpdate.stream().map(i -> new PointAddRemoveEntry(i.worldItem.worldKey.location(), i.pointInfo)).toList(),
+                    toRemove.stream().map(i -> i.pointInfo.getInternalId()).toList()
             );
             onClose();
         }).pos(8, height - 28).size(120, 20).build());
@@ -134,7 +128,7 @@ public class ClientWaypointManagerScreen extends Screen
 
     private void createNewPoint(WorldListItem worldItem)
     {
-        BasicWaypoint wp = new BasicWaypoint(getPlayerPositionScaled(worldItem), "", BasicIconData.mapMarker(7));
+        BasicWaypoint wp = new BasicWaypoint(getPlayerPositionScaled(worldItem), "", BasicIconData.mapDecoration("player_off_limits"));
         WaypointListItem item = new WaypointListItem(minecraft, wp, worldItem);
         int index = worldItem.waypoints.size() - 1;
         ListItem after = index >= 0 ? worldItem.waypoints.get(index) : worldItem;

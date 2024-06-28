@@ -12,6 +12,7 @@ import net.minecraft.network.Connection;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.event.TickEvent;
@@ -27,7 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
 
-@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = EventBusSubscriber.Bus.GAME)
 public class ClientWaypointDatabase
 {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -85,7 +86,7 @@ public class ClientWaypointDatabase
                     pois.clear();
 
                     ListTag list0 = tag.getList("Worlds", Tag.TAG_COMPOUND);
-                    pois.deserializeNBT(list0);
+                    pois.deserializeNBT(mc.player.registryAccess(), list0);
                 }
                 catch (IOException e)
                 {
@@ -126,7 +127,7 @@ public class ClientWaypointDatabase
 
                     CompoundTag tag0 = new CompoundTag();
 
-                    ListTag list0 = pois.serializeNBT();
+                    ListTag list0 = pois.serializeNBT(mc.player.registryAccess());
 
                     tag0.put("Worlds", list0);
 

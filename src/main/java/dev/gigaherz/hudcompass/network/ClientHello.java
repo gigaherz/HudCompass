@@ -2,35 +2,34 @@ package dev.gigaherz.hudcompass.network;
 
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import net.minecraft.network.FriendlyByteBuf;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.network.handling.PlayPayloadContext;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public class ClientHello implements CustomPacketPayload
 {
+    public static final ClientHello INSTANCE = new ClientHello();
+
     public static final ResourceLocation ID = HudCompass.location("client_hello");
 
-    public ClientHello()
-    {
-    }
+    public static final Type<ClientHello> TYPE = new Type<>(ID);
 
-    public ClientHello(FriendlyByteBuf buffer)
-    {
-    }
-
-    public void write(FriendlyByteBuf buffer)
-    {
-    }
+    public static final StreamCodec<ByteBuf, ClientHello> STREAM_CODEC = StreamCodec.unit(INSTANCE);
 
     @Override
-    public ResourceLocation id()
+    public Type<? extends CustomPacketPayload> type()
     {
-        return ID;
+        return TYPE;
     }
 
-    public void handle(PlayPayloadContext context)
+    private ClientHello()
     {
-        context.workHandler().execute(() -> PointsOfInterest.remoteHello(context.player().orElseThrow()));
+    }
+
+    public void handle(IPayloadContext context)
+    {
+        context.enqueueWork(() -> PointsOfInterest.remoteHello(context.player()));
     }
 }

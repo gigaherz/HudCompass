@@ -4,7 +4,6 @@ import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
-import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -73,7 +72,7 @@ public class SpawnPointPoints
                 {
                     addon.spawnWorld = worldKey;
                     addon.spawnPosition = spawnPosition;
-                    addon.waypoint = new BasicWaypoint(HudCompass.BASIC_WAYPOINT.get(), Vec3.atCenterOf(spawnPosition), "Home", BasicIconData.mapMarker(8))
+                    addon.waypoint = new BasicWaypoint(HudCompass.BASIC_WAYPOINT.get(), Vec3.atCenterOf(spawnPosition), "Home", BasicIconData.basic("home"))
                             .dynamic();
                     pois.get(addon.spawnWorld).addPoint(addon.waypoint);
                 }

@@ -15,9 +15,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.IExtensionPoint;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModList;
-import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
@@ -27,20 +26,16 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.TickEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlerEvent;
-import net.neoforged.neoforge.network.registration.IPayloadRegistrar;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 @Mod(HudCompass.MODID)
 public class HudCompass
 {
     public static final String MODID = "hudcompass";
-
-    public static final Logger LOGGER = LogManager.getLogger(MODID);
 
     public static final ResourceKey<Registry<PointInfoType<?>>> POINT_INFO_TYPES_KEY = ResourceKey.createRegistryKey(location("point_info_types"));
     public static final ResourceKey<Registry<IconDataSerializer<?>>> ICON_DATA_SERIALIZERS_KEY = ResourceKey.createRegistryKey(location("icon_data_serializers"));
@@ -52,16 +47,15 @@ public class HudCompass
     public static final Registry<PointInfoType<?>> POINT_INFO_TYPES_REGISTRY = POINT_INFO_TYPES.makeRegistry(builder -> {});
     public static final Registry<IconDataSerializer<?>> ICON_DATA_SERIALIZERS_REGISTRY = ICON_DATA_SERIALIZERS.makeRegistry(builder -> {});
 
-    public static final DeferredHolder<IconDataSerializer<?>, IconDataSerializer<BasicIconData>> POI_SERIALIZER = ICON_DATA_SERIALIZERS.register("poi", BasicIconData.Serializer::new);
-    public static final DeferredHolder<IconDataSerializer<?>, IconDataSerializer<BasicIconData>> MAP_MARKER_SERIALIZER = ICON_DATA_SERIALIZERS.register("map_marker", BasicIconData.Serializer::new);
+    public static final DeferredHolder<IconDataSerializer<?>, IconDataSerializer<BasicIconData>> BASIC_SERIALIZER = ICON_DATA_SERIALIZERS.register("basic", BasicIconData.Serializer::new);
 
     public static final DeferredHolder<PointInfoType<?>, PointInfoType<BasicWaypoint>> BASIC_WAYPOINT = POINT_INFO_TYPES.register("basic", () -> new PointInfoType<>(BasicWaypoint::new));
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<PointsOfInterest>> POINTS_OF_INTEREST_ATTACHMENT = ATTACHMENT_TYPES.register("poi_provider", () ->
-            AttachmentType.serializable(PointsOfInterest::new).build()
+            AttachmentType.serializable(PointsOfInterest::new).copyOnDeath().copyHandler(PointsOfInterest::duplicate).build()
     );
 
-    public HudCompass(IEventBus modEventBus)
+    public HudCompass(ModContainer container, IEventBus modEventBus)
     {
         modEventBus.addListener(this::registerPackets);
         modEventBus.addListener(this::modConfig);
@@ -77,20 +71,14 @@ public class HudCompass
         SpawnPointPoints.init();
         VanillaMapPoints.init(modEventBus);
         PlayerTracker.init(modEventBus);
-        PointsOfInterest.init(modEventBus);
 
         if (ModList.get().isLoaded("journeymap"))
         {
             JourneymapIntegration.staticInit();
         }
 
-        ModLoadingContext modLoadingContext = ModLoadingContext.get();
-        //modLoadingContext.registerConfig(ModConfig.Type.SERVER, ConfigData.SERVER_SPEC);
-        modLoadingContext.registerConfig(ModConfig.Type.CLIENT, ConfigData.CLIENT_SPEC);
-        modLoadingContext.registerConfig(ModConfig.Type.COMMON, ConfigData.COMMON_SPEC);
-
-        //Make sure the mod being absent on the other network side does not cause the client to display the server as incompatible
-        ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> "", (a, b) -> true));
+        container.registerConfig(ModConfig.Type.CLIENT, ConfigData.CLIENT_SPEC);
+        container.registerConfig(ModConfig.Type.COMMON, ConfigData.COMMON_SPEC);
     }
 
     public void modConfig(ModConfigEvent event)
@@ -106,15 +94,15 @@ public class HudCompass
     {
     }
 
-    private void registerPackets(RegisterPayloadHandlerEvent event)
+    private void registerPackets(RegisterPayloadHandlersEvent event)
     {
-        final IPayloadRegistrar registrar = event.registrar(MODID).versioned("1.1.0").optional();
-        registrar.play(AddWaypoint.ID, AddWaypoint::new, play -> play.server(AddWaypoint::handle));
-        registrar.play(RemoveWaypoint.ID, RemoveWaypoint::new, play -> play.server(RemoveWaypoint::handle));
-        registrar.play(ClientHello.ID, ClientHello::new, play -> play.server(ClientHello::handle));
-        registrar.play(UpdateWaypointsFromGui.ID, UpdateWaypointsFromGui::new, play -> play.server(UpdateWaypointsFromGui::handle));
-        registrar.play(ServerHello.ID, ServerHello::new, play -> play.client(ServerHello::handle));
-        registrar.play(SyncWaypointData.ID, SyncWaypointData::new, play -> play.client(SyncWaypointData::handle));
+        final PayloadRegistrar registrar = event.registrar(MODID).versioned("1.1.0").optional();
+        registrar.playToServer(AddWaypoint.TYPE, AddWaypoint.STREAM_CODEC, AddWaypoint::handle);
+        registrar.playToServer(RemoveWaypoint.TYPE, RemoveWaypoint.STREAM_CODEC, RemoveWaypoint::handle);
+        registrar.playToServer(ClientHello.TYPE, ClientHello.STREAM_CODEC, ClientHello::handle);
+        registrar.playToServer(UpdateWaypointsFromGui.TYPE, UpdateWaypointsFromGui.STREAM_CODEC, UpdateWaypointsFromGui::handle);
+        registrar.playToClient(ServerHello.TYPE, ServerHello.STREAM_CODEC, ServerHello::handle);
+        registrar.playToClient(SyncWaypointData.TYPE, SyncWaypointData.STREAM_CODEC, SyncWaypointData::handle);
     }
 
     public void playerTickEvent(TickEvent.PlayerTickEvent event)
@@ -133,9 +121,9 @@ public class HudCompass
         if (ConfigData.COMMON.disableServerHello.get())
             return;
 
-        if (event.getEntity() instanceof ServerPlayer sp && sp.connection.isConnected(ServerHello.ID))
+        if (event.getEntity() instanceof ServerPlayer serverPlayer && serverPlayer.connection.hasChannel(ServerHello.ID))
         {
-            PacketDistributor.PLAYER.with(sp).send(new ServerHello());
+            PacketDistributor.sendToPlayer(serverPlayer, ServerHello.INSTANCE);
         }
     }
 

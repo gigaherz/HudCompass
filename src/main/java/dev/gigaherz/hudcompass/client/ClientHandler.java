@@ -14,19 +14,19 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.event.TickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = EventBusSubscriber.Bus.GAME)
 public class ClientHandler
 {
     public static KeyMapping ADD_WAYPOINT;
     public static KeyMapping REMOVE_WAYPOINT;
     public static KeyMapping EDIT_WAYPOINTS;
 
-    @Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
+    @EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = EventBusSubscriber.Bus.MOD)
     public static class ModBus
     {
         @SubscribeEvent
@@ -58,7 +58,7 @@ public class ClientHandler
                 Vec3 position = mc.player.position();
                 String label = String.format("{%1.2f, %1.2f, %1.2f}", position.x(), position.y(), position.z());
 
-                pois.get(mc.player.level()).addPointRequest(new BasicWaypoint(position, label, BasicIconData.mapMarker(7)));
+                pois.get(mc.player.level()).addPointRequest(new BasicWaypoint(position, label, BasicIconData.mapDecoration("player_off_limits")));
             }
 
             //noinspection StatementWithEmptyBody
@@ -78,7 +78,7 @@ public class ClientHandler
                 {
                     if (pois.otherSideHasMod)
                     {
-                        PacketDistributor.SERVER.noArg().send(new RemoveWaypoint(targetted));
+                        PacketDistributor.sendToServer(new RemoveWaypoint(targetted));
                     }
                     else
                     {
@@ -134,6 +134,6 @@ public class ClientHandler
         {
             PointsOfInterest.remoteHello(player);
         }
-        PacketDistributor.SERVER.noArg().send(new ClientHello());
+        PacketDistributor.sendToServer(ClientHello.INSTANCE);
     }
 }

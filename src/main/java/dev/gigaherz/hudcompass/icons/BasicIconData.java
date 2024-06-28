@@ -3,32 +3,43 @@ package dev.gigaherz.hudcompass.icons;
 import dev.gigaherz.hudcompass.HudCompass;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 
 public class BasicIconData implements IIconData<BasicIconData>
 {
-    public static final BasicIconData MISSING_ICON = new BasicIconData(HudCompass.POI_SERIALIZER.get(), 4);
+    public static final BasicIconData MISSING_ICON = new BasicIconData(HudCompass.BASIC_SERIALIZER.get(), HudCompass.location("unknown"));
 
-    public static BasicIconData poi(int index)
+    public static BasicIconData generic()
     {
-        return new BasicIconData(HudCompass.POI_SERIALIZER.get(), index);
+        return new BasicIconData(HudCompass.BASIC_SERIALIZER.get(), HudCompass.location("generic"));
     }
 
-    public static BasicIconData mapMarker(int index)
+    public static BasicIconData basic(String spriteName)
     {
-        return new BasicIconData(HudCompass.MAP_MARKER_SERIALIZER.get(), index);
+        return new BasicIconData(HudCompass.BASIC_SERIALIZER.get(), HudCompass.location(spriteName));
+    }
+
+    public static BasicIconData mapDecoration(String spriteName)
+    {
+        return new BasicIconData(HudCompass.BASIC_SERIALIZER.get(), new ResourceLocation(spriteName));
+    }
+
+    public static BasicIconData basic(ResourceLocation spriteName)
+    {
+        return new BasicIconData(HudCompass.BASIC_SERIALIZER.get(), spriteName);
     }
 
     private final IconDataSerializer<BasicIconData> serializer;
-    public final int iconIndex;
+    public final ResourceLocation spriteName;
     public float r = 1.0f;
     public float g = 1.0f;
     public float b = 1.0f;
     public float a = 1.0f;
 
-    public BasicIconData(IconDataSerializer<BasicIconData> serializer, int iconIndex)
+    public BasicIconData(IconDataSerializer<BasicIconData> serializer, ResourceLocation spriteName)
     {
         this.serializer = serializer;
-        this.iconIndex = iconIndex;
+        this.spriteName = spriteName;
     }
 
     public void setColor(float r, float g, float b, float a)
@@ -50,7 +61,7 @@ public class BasicIconData implements IIconData<BasicIconData>
         @Override
         public CompoundTag write(BasicIconData data, CompoundTag tag)
         {
-            tag.putInt("Index", data.iconIndex);
+            tag.putString("SpriteName", data.spriteName.toString());
             return tag;
         }
 
@@ -59,14 +70,14 @@ public class BasicIconData implements IIconData<BasicIconData>
         {
             return new BasicIconData(
                     this,
-                    tag.getInt("Index")
+                    new ResourceLocation(tag.getString("SpriteName"))
             );
         }
 
         @Override
         public void write(BasicIconData data, FriendlyByteBuf buffer)
         {
-            buffer.writeInt(data.iconIndex);
+            buffer.writeResourceLocation(data.spriteName);
         }
 
         @Override
@@ -74,7 +85,7 @@ public class BasicIconData implements IIconData<BasicIconData>
         {
             return new BasicIconData(
                     this,
-                    buffer.readInt()
+                    buffer.readResourceLocation()
             );
         }
     }

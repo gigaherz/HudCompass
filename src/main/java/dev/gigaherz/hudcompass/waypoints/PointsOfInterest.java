@@ -1,10 +1,8 @@
 package dev.gigaherz.hudcompass.waypoints;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.mojang.datafixers.util.Pair;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
@@ -12,12 +10,15 @@ import dev.gigaherz.hudcompass.network.AddWaypoint;
 import dev.gigaherz.hudcompass.network.RemoveWaypoint;
 import dev.gigaherz.hudcompass.network.SyncWaypointData;
 import dev.gigaherz.hudcompass.network.UpdateWaypointsFromGui;
+import gigaherz.hudcompass.waypoints.PointAddRemoveEntry;
 import io.netty.buffer.Unpooled;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -26,11 +27,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.attachment.IAttachmentHolder;
 import net.neoforged.neoforge.common.util.INBTSerializable;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,14 +43,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
     public int savedNumber;
 
     private final Map<ResourceLocation, Object> addonData = Maps.newHashMap();
-    private List<Runnable> listeners = Lists.newArrayList();
-
-    public static void init(IEventBus modEventBus)
-    {
-        NeoForge.EVENT_BUS.addListener(PointsOfInterest::serverLogIn);
-        NeoForge.EVENT_BUS.addListener(PointsOfInterest::clientLogIn);
-        NeoForge.EVENT_BUS.addListener(PointsOfInterest::playerClone);
-    }
+    private final List<Runnable> listeners = Lists.newArrayList();
 
     @SuppressWarnings("unchecked")
     public <T> T getOrCreateAddonData(ResourceLocation addonId, Supplier<T> factory)
@@ -60,33 +51,14 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
         return (T) addonData.computeIfAbsent(addonId, key -> factory.get());
     }
 
-    private static void serverLogIn(PlayerEvent.PlayerLoggedInEvent event)
+    public static PointsOfInterest duplicate(PointsOfInterest oldPois, IAttachmentHolder holder, HolderLookup.Provider provider)
     {
-        var player = event.getEntity();
-        player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT).setPlayer(player);
-    }
-
-    private static void clientLogIn(ClientPlayerNetworkEvent.LoggingIn event)
-    {
-        var player = event.getPlayer();
-        player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT).setPlayer(player);
-    }
-
-    private static void playerClone(PlayerEvent.Clone event)
-    {
-        Player oldPlayer = event.getOriginal();
-
-        // FIXME: workaround for a forge issue that seems to be reappearing too often
-        // at this time it's only needed when returning from the end alive
-        oldPlayer.revive();
-
-        Player newPlayer = event.getEntity();
-        var newPois = newPlayer.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
-        var oldPois = oldPlayer.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
+        var newPois = new PointsOfInterest(holder);
         newPois.transferFrom(oldPois);
+        return newPois;
     }
 
-    private void transferFrom(PointsOfInterest oldPois)
+    public void transferFrom(PointsOfInterest oldPois)
     {
         for (WorldPoints w : oldPois.getAllWorlds())
         {
@@ -109,12 +81,13 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
 
     private final Map<ResourceKey<Level>, WorldPoints> perWorld = Maps.newHashMap();
 
-    private Player player;
+    private final Player player;
 
     public boolean otherSideHasMod = false;
 
-    public PointsOfInterest()
+    public PointsOfInterest(IAttachmentHolder holder)
     {
+        this.player = (Player)holder;
         //SpawnPointInfo spawn = new SpawnPointInfo(player);
 
         //get(spawn.getDimension())
@@ -122,7 +95,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
     }
 
     @Override
-    public ListTag serializeNBT()
+    public ListTag serializeNBT(HolderLookup.Provider provider)
     {
         ListTag list = new ListTag();
 
@@ -132,14 +105,14 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
             tag.putString("World", entry.getKey().location().toString());
             if (entry.getValue().getDimensionTypeKey() != null)
                 tag.putString("DimensionKey", entry.getValue().getDimensionTypeKey().location().toString());
-            tag.put("POIs", entry.getValue().write());
+            tag.put("POIs", entry.getValue().write(provider));
             list.add(tag);
         }
 
         return list;
     }
 
-    public void write(FriendlyByteBuf buffer)
+    public void write(RegistryFriendlyByteBuf buffer)
     {
         buffer.writeVarInt(perWorld.size());
         for (Map.Entry<ResourceKey<Level>, WorldPoints> entry : perWorld.entrySet())
@@ -162,7 +135,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
     }
 
     @Override
-    public void deserializeNBT(ListTag nbt)
+    public void deserializeNBT(HolderLookup.Provider provider, ListTag nbt)
     {
         perWorld.clear();
         for (int i = 0; i < nbt.size(); i++)
@@ -173,12 +146,12 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
             if (tag.contains("DimensionKey", Tag.TAG_STRING))
                 dimType = ResourceKey.create(Registries.DIMENSION_TYPE, new ResourceLocation(tag.getString("DimensionKey")));
             WorldPoints p = get(key, dimType);
-            p.read(tag.getList("POIs", Tag.TAG_COMPOUND));
+            p.read(tag.getList("POIs", Tag.TAG_COMPOUND), provider);
         }
         savedNumber = changeNumber = 0;
     }
 
-    public void read(FriendlyByteBuf buffer)
+    public void read(RegistryFriendlyByteBuf buffer)
     {
         perWorld.values().forEach(pt -> pt.points.values().removeIf(PointInfo::isServerManaged));
         int numWorlds = buffer.readVarInt();
@@ -211,58 +184,51 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
         return targetted;
     }
 
-    public void setPlayer(Player player)
-    {
-        this.player = player;
-    }
-
     public void tick()
     {
         perWorld.values().forEach(WorldPoints::tick);
     }
 
-    private void sendInitialSync()
+    private void sendInitialSync(RegistryAccess registryAccess)
     {
-        sendSync();
+        sendSync(registryAccess);
     }
 
-    private void sendSync()
+    private void sendSync(RegistryAccess registryAccess)
     {
         if (ConfigData.COMMON.disableServerHello.get())
             return;
 
         if (otherSideHasMod)
         {
-            PacketDistributor.PLAYER.with((ServerPlayer) player).send(new SyncWaypointData(this));
+            PacketDistributor.sendToPlayer((ServerPlayer) player, SyncWaypointData.of(this, registryAccess));
         }
     }
 
     private void sendUpdateFromGui(
-            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toAdd,
-            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toUpdate,
-            ImmutableList<UUID> toRemove)
+            List<PointAddRemoveEntry> toAdd,
+            List<PointAddRemoveEntry> toUpdate,
+            List<UUID> toRemove)
     {
 
-        PacketDistributor.SERVER.noArg().send(new UpdateWaypointsFromGui(toAdd, toUpdate, toRemove));
+        PacketDistributor.sendToServer(new UpdateWaypointsFromGui(toAdd, toUpdate, toRemove));
     }
 
     public static void handleAddWaypoint(Player sender, AddWaypoint addWaypoint)
     {
         var points = sender.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
         {
-            BasicWaypoint waypoint = new BasicWaypoint(new Vec3(addWaypoint.x, addWaypoint.y, addWaypoint.z), addWaypoint.label,
-                    addWaypoint.isMarker
-                            ? BasicIconData.mapMarker(addWaypoint.iconIndex)
-                            : BasicIconData.poi(addWaypoint.iconIndex)
+            BasicWaypoint waypoint = new BasicWaypoint(new Vec3(addWaypoint.x(), addWaypoint.y(), addWaypoint.z()), addWaypoint.label(),
+                    BasicIconData.basic(addWaypoint.spriteName())
             );
             points.get(sender.level()).addPoint(waypoint);
         }
     }
 
     public void updateFromGui(
-            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toAdd,
-            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> toUpdate,
-            ImmutableList<UUID> toRemove)
+            List<PointAddRemoveEntry> toAdd,
+            List<PointAddRemoveEntry> toUpdate,
+            List<UUID> toRemove)
     {
         if (player.level().isClientSide && otherSideHasMod)
         {
@@ -320,12 +286,12 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
     public static void handleRemoveWaypoint(Player sender, RemoveWaypoint removeWaypoint)
     {
         var points = sender.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
-        points.find(removeWaypoint.id).ifPresent(pt -> {
+        points.find(removeWaypoint.id()).ifPresent(pt -> {
             if (!pt.isDynamic())
             {
                 var owner = pt.getOwner();
                 if (owner != null)
-                    owner.removePoint(removeWaypoint.id);
+                    owner.removePoint(removeWaypoint.id());
             }
         });
     }
@@ -343,33 +309,33 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
     public static void handleSync(Player player, byte[] packet)
     {
         var points = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
-        points.read(new FriendlyByteBuf(Unpooled.wrappedBuffer(packet)));
+        points.read(new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(packet), player.registryAccess()));
     }
 
     public static void handleUpdateFromGui(Player sender, UpdateWaypointsFromGui packet)
     {
         var points = sender.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
         {
-            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsAdded = packet.pointsAdded;
-            ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsUpdated = packet.pointsUpdated;
-            ImmutableList<UUID> pointsRemoved = packet.pointsRemoved;
-            points.applyUpdatesFromGui(pointsAdded, pointsUpdated, pointsRemoved);
+            points.applyUpdatesFromGui(packet.pointsAdded(), packet.pointsUpdated(), packet.pointsRemoved());
         }
     }
 
-    private void applyUpdatesFromGui(ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsAdded, ImmutableList<Pair<ResourceLocation, PointInfo<?>>> pointsUpdated, ImmutableList<UUID> pointsRemoved)
+    private void applyUpdatesFromGui(
+            List<PointAddRemoveEntry> pointsAdded,
+            List<PointAddRemoveEntry> pointsUpdated,
+            List<UUID> pointsRemoved)
     {
         for (UUID pt : pointsRemoved)
         {
             remove(pt);
         }
-        for (Pair<ResourceLocation, PointInfo<?>> pt : pointsAdded)
+        for (var pt : pointsAdded)
         {
-            get(ResourceKey.create(Registries.DIMENSION, pt.getFirst())).addPoint(pt.getSecond());
+            get(ResourceKey.create(Registries.DIMENSION, pt.key())).addPoint(pt.point());
         }
-        for (Pair<ResourceLocation, PointInfo<?>> pt : pointsUpdated)
+        for (var pt : pointsUpdated)
         {
-            get(ResourceKey.create(Registries.DIMENSION, pt.getFirst())).addPoint(pt.getSecond());
+            get(ResourceKey.create(Registries.DIMENSION, pt.key())).addPoint(pt.point());
         }
     }
 
@@ -380,7 +346,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
         {
             points.otherSideHasMod = true;
             if (!player.level().isClientSide)
-                points.sendInitialSync();
+                points.sendInitialSync(player.registryAccess());
         }
     }
 
@@ -452,7 +418,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
 
             if (!player.level().isClientSide && (changed.size() > 0 || removed.size() > 0))
             {
-                sendSync();
+                sendSync(player.registryAccess());
                 changed.clear();
                 removed.clear();
             }
@@ -462,7 +428,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
         {
             if (otherSideHasMod && player.level().isClientSide && point instanceof BasicWaypoint)
             {
-                PacketDistributor.SERVER.noArg().send(new AddWaypoint((BasicWaypoint) point));
+                PacketDistributor.sendToServer(AddWaypoint.of((BasicWaypoint) point));
             }
             else
             {
@@ -491,7 +457,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
             UUID id = point.getInternalId();
             if (otherSideHasMod && player.level().isClientSide)
             {
-                PacketDistributor.SERVER.noArg().send(new RemoveWaypoint(id));
+                PacketDistributor.sendToServer(new RemoveWaypoint(id));
             }
             else
             {
@@ -540,41 +506,41 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
-        public ListTag write()
+        public ListTag write(HolderLookup.Provider provider)
         {
             ListTag tag = new ListTag();
 
             for (PointInfo point : points.values())
             {
                 if (!point.isDynamic())
-                    tag.add(PointInfoRegistry.serializePoint(point));
+                    tag.add(PointInfoRegistry.serializePoint(point, provider));
             }
 
             return tag;
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
-        public void write(FriendlyByteBuf buffer)
+        public void write(RegistryFriendlyByteBuf buffer)
         {
             buffer.writeVarInt(points.size());
             for (PointInfo point : points.values())
             {
-                PointInfoRegistry.serializePoint(point, buffer);
+                PointInfoRegistry.serializePoint(buffer, point);
             }
         }
 
-        public void read(ListTag nbt)
+        public void read(ListTag nbt, HolderLookup.Provider provider)
         {
             points.clear();
             for (int i = 0; i < nbt.size(); i++)
             {
                 CompoundTag pointTag = nbt.getCompound(i);
-                PointInfo<?> point = PointInfoRegistry.deserializePoint(pointTag);
+                PointInfo<?> point = PointInfoRegistry.deserializePoint(pointTag, provider);
                 points.put(point.getInternalId(), point);
             }
         }
 
-        public void read(FriendlyByteBuf buffer)
+        public void read(RegistryFriendlyByteBuf buffer)
         {
             // IT BROKE WHEN IT WAS A METHOD REFERENCE
             points.values().removeIf(pointInfo -> pointInfo.isServerManaged());

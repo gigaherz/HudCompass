@@ -1,14 +1,22 @@
 package dev.gigaherz.hudcompass.icons;
 
 import dev.gigaherz.hudcompass.HudCompass;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nonnull;
 
 public class IconDataRegistry
 {
+
+    public static final StreamCodec<ByteBuf, IconDataSerializer<?>> BY_ID_STREAM_CODEC = ByteBufCodecs.idMapper(HudCompass.ICON_DATA_SERIALIZERS_REGISTRY);
+
     @Nonnull
     public static <T extends IIconData<T>> CompoundTag serializeIcon(@Nonnull T iconData)
     {
@@ -29,7 +37,7 @@ public class IconDataRegistry
         IconDataSerializer<T> serializer = iconData.getSerializer();
         if (!HudCompass.ICON_DATA_SERIALIZERS_REGISTRY.containsValue(serializer))
             throw new IllegalStateException("Could not find serializer in the registry! Make sure it's registered.");
-        buffer.writeId(HudCompass.ICON_DATA_SERIALIZERS_REGISTRY, serializer);
+        BY_ID_STREAM_CODEC.encode(buffer, serializer);
         serializer.write(iconData, buffer);
     }
 
@@ -48,7 +56,7 @@ public class IconDataRegistry
     @Nonnull
     public static IIconData<?> deserializeIcon(FriendlyByteBuf buffer)
     {
-        IconDataSerializer<?> serializer = buffer.readById(HudCompass.ICON_DATA_SERIALIZERS_REGISTRY);
+        IconDataSerializer<?> serializer = BY_ID_STREAM_CODEC.decode(buffer);
         if (serializer == null)
         {
             throw new IllegalStateException("Server returned unknown serializer");

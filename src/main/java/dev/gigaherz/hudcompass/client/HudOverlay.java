@@ -10,8 +10,10 @@ import dev.gigaherz.hudcompass.waypoints.client.PointRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.LayeredDraw;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -27,29 +29,25 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLConstructModEvent;
-import net.neoforged.neoforge.client.event.RegisterGuiOverlaysEvent;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
-import net.neoforged.neoforge.client.event.RenderGuiOverlayEvent;
-import net.neoforged.neoforge.client.gui.overlay.ExtendedGui;
-import net.neoforged.neoforge.client.gui.overlay.IGuiOverlay;
-import net.neoforged.neoforge.client.gui.overlay.VanillaGuiOverlay;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.neoforge.common.NeoForge;
 import org.joml.Matrix4f;
 
 import java.util.List;
+import java.util.function.Function;
 
-public class HudOverlay implements IGuiOverlay
+public class HudOverlay implements LayeredDraw.Layer
 {
-    public static final ResourceLocation LOCATION_MAP_ICONS = new ResourceLocation("minecraft", "textures/map/map_icons.png");
-    public static final ResourceLocation LOCATION_POI_ICONS = new ResourceLocation("hudcompass", "textures/poi_icons.png");
-
     private final Minecraft mc;
     private final Font font;
     private final TextureManager textureManager;
 
-    @Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
+    @EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = EventBusSubscriber.Bus.MOD)
     public static class ModBusEvents
     {
         @SubscribeEvent
@@ -58,9 +56,9 @@ public class HudOverlay implements IGuiOverlay
         }
 
         @SubscribeEvent
-        public static void registerOverlay(RegisterGuiOverlaysEvent event)
+        public static void registerOverlay(RegisterGuiLayersEvent event)
         {
-            event.registerAbove(VanillaGuiOverlay.BOSS_EVENT_PROGRESS.id(), HudCompass.location("compass"), new HudOverlay());
+            event.registerAbove(VanillaGuiLayers.BOSS_OVERLAY, HudCompass.location("compass"), new HudOverlay());
         }
     }
 
@@ -75,26 +73,26 @@ public class HudOverlay implements IGuiOverlay
     boolean needsPop = false;
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void preOverlayHigh(RenderGuiOverlayEvent.Pre event)
+    public void preOverlayHigh(RenderGuiLayerEvent.Pre event)
     {
-        if (event.getOverlay() == VanillaGuiOverlay.BOSS_EVENT_PROGRESS.type() && !mc.options.hideGui && canRender())
-        {
-            PoseStack matrixStack = event.getGuiGraphics().pose();
-            matrixStack.pushPose();
-            matrixStack.translate(0, 28, 0);
-            needsPop = true;
-        }
+        if (!event.getName().equals(VanillaGuiLayers.BOSS_OVERLAY) || mc.options.hideGui || !canRender())
+            return;
+
+        PoseStack matrixStack = event.getGuiGraphics().pose();
+        matrixStack.pushPose();
+        matrixStack.translate(0, 28, 0);
+        needsPop = true;
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void postOverlay(RenderGuiOverlayEvent.Post event)
+    public void postOverlay(RenderGuiLayerEvent.Post event)
     {
-        if (event.getOverlay() == VanillaGuiOverlay.BOSS_EVENT_PROGRESS.type() && needsPop)
-        {
-            PoseStack matrixStack = event.getGuiGraphics().pose();
-            matrixStack.popPose();
-            needsPop = false;
-        }
+        if (!event.getName().equals(VanillaGuiLayers.BOSS_OVERLAY) || !needsPop)
+            return;
+
+        PoseStack matrixStack = event.getGuiGraphics().pose();
+        matrixStack.popPose();
+        needsPop = false;
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
@@ -115,7 +113,7 @@ public class HudOverlay implements IGuiOverlay
     }
 
     @Override
-    public void render(ExtendedGui gui, GuiGraphics graphics, float _partialTicks, int width, int height)
+    public void render(GuiGraphics graphics, float _partialTicks)
     {
         if (!canRender()) return;
 
@@ -336,27 +334,72 @@ public class HudOverlay implements IGuiOverlay
 
     private void drawAboveArrow(GuiGraphics graphics, float yDelta, int alpha)
     {
-        int x = yDelta > 10 ? 8 : 0;
-        int y = 0;
-        blitRect(graphics, -4.5f, 4, x, y, 8, 8, 128, 128, LOCATION_POI_ICONS, alpha);
+        var tex = yDelta > 10 ? "above" : "slightly_above";
+        var x = -4.5f;
+        var y = 4.0f;
+        drawMapIcon(graphics, HudCompass.location(tex), x, x+8, y, y+8, alpha);
     }
 
     private void drawBelowArrow(GuiGraphics graphics, float yDelta, int alpha)
     {
-        int x = yDelta < -10 ? 24 : 16;
-        int y = 0;
-        blitRect(graphics, -4.5f, 16, x, y, 8, 8, 128, 128, LOCATION_POI_ICONS, alpha);
+        var tex = yDelta < -10 ? "below" : "slightly_below";
+        var x = -4.5f;
+        var y = 16.0f;
+        drawMapIcon(graphics, HudCompass.location(tex), x, x+8, y, y+8, alpha);
     }
 
-    /**
-     * Because the vanilla one messes with the GL state too much.
-     *
-     * @param x0    First X coord
-     * @param y0    First Y coord
-     * @param x1    Second X coord
-     * @param y1    Second Y coord
-     * @param color Rectangle color
-     */
+    public static void drawMapIcon(GuiGraphics graphics, ResourceLocation spriteName,
+                                  float x, float x2, float y, float y2, int alpha)
+    {
+        var sprite = Minecraft.getInstance().getMapDecorationTextures().textureAtlas.getSprite(spriteName);
+        drawSprite(graphics, sprite, x, x2, y, y2, alpha);
+    }
+
+    public static void drawSprite(GuiGraphics graphics, TextureAtlasSprite sprite,
+                                  float x, float x2, float y, float y2, int alpha)
+    {
+        blitRaw(graphics,
+                sprite.atlasLocation(),
+                x, x2, y, y2,
+                sprite.getU0(), sprite.getU1(),
+                sprite.getV0(), sprite.getV1(),
+                1, 1, 1, alpha/255.0f);
+    }
+
+    private static void blitRaw(
+            GuiGraphics graphics,
+            ResourceLocation pAtlasLocation,
+            float x1, float x2, float y1, float y2,
+            float u0, float u1, float v0, float v1,
+            float r, float g, float b, float a
+    ) {
+        RenderSystem.setShaderColor(1,1,1,1);
+        RenderSystem.setShaderTexture(0, pAtlasLocation);
+        RenderSystem.setShader(GameRenderer::getPositionColorTexShader);
+        RenderSystem.enableBlend();
+        Matrix4f matrix = graphics.pose().last().pose();
+        BufferBuilder bufferbuilder = Tesselator.getInstance().getBuilder();
+        bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX);
+        bufferbuilder.vertex(matrix, x1, y1, 0)
+                .color(r, g, b, a)
+                .uv(u0, v0)
+                .endVertex();
+        bufferbuilder.vertex(matrix, x1, y2, 0)
+                .color(r, g, b, a)
+                .uv(u0, v1)
+                .endVertex();
+        bufferbuilder.vertex(matrix, x2, y2, 0)
+                .color(r, g, b, a)
+                .uv(u1, v1)
+                .endVertex();
+        bufferbuilder.vertex(matrix, x2, y1, 0)
+                .color(r, g, b, a)
+                .uv(u1, v0)
+                .endVertex();
+        BufferUploader.drawWithShader(bufferbuilder.end());
+        RenderSystem.disableBlend();
+    }
+
     private static void fillRect(GuiGraphics graphics, float x0, float y0, float x1, float y1, int color)
     {
         RenderSystem.enableBlend();
@@ -376,33 +419,6 @@ public class HudOverlay implements IGuiOverlay
         builder.vertex(matrix, x1, y1, 0.0f).color(r, g, b, a).endVertex();
         builder.vertex(matrix, x1, y0, 0.0f).color(r, g, b, a).endVertex();
         builder.vertex(matrix, x0, y0, 0.0f).color(r, g, b, a).endVertex();
-        tess.end();
-    }
-
-    private static void blitRect(GuiGraphics graphics, float x0, float y0, float xt, float yt, float width, float height, int tWidth, int tHeight, ResourceLocation texture, int alpha)
-    {
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha / 255.0f);
-        RenderSystem.setShaderTexture(0, texture);
-
-        float tx0 = xt / tWidth;
-        float ty0 = yt / tHeight;
-        float tx1 = tx0 + width / tWidth;
-        float ty1 = ty0 + height / tHeight;
-
-        float x1 = x0 + width;
-        float y1 = y0 + height;
-
-        Tesselator tess = Tesselator.getInstance();
-        BufferBuilder builder = tess.getBuilder();
-        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        Matrix4f matrix = graphics.pose().last().pose();
-        builder.vertex(matrix, x0, y1, 0.0f).uv(tx0, ty1).endVertex();
-        builder.vertex(matrix, x1, y1, 0.0f).uv(tx1, ty1).endVertex();
-        builder.vertex(matrix, x1, y0, 0.0f).uv(tx1, ty0).endVertex();
-        builder.vertex(matrix, x0, y0, 0.0f).uv(tx0, ty0).endVertex();
         tess.end();
     }
 
