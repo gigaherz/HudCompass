@@ -2,6 +2,7 @@ package dev.gigaherz.hudcompass.waypoints;
 
 import dev.gigaherz.hudcompass.HudCompass;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -48,7 +49,7 @@ public class PointInfoRegistry
     public static PointInfo<?> deserializePoint(CompoundTag tag, HolderLookup.Provider provider)
     {
         ResourceLocation typeId = ResourceLocation.parse(tag.getString("Type"));
-        PointInfoType<?> type = HudCompass.POINT_INFO_TYPES_REGISTRY.get(typeId);
+        PointInfoType<?> type = HudCompass.POINT_INFO_TYPES_REGISTRY.get(typeId).map(Holder.Reference::value).orElse(null);
         if (type == null)
         {
             throw new IllegalStateException(String.format("Serializer not registered %s", typeId));

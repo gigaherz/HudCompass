@@ -151,8 +151,8 @@ public class ClientWaypointManagerScreen extends Screen
         if (world.dimensionTypeKey != null)
         {
             RegistryAccess dyn = player.connection.registryAccess();
-            DimensionType type = dyn.registryOrThrow(Registries.DIMENSION_TYPE).getOrThrow(world.dimensionTypeKey);
-            double scale = DimensionType.getTeleportationScale(player.level().dimensionType(), type);
+            var type = dyn.lookupOrThrow(Registries.DIMENSION_TYPE).getOrThrow(world.dimensionTypeKey);
+            double scale = DimensionType.getTeleportationScale(player.level().dimensionType(), type.value());
             return new Vec3(pos.x * scale, pos.y, pos.z * scale);
         }
 
@@ -242,7 +242,7 @@ public class ClientWaypointManagerScreen extends Screen
         {
             super(minecraft, 22);
 
-            this.title = Component.translatable("text.hudcompass.waypoint_editor.world", key.location());
+            this.title = Component.translatable("text.hudcompass.waypoint_editor.world", key.location().toString());
             this.worldKey = key;
             this.dimensionTypeKey = dimensionTypeKey;
         }

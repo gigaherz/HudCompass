@@ -15,14 +15,12 @@ public record BasicIconRenderer()
 
     public void renderIcon(BasicIconData data, Player player, TextureManager textureManager, GuiGraphics graphics, int x, int y, int alpha)
     {
-        RenderSystem.setShaderColor(data.r, data.g, data.b, data.a * (alpha / 255.0f));
-
         var xStart = x - ICON_WIDTH / 2;
         var yStart = y - ICON_HEIGHT / 2;
 
         HudOverlay.drawMapIcon(graphics, data.spriteName,
                 xStart, xStart + ICON_WIDTH,
                 yStart, yStart + ICON_HEIGHT,
-                alpha);
+                data.r, data.g, data.b, data.a * (alpha / 255.0f));
     }
 }

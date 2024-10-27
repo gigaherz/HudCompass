@@ -9,14 +9,15 @@ import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import dev.gigaherz.hudcompass.icons.client.IIconRenderer;
 import dev.gigaherz.hudcompass.icons.client.IconRendererRegistry;
-import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
 import net.minecraft.Util;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -319,15 +320,12 @@ public class PlayerTracker
             {
                 var tex = clientPlayer.getSkin().texture();
 
-                RenderSystem.setShaderTexture(0, tex);
-                RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha / 255.0f);
-
-                drawFaceLayer(graphics, x - 4, y - 4, 8, 8, 8);
-                drawFaceLayer(graphics, x - 4.5f, y - 4.5f, 9, 9, 40);
+                drawFaceLayer(graphics, tex, x - 4, y - 4, 8, 8, 8);
+                drawFaceLayer(graphics, tex, x - 4.5f, y - 4.5f, 9, 9, 40);
             }
         }
 
-        private static void drawFaceLayer(GuiGraphics graphics, float x1, float y1, float w, float h, int tx)
+        private static void drawFaceLayer(GuiGraphics graphics, ResourceLocation tex, float x1, float y1, float w, float h, int tx)
         {
             var pMatrix = graphics.pose().last().pose();
             var x2 = x1 + w;
@@ -335,13 +333,13 @@ public class PlayerTracker
             var u1 = tx / 64f;
             var u2 = (tx + 8) / 64f;
 
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            BufferBuilder bufferbuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-            bufferbuilder.addVertex(pMatrix, x1, y2, 0).setUv(u1, 16f / 64f);
-            bufferbuilder.addVertex(pMatrix, x2, y2, 0).setUv(u2, 16f / 64f);
-            bufferbuilder.addVertex(pMatrix, x2, y1, 0).setUv(u2, 8f / 64f);
-            bufferbuilder.addVertex(pMatrix, x1, y1, 0).setUv(u1, 8f / 64f);
-            BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+            var source = Minecraft.getInstance().renderBuffers().bufferSource();
+            var bufferbuilder = source.getBuffer(RenderType.guiTextured(tex));
+
+            bufferbuilder.addVertex(pMatrix, x1, y2, 0).setUv(u1, 16f / 64f).setColor(-1);
+            bufferbuilder.addVertex(pMatrix, x2, y2, 0).setUv(u2, 16f / 64f).setColor(-1);
+            bufferbuilder.addVertex(pMatrix, x2, y1, 0).setUv(u2, 8f / 64f).setColor(-1);
+            bufferbuilder.addVertex(pMatrix, x1, y1, 0).setUv(u1, 8f / 64f).setColor(-1);
         }
     }
 }

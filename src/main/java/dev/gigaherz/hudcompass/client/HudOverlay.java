@@ -14,6 +14,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.LayeredDraw;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.registries.Registries;
@@ -118,8 +119,8 @@ public class HudOverlay implements LayeredDraw.Layer
 
         boolean isPaused = mc.isPaused();
 
-        float elapsed = isPaused ? 0 : mc.getTimer().getGameTimeDeltaPartialTick(false);
-        float partialTicks = isPaused ? 0 : _partialTicks.getGameTimeDeltaPartialTick(false);
+        float elapsed = isPaused ? 0 : _partialTicks.getGameTimeDeltaTicks();
+        float partialTicks = _partialTicks.getGameTimeDeltaPartialTick(true);
 
         int xPos = mc.getWindow().getGuiScaledWidth() / 2;
         float yaw = Mth.lerp(partialTicks, mc.player.yHeadRotO, mc.player.yHeadRot) % 360;
@@ -151,7 +152,6 @@ public class HudOverlay implements LayeredDraw.Layer
         var playerPosition = new Vec3(playerPosX, playerPosY, playerPosZ);
 
         final float yaw0 = yaw;
-        final float elapsed0 = elapsed;
         var pois = mc.player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
         {
             List<PointInfo<?>> sortedPoints = Lists.newArrayList(pois.get(player.level()).getPoints());
@@ -166,7 +166,7 @@ public class HudOverlay implements LayeredDraw.Layer
             {
                 Vec3 position = point.getPosition(player, partialTicks);
                 Vec2 angleYd = angleFromPoint(position, playerPosX, playerPosY, playerPosZ);
-                drawPoi(player, graphics, yaw0, angleYd.x, angleYd.y, xPos, point, point == pois.getTargetted(), elapsed0, position.subtract(playerPosition));
+                drawPoi(player, graphics, yaw0, angleYd.x, angleYd.y, xPos, point, point == pois.getTargetted(), elapsed, position.subtract(playerPosition));
             }
         }
     }
@@ -176,15 +176,15 @@ public class HudOverlay implements LayeredDraw.Layer
         if (mc.player == null) return false;
 
         return switch (ConfigData.displayWhen)
-                {
-                    case NEVER -> false;
-                    case ALWAYS -> true;
-                    case HAS_COMPASS -> findCompassInInventory();
-                    case HOLDING_COMPASS -> findCompassInHands();
-                };
+        {
+            case NEVER -> false;
+            case ALWAYS -> true;
+            case HAS_COMPASS -> findCompassInInventory();
+            case HOLDING_COMPASS -> findCompassInHands();
+        };
     }
 
-    private static final TagKey<Item> MAKES_HUDCOMPASS_VISIBLE = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("hudcompass","makes_hudcompass_visible"));
+    private static final TagKey<Item> MAKES_HUDCOMPASS_VISIBLE = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("hudcompass", "makes_hudcompass_visible"));
 
     private boolean findCompassInHands()
     {
@@ -333,7 +333,7 @@ public class HudOverlay implements LayeredDraw.Layer
         var tex = yDelta > 10 ? "above" : "slightly_above";
         var x = -4.5f;
         var y = 4.0f;
-        drawMapIcon(graphics, HudCompass.location(tex), x, x+8, y, y+8, alpha);
+        drawMapIcon(graphics, HudCompass.location(tex), x, x + 8, y, y + 8, 1,1,1, alpha/255.0f);
     }
 
     private void drawBelowArrow(GuiGraphics graphics, float yDelta, int alpha)
@@ -341,25 +341,25 @@ public class HudOverlay implements LayeredDraw.Layer
         var tex = yDelta < -10 ? "below" : "slightly_below";
         var x = -4.5f;
         var y = 16.0f;
-        drawMapIcon(graphics, HudCompass.location(tex), x, x+8, y, y+8, alpha);
+        drawMapIcon(graphics, HudCompass.location(tex), x, x + 8, y, y + 8, 1,1,1, alpha/255.0f);
     }
 
     public static void drawMapIcon(GuiGraphics graphics, ResourceLocation spriteName,
-                                  float x, float x2, float y, float y2, int alpha)
+                                   float x, float x2, float y, float y2, float r, float g, float b, float a)
     {
         var sprite = Minecraft.getInstance().getMapDecorationTextures().textureAtlas.getSprite(spriteName);
-        drawSprite(graphics, sprite, x, x2, y, y2, alpha);
+        drawSprite(graphics, sprite, x, x2, y, y2, r, g, b, a);
     }
 
     public static void drawSprite(GuiGraphics graphics, TextureAtlasSprite sprite,
-                                  float x, float x2, float y, float y2, int alpha)
+                                  float x, float x2, float y, float y2, float r, float g, float b, float a)
     {
         blitRaw(graphics,
                 sprite.atlasLocation(),
                 x, x2, y, y2,
                 sprite.getU0(), sprite.getU1(),
                 sprite.getV0(), sprite.getV1(),
-                1, 1, 1, alpha/255.0f);
+                r, g, b, a);
     }
 
     private static void blitRaw(
@@ -368,39 +368,28 @@ public class HudOverlay implements LayeredDraw.Layer
             float x1, float x2, float y1, float y2,
             float u0, float u1, float v0, float v1,
             float r, float g, float b, float a
-    ) {
-        RenderSystem.setShaderColor(1,1,1,1);
-        RenderSystem.setShaderTexture(0, pAtlasLocation);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-        RenderSystem.enableBlend();
+    )
+    {
+        var source = Minecraft.getInstance().renderBuffers().bufferSource();
+        var bufferbuilder = source.getBuffer(RenderType.guiTextured(pAtlasLocation));
+
         Matrix4f matrix = graphics.pose().last().pose();
-        BufferBuilder bufferbuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
         bufferbuilder.addVertex(matrix, x1, y1, 0).setUv(u0, v0).setColor(r, g, b, a);
         bufferbuilder.addVertex(matrix, x1, y2, 0).setUv(u0, v1).setColor(r, g, b, a);
         bufferbuilder.addVertex(matrix, x2, y2, 0).setUv(u1, v1).setColor(r, g, b, a);
         bufferbuilder.addVertex(matrix, x2, y1, 0).setUv(u1, v0).setColor(r, g, b, a);
-        BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
-        RenderSystem.disableBlend();
     }
 
     private static void fillRect(GuiGraphics graphics, float x0, float y0, float x1, float y1, int color)
     {
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        var source = Minecraft.getInstance().renderBuffers().bufferSource();
+        var builder = source.getBuffer(RenderType.gui());
 
-        int a = (color >> 24 & 255);
-        int r = (color >> 16 & 255);
-        int g = (color >> 8 & 255);
-        int b = (color & 255);
-        BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         Matrix4f matrix = graphics.pose().last().pose();
-        builder.addVertex(matrix, x0, y1, 0.0f).setColor(r, g, b, a);
-        builder.addVertex(matrix, x1, y1, 0.0f).setColor(r, g, b, a);
-        builder.addVertex(matrix, x1, y0, 0.0f).setColor(r, g, b, a);
-        builder.addVertex(matrix, x0, y0, 0.0f).setColor(r, g, b, a);
-        BufferUploader.drawWithShader(builder.buildOrThrow());
+        builder.addVertex(matrix, x0, y1, 0.0f).setColor(color);
+        builder.addVertex(matrix, x1, y1, 0.0f).setColor(color);
+        builder.addVertex(matrix, x1, y0, 0.0f).setColor(color);
+        builder.addVertex(matrix, x0, y0, 0.0f).setColor(color);
     }
 
     private float angleDistance(float yaw, float other)

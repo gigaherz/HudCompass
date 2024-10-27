@@ -15,6 +15,9 @@ See where you go
 '''
 displayTest="IGNORE_ALL_VERSION"
 
+[[accessTransformers]]
+file="META-INF/accesstransformer.cfg"
+
 [[dependencies.hudcompass]]
    modId="neoforge"
    type="required"

@@ -273,7 +273,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
     private static ResourceKey<DimensionType> getDimensionTypeKey(Level world, @Nullable ResourceKey<DimensionType> fallback)
     {
         DimensionType dimType = world.dimensionType();
-        ResourceLocation key = world.registryAccess().registryOrThrow(Registries.DIMENSION_TYPE).getKey(dimType);
+        ResourceLocation key = world.registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE).getKey(dimType);
         if (key == null)
             return fallback;
         return ResourceKey.create(Registries.DIMENSION_TYPE, key);

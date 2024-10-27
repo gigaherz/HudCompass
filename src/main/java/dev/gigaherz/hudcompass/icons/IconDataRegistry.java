@@ -3,6 +3,7 @@ package dev.gigaherz.hudcompass.icons;
 import dev.gigaherz.hudcompass.HudCompass;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
+import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -45,7 +46,7 @@ public class IconDataRegistry
     public static IIconData<?> deserializeIcon(CompoundTag tag)
     {
         ResourceLocation serializerId = ResourceLocation.parse(tag.getString("Type"));
-        IconDataSerializer<?> serializer = HudCompass.ICON_DATA_SERIALIZERS_REGISTRY.get(serializerId);
+        IconDataSerializer<?> serializer = HudCompass.ICON_DATA_SERIALIZERS_REGISTRY.get(serializerId).map(Holder.Reference::value).orElse(null);
         if (serializer == null)
         {
             throw new IllegalStateException(String.format("Serializer not registered %s", serializerId));
