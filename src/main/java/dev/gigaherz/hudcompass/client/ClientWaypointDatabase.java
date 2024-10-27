@@ -15,7 +15,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,7 +37,7 @@ public class ClientWaypointDatabase
     {
         if (mc.isLocalServer())
         {
-            return mc.getSingleplayerServer().getServerDirectory().toPath().resolve("client_waypoints").resolve("waypoints.dat").toAbsolutePath();
+            return mc.getSingleplayerServer().getServerDirectory().resolve("client_waypoints").resolve("waypoints.dat").toAbsolutePath();
         }
         else
         {
@@ -146,7 +146,7 @@ public class ClientWaypointDatabase
     }
 
     @SubscribeEvent
-    public static void clientTick(TickEvent.ClientTickEvent event)
+    public static void clientTick(ClientTickEvent.Pre event)
     {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null)

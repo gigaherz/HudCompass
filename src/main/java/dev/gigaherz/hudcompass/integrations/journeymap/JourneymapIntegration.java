@@ -6,12 +6,13 @@ import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
-import journeymap.client.api.IClientAPI;
-import journeymap.client.api.IClientPlugin;
-import journeymap.client.api.display.Waypoint;
-import journeymap.client.api.event.ClientEvent;
-import journeymap.client.api.event.WaypointEvent;
-import journeymap.client.api.model.MapImage;
+import journeymap.api.v2.client.IClientAPI;
+import journeymap.api.v2.client.IClientPlugin;
+import journeymap.api.v2.common.event.CommonEventRegistry;
+import journeymap.api.v2.common.event.common.WaypointEvent;
+import journeymap.api.v2.client.model.MapImage;
+import journeymap.api.v2.common.event.impl.ClientEvent;
+import journeymap.api.v2.common.waypoint.Waypoint;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -28,7 +29,7 @@ import java.util.EnumSet;
 import java.util.UUID;
 
 
-@journeymap.client.api.ClientPlugin
+@journeymap.api.v2.client.JourneyMapPlugin(apiVersion = "2.0.0")
 public class JourneymapIntegration implements IClientPlugin
 {
     private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.POINT_INFO_TYPES;
@@ -43,7 +44,7 @@ public class JourneymapIntegration implements IClientPlugin
     @Override
     public void initialize(IClientAPI jmClientApi)
     {
-        jmClientApi.subscribe(getModId(), EnumSet.of(ClientEvent.Type.WAYPOINT));
+        CommonEventRegistry.WAYPOINT_EVENT.subscribe(getModId(), this::onWaypointEvent);
     }
 
     @Override
@@ -52,12 +53,8 @@ public class JourneymapIntegration implements IClientPlugin
         return HudCompass.MODID;
     }
 
-    @Override
-    public void onEvent(ClientEvent event)
+    public void onWaypointEvent(WaypointEvent wpEvent)
     {
-        if (!(event instanceof WaypointEvent wpEvent))
-            return;
-
         var player = Minecraft.getInstance().player;
         if (player == null) return;
 
@@ -73,7 +70,7 @@ public class JourneymapIntegration implements IClientPlugin
             var jmwp = wpEvent.waypoint;
             var id = getId(jmwp);
 
-            boolean isVisible = jmwp.isEnabled() && (jmwp.getDisplayDimensions() == null || Arrays.asList(jmwp.getDisplayDimensions()).contains(dimensionName));
+            boolean isVisible = jmwp.isEnabled() && (jmwp.getDimensions() == null || jmwp.getDimensions().contains(dimensionName));
             switch (wpEvent.getContext())
             {
                 case DELETED:
@@ -122,17 +119,14 @@ public class JourneymapIntegration implements IClientPlugin
             UUID id = getId(jmWaypoint);
             this.setInternalId(id);
 
-            if (jmWaypoint.hasIcon())
-            {
-                var basicIconData = getIconData();
-                MapImage icon = jmWaypoint.getIcon();
-                int rgb = icon.getColor();
-                float r = ((rgb >> 16) & 0xFF) / 255.0f;
-                float g = ((rgb >> 8) & 0xFF) / 255.0f;
-                float b = ((rgb) & 0xFF) / 255.0f;
-                float a = 1.0f; // icon.getOpacity();
-                basicIconData.setColor(r, g, b, a);
-            }
+            // TODO: icon textures
+            var basicIconData = getIconData();
+            int rgb = jmWaypoint.getIconColor();
+            float r = ((rgb >> 16) & 0xFF) / 255.0f;
+            float g = ((rgb >> 8) & 0xFF) / 255.0f;
+            float b = ((rgb) & 0xFF) / 255.0f;
+            float a = 1.0f; // icon.getOpacity();
+            basicIconData.setColor(r, g, b, a);
         }
 
         public JmWaypoint()
@@ -145,7 +139,7 @@ public class JourneymapIntegration implements IClientPlugin
         @Override
         public Vec3 getPosition()
         {
-            return Vec3.atCenterOf(jmWaypoint.getPosition());
+            return Vec3.atCenterOf(jmWaypoint.getBlockPos());
         }
 
         @Override

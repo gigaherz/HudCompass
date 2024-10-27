@@ -44,7 +44,7 @@ public class IconDataRegistry
     @Nonnull
     public static IIconData<?> deserializeIcon(CompoundTag tag)
     {
-        ResourceLocation serializerId = new ResourceLocation(tag.getString("Type"));
+        ResourceLocation serializerId = ResourceLocation.parse(tag.getString("Type"));
         IconDataSerializer<?> serializer = HudCompass.ICON_DATA_SERIALIZERS_REGISTRY.get(serializerId);
         if (serializer == null)
         {

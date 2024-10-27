@@ -47,7 +47,7 @@ public class PointInfoRegistry
     @Nonnull
     public static PointInfo<?> deserializePoint(CompoundTag tag, HolderLookup.Provider provider)
     {
-        ResourceLocation typeId = new ResourceLocation(tag.getString("Type"));
+        ResourceLocation typeId = ResourceLocation.parse(tag.getString("Type"));
         PointInfoType<?> type = HudCompass.POINT_INFO_TYPES_REGISTRY.get(typeId);
         if (type == null)
         {

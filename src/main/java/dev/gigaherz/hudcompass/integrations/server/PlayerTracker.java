@@ -29,8 +29,8 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.util.FakePlayer;
-import net.neoforged.neoforge.event.TickEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -124,11 +124,8 @@ public class PlayerTracker
 
     private int counter = 0;
 
-    private void playerTick(TickEvent.PlayerTickEvent event)
+    private void playerTick(PlayerTickEvent.Pre event)
     {
-        if (event.phase != TickEvent.Phase.END)
-            return;
-
         if (ConfigData.playerDisplay != ConfigData.PlayerDisplay.TEAM)
             return;
 
@@ -136,7 +133,7 @@ public class PlayerTracker
         {
             counter = 0;
 
-            Player player = event.player;
+            Player player = event.getEntity();
             if (player.level().isClientSide)
                 return;
 
@@ -339,13 +336,12 @@ public class PlayerTracker
             var u2 = (tx + 8) / 64f;
 
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            BufferBuilder bufferbuilder = Tesselator.getInstance().getBuilder();
-            bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-            bufferbuilder.vertex(pMatrix, x1, y2, 0).uv(u1, 16f / 64f).endVertex();
-            bufferbuilder.vertex(pMatrix, x2, y2, 0).uv(u2, 16f / 64f).endVertex();
-            bufferbuilder.vertex(pMatrix, x2, y1, 0).uv(u2, 8f / 64f).endVertex();
-            bufferbuilder.vertex(pMatrix, x1, y1, 0).uv(u1, 8f / 64f).endVertex();
-            Tesselator.getInstance().end();
+            BufferBuilder bufferbuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+            bufferbuilder.addVertex(pMatrix, x1, y2, 0).setUv(u1, 16f / 64f);
+            bufferbuilder.addVertex(pMatrix, x2, y2, 0).setUv(u2, 16f / 64f);
+            bufferbuilder.addVertex(pMatrix, x2, y1, 0).setUv(u2, 8f / 64f);
+            bufferbuilder.addVertex(pMatrix, x1, y1, 0).setUv(u1, 8f / 64f);
+            BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
         }
     }
 }

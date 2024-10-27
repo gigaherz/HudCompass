@@ -12,7 +12,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -30,16 +30,13 @@ public class SpawnPointPoints
 
     private int counter = 0;
 
-    private void playerTick(TickEvent.PlayerTickEvent event)
+    private void playerTick(PlayerTickEvent.Post event)
     {
-        if (event.phase != TickEvent.Phase.END)
-            return;
-
         if ((++counter) > 20)
         {
             counter = 0;
 
-            Player player = event.player;
+            Player player = event.getEntity();
             if (player.level().isClientSide)
                 return;
 

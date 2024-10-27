@@ -15,8 +15,8 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.event.TickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 @EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = EventBusSubscriber.Bus.GAME)
@@ -44,7 +44,7 @@ public class ClientHandler
     }
 
     @SubscribeEvent
-    public static void handleKeys(TickEvent.ClientTickEvent ev)
+    public static void handleKeys(ClientTickEvent.Pre ev)
     {
         Minecraft mc = Minecraft.getInstance();
 
@@ -110,7 +110,7 @@ public class ClientHandler
     }
 
     @SubscribeEvent
-    public static void clientTickEvent(TickEvent.ClientTickEvent event)
+    public static void clientTickEvent(ClientTickEvent.Pre event)
     {
         LocalPlayer player = Minecraft.getInstance().player;
         if (player != null)

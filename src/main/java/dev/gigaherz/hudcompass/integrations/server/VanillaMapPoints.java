@@ -20,7 +20,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -56,16 +56,13 @@ public class VanillaMapPoints
 
     private int counter = 0;
 
-    private void playerTick(TickEvent.PlayerTickEvent event)
+    private void playerTick(PlayerTickEvent.Post event)
     {
-        if (event.phase != TickEvent.Phase.END)
-            return;
-
         if ((++counter) > 20)
         {
             counter = 0;
 
-            Player player = event.player;
+            Player player = event.getEntity();
             if (player.level().isClientSide)
                 return;
 

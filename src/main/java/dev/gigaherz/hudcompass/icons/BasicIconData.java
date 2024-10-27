@@ -21,7 +21,7 @@ public class BasicIconData implements IIconData<BasicIconData>
 
     public static BasicIconData mapDecoration(String spriteName)
     {
-        return new BasicIconData(HudCompass.BASIC_SERIALIZER.get(), new ResourceLocation(spriteName));
+        return new BasicIconData(HudCompass.BASIC_SERIALIZER.get(), ResourceLocation.parse(spriteName));
     }
 
     public static BasicIconData basic(ResourceLocation spriteName)
@@ -70,7 +70,7 @@ public class BasicIconData implements IIconData<BasicIconData>
         {
             return new BasicIconData(
                     this,
-                    new ResourceLocation(tag.getString("SpriteName"))
+                    ResourceLocation.parse(tag.getString("SpriteName"))
             );
         }
 

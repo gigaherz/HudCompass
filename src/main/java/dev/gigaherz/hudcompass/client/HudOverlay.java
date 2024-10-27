@@ -7,6 +7,7 @@ import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.client.PointRenderer;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -51,11 +52,6 @@ public class HudOverlay implements LayeredDraw.Layer
     public static class ModBusEvents
     {
         @SubscribeEvent
-        public static void init(FMLConstructModEvent event)
-        {
-        }
-
-        @SubscribeEvent
         public static void registerOverlay(RegisterGuiLayersEvent event)
         {
             event.registerAbove(VanillaGuiLayers.BOSS_OVERLAY, HudCompass.location("compass"), new HudOverlay());
@@ -66,7 +62,7 @@ public class HudOverlay implements LayeredDraw.Layer
     {
         this.mc = Minecraft.getInstance();
         this.font = mc.font;
-        this.textureManager = mc.textureManager;
+        this.textureManager = mc.getTextureManager();
         NeoForge.EVENT_BUS.register(this);
     }
 
@@ -113,7 +109,7 @@ public class HudOverlay implements LayeredDraw.Layer
     }
 
     @Override
-    public void render(GuiGraphics graphics, float _partialTicks)
+    public void render(GuiGraphics graphics, DeltaTracker _partialTicks)
     {
         if (!canRender()) return;
 
@@ -122,8 +118,8 @@ public class HudOverlay implements LayeredDraw.Layer
 
         boolean isPaused = mc.isPaused();
 
-        float elapsed = isPaused ? 0 : mc.getDeltaFrameTime();
-        float partialTicks = isPaused ? 0 : _partialTicks;
+        float elapsed = isPaused ? 0 : mc.getTimer().getGameTimeDeltaPartialTick(false);
+        float partialTicks = isPaused ? 0 : _partialTicks.getGameTimeDeltaPartialTick(false);
 
         int xPos = mc.getWindow().getGuiScaledWidth() / 2;
         float yaw = Mth.lerp(partialTicks, mc.player.yHeadRotO, mc.player.yHeadRot) % 360;
@@ -188,7 +184,7 @@ public class HudOverlay implements LayeredDraw.Layer
                 };
     }
 
-    private static final TagKey<Item> MAKES_HUDCOMPASS_VISIBLE = TagKey.create(Registries.ITEM, new ResourceLocation("hudcompass:makes_hudcompass_visible"));
+    private static final TagKey<Item> MAKES_HUDCOMPASS_VISIBLE = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("hudcompass","makes_hudcompass_visible"));
 
     private boolean findCompassInHands()
     {
@@ -375,28 +371,15 @@ public class HudOverlay implements LayeredDraw.Layer
     ) {
         RenderSystem.setShaderColor(1,1,1,1);
         RenderSystem.setShaderTexture(0, pAtlasLocation);
-        RenderSystem.setShader(GameRenderer::getPositionColorTexShader);
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         RenderSystem.enableBlend();
         Matrix4f matrix = graphics.pose().last().pose();
-        BufferBuilder bufferbuilder = Tesselator.getInstance().getBuilder();
-        bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX);
-        bufferbuilder.vertex(matrix, x1, y1, 0)
-                .color(r, g, b, a)
-                .uv(u0, v0)
-                .endVertex();
-        bufferbuilder.vertex(matrix, x1, y2, 0)
-                .color(r, g, b, a)
-                .uv(u0, v1)
-                .endVertex();
-        bufferbuilder.vertex(matrix, x2, y2, 0)
-                .color(r, g, b, a)
-                .uv(u1, v1)
-                .endVertex();
-        bufferbuilder.vertex(matrix, x2, y1, 0)
-                .color(r, g, b, a)
-                .uv(u1, v0)
-                .endVertex();
-        BufferUploader.drawWithShader(bufferbuilder.end());
+        BufferBuilder bufferbuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        bufferbuilder.addVertex(matrix, x1, y1, 0).setUv(u0, v0).setColor(r, g, b, a);
+        bufferbuilder.addVertex(matrix, x1, y2, 0).setUv(u0, v1).setColor(r, g, b, a);
+        bufferbuilder.addVertex(matrix, x2, y2, 0).setUv(u1, v1).setColor(r, g, b, a);
+        bufferbuilder.addVertex(matrix, x2, y1, 0).setUv(u1, v0).setColor(r, g, b, a);
+        BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
         RenderSystem.disableBlend();
     }
 
@@ -411,15 +394,13 @@ public class HudOverlay implements LayeredDraw.Layer
         int r = (color >> 16 & 255);
         int g = (color >> 8 & 255);
         int b = (color & 255);
-        Tesselator tess = Tesselator.getInstance();
-        BufferBuilder builder = tess.getBuilder();
-        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         Matrix4f matrix = graphics.pose().last().pose();
-        builder.vertex(matrix, x0, y1, 0.0f).color(r, g, b, a).endVertex();
-        builder.vertex(matrix, x1, y1, 0.0f).color(r, g, b, a).endVertex();
-        builder.vertex(matrix, x1, y0, 0.0f).color(r, g, b, a).endVertex();
-        builder.vertex(matrix, x0, y0, 0.0f).color(r, g, b, a).endVertex();
-        tess.end();
+        builder.addVertex(matrix, x0, y1, 0.0f).setColor(r, g, b, a);
+        builder.addVertex(matrix, x1, y1, 0.0f).setColor(r, g, b, a);
+        builder.addVertex(matrix, x1, y0, 0.0f).setColor(r, g, b, a);
+        builder.addVertex(matrix, x0, y0, 0.0f).setColor(r, g, b, a);
+        BufferUploader.drawWithShader(builder.buildOrThrow());
     }
 
     private float angleDistance(float yaw, float other)

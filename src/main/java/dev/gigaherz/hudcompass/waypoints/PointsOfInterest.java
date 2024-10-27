@@ -30,6 +30,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.attachment.IAttachmentHolder;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.connection.ConnectionType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -141,10 +142,10 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
         for (int i = 0; i < nbt.size(); i++)
         {
             CompoundTag tag = nbt.getCompound(i);
-            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(tag.getString("World")));
+            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(tag.getString("World")));
             ResourceKey<DimensionType> dimType = null;
             if (tag.contains("DimensionKey", Tag.TAG_STRING))
-                dimType = ResourceKey.create(Registries.DIMENSION_TYPE, new ResourceLocation(tag.getString("DimensionKey")));
+                dimType = ResourceKey.create(Registries.DIMENSION_TYPE, ResourceLocation.parse(tag.getString("DimensionKey")));
             WorldPoints p = get(key, dimType);
             p.read(tag.getList("POIs", Tag.TAG_COMPOUND), provider);
         }
@@ -309,7 +310,7 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
     public static void handleSync(Player player, byte[] packet)
     {
         var points = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
-        points.read(new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(packet), player.registryAccess()));
+        points.read(new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(packet), player.registryAccess(), ConnectionType.NEOFORGE));
     }
 
     public static void handleUpdateFromGui(Player sender, UpdateWaypointsFromGui packet)

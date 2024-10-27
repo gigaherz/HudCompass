@@ -3,18 +3,15 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.gradle.userdev' version '7.0.107'
+    id 'net.neoforged.gradle.userdev' version '7.0.161'
 }
 
-version = "0.5.9"
+version = "0.6.0"
 group= "dev.gigaherz.hudcompass"
 
-Provider<String> minecraftVersion(Transformer<String, String> mapper) {
-    return project.userDevRuntime.runtimes.map(r -> r.values().first().specification.minecraftVersion).map(mapper)
-}
-
+var  minecraftVersion = project.userDevRuntime.runtimes.map(r -> r.values().first().specification.minecraftVersion)
 base {
-    archivesName = minecraftVersion { "HudCompass-${it}" }
+    archivesName = minecraftVersion.map { "HudCompass-${it}" }
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -45,32 +42,34 @@ runs {
     }
 
     client2 {
-        configure ("client")
+        configure "client"
 
-        programArguments.addAll '--username', 'gigaherz', '--user', 'gigaherz', '--uuid', '67752848-2bae-4c88-ae42-150fab05fea8'
+        arguments '--username', 'gigaherz', '--user', 'gigaherz', '--uuid', '67752848-2bae-4c88-ae42-150fab05fea8'
     }
 
     server {
     }
 
     data {
-        programArguments.addAll '--mod', 'hudcompass', '--all', '--output', file('src/main/generated_resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        arguments '--mod', 'hudcompass', '--all', '--output', file('src/main/generated_resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
     }
 }
 
 subsystems {
     parchment {
-        minecraftVersion="1.20.4"
-        mappingsVersion="2024.04.14"
+        minecraftVersion="1.21"
+        mappingsVersion="2024.06.23"
     }
 }
 
 minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
 
 dependencies {
-    implementation 'net.neoforged:neoforge:20.5.3-beta'
+    implementation 'net.neoforged:neoforge:21.1.21'
 
-    compileOnly ('curse.maven:journeymap-32274:4950597') // https://www.curseforge.com/minecraft/mc-mods/journeymap/files/4950597
+    compileOnly 'flatdir:journeymap-api-neoforge:2.0.0-1.21.1-SNAPSHOT'
+    compileOnly 'flatdir:journeymap-neoforge:1.21.1-6.0.0-beta.28'
+    runtimeOnly 'flatdir:journeymap-neoforge:1.21.1-6.0.0-beta.28'
 }
 
 jar {

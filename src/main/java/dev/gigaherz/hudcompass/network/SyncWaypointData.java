@@ -11,6 +11,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.connection.ConnectionType;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record SyncWaypointData(byte[] bytes) implements CustomPacketPayload
@@ -31,7 +32,7 @@ public record SyncWaypointData(byte[] bytes) implements CustomPacketPayload
 
     public static SyncWaypointData of(PointsOfInterest pointsData, RegistryAccess registryAccess)
     {
-        var temp = new RegistryFriendlyByteBuf(Unpooled.buffer(), registryAccess);
+        var temp = new RegistryFriendlyByteBuf(Unpooled.buffer(), registryAccess, ConnectionType.NEOFORGE);
         pointsData.write(temp);
         var bytes = new byte[temp.readableBytes()];
         temp.readBytes(bytes, 0, bytes.length);

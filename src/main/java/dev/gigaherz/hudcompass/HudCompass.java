@@ -22,15 +22,17 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.TickEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
+import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 
 @Mod(HudCompass.MODID)
 public class HudCompass
@@ -58,7 +60,8 @@ public class HudCompass
     public HudCompass(ModContainer container, IEventBus modEventBus)
     {
         modEventBus.addListener(this::registerPackets);
-        modEventBus.addListener(this::modConfig);
+        modEventBus.addListener(this::modConfigLoad);
+        modEventBus.addListener(this::modConfigReload);
         modEventBus.addListener(this::registerCapabilities);
 
         POINT_INFO_TYPES.register(modEventBus);
@@ -79,9 +82,21 @@ public class HudCompass
 
         container.registerConfig(ModConfig.Type.CLIENT, ConfigData.CLIENT_SPEC);
         container.registerConfig(ModConfig.Type.COMMON, ConfigData.COMMON_SPEC);
+
+        container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }
 
-    public void modConfig(ModConfigEvent event)
+    public void modConfigLoad(ModConfigEvent.Loading event)
+    {
+        refreshConfig(event);
+    }
+
+    public void modConfigReload(ModConfigEvent.Reloading event)
+    {
+        refreshConfig(event);
+    }
+
+    private void refreshConfig(ModConfigEvent event)
     {
         ModConfig config = event.getConfig();
         if (config.getSpec() == ConfigData.CLIENT_SPEC)
@@ -105,12 +120,9 @@ public class HudCompass
         registrar.playToClient(SyncWaypointData.TYPE, SyncWaypointData.STREAM_CODEC, SyncWaypointData::handle);
     }
 
-    public void playerTickEvent(TickEvent.PlayerTickEvent event)
+    public void playerTickEvent(PlayerTickEvent.Post event)
     {
-        if (event.phase != TickEvent.Phase.END)
-            return;
-
-        if (!(event.player instanceof ServerPlayer player))
+        if (!(event.getEntity() instanceof ServerPlayer player))
             return;
 
         PointsOfInterest.onTick(player);
@@ -129,6 +141,6 @@ public class HudCompass
 
     public static ResourceLocation location(String path)
     {
-        return new ResourceLocation(MODID, path);
+        return ResourceLocation.fromNamespaceAndPath(MODID, path);
     }
 }
