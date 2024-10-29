@@ -13,38 +13,49 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLConstructModEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.gui.ConfigurationScreen;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-@EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = EventBusSubscriber.Bus.GAME)
+@Mod(value = HudCompass.MODID, dist = Dist.CLIENT)
 public class ClientHandler
 {
     public static KeyMapping ADD_WAYPOINT;
     public static KeyMapping REMOVE_WAYPOINT;
     public static KeyMapping EDIT_WAYPOINTS;
 
-    @EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = EventBusSubscriber.Bus.MOD)
-    public static class ModBus
+    public ClientHandler(ModContainer container, IEventBus modEventBus)
     {
-        @SubscribeEvent
-        public static void initKeybinds(RegisterKeyMappingsEvent event)
-        {
-            event.register(ADD_WAYPOINT =
-                    new KeyMapping("key.hudcompass.add_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
+        modEventBus.addListener(this::initKeybinds);
 
-            event.register(REMOVE_WAYPOINT =
-                    new KeyMapping("key.hudcompass.remove_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
+        NeoForge.EVENT_BUS.addListener(this::handleKeys);
+        NeoForge.EVENT_BUS.addListener(this::clientTickEvent);
 
-            event.register(EDIT_WAYPOINTS =
-                    new KeyMapping("key.hudcompass.edit_waypoints", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
-        }
+        container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }
 
-    @SubscribeEvent
-    public static void handleKeys(ClientTickEvent.Pre ev)
+    public void initKeybinds(RegisterKeyMappingsEvent event)
+    {
+        event.register(ADD_WAYPOINT =
+                new KeyMapping("key.hudcompass.add_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
+
+        event.register(REMOVE_WAYPOINT =
+                new KeyMapping("key.hudcompass.remove_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
+
+        event.register(EDIT_WAYPOINTS =
+                new KeyMapping("key.hudcompass.edit_waypoints", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
+    }
+
+    public void handleKeys(ClientTickEvent.Pre ev)
     {
         Minecraft mc = Minecraft.getInstance();
 
@@ -109,8 +120,7 @@ public class ClientHandler
         }
     }
 
-    @SubscribeEvent
-    public static void clientTickEvent(ClientTickEvent.Pre event)
+    public void clientTickEvent(ClientTickEvent.Pre event)
     {
         LocalPlayer player = Minecraft.getInstance().player;
         if (player != null)
