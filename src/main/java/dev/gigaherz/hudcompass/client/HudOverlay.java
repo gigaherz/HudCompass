@@ -180,6 +180,9 @@ public class HudOverlay implements IGuiOverlay
     {
         if (mc.player == null) return false;
 
+        if (mc.options.keyPlayerList.isDown())
+            return false;
+
         return switch (ConfigData.displayWhen)
                 {
                     case NEVER -> false;
