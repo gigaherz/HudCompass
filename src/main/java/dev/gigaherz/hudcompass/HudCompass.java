@@ -83,7 +83,6 @@ public class HudCompass
         container.registerConfig(ModConfig.Type.CLIENT, ConfigData.CLIENT_SPEC);
         container.registerConfig(ModConfig.Type.COMMON, ConfigData.COMMON_SPEC);
 
-        container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }
 
     public void modConfigLoad(ModConfigEvent.Loading event)

@@ -31,7 +31,6 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.fml.event.lifecycle.FMLConstructModEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
@@ -40,7 +39,6 @@ import net.neoforged.neoforge.common.NeoForge;
 import org.joml.Matrix4f;
 
 import java.util.List;
-import java.util.function.Function;
 
 public class HudOverlay implements LayeredDraw.Layer
 {
@@ -174,6 +172,9 @@ public class HudOverlay implements LayeredDraw.Layer
     private boolean canRender()
     {
         if (mc.player == null) return false;
+
+        if (mc.options.keyPlayerList.isDown())
+            return false;
 
         return switch (ConfigData.displayWhen)
                 {
