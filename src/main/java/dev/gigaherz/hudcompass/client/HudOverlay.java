@@ -36,11 +36,16 @@ import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent;
 import org.joml.Matrix4f;
+import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.SlotResult;
+import net.minecraft.world.item.Items;
 
 import java.util.List;
+import java.util.Optional;
 
 @Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class HudOverlay implements IGuiOverlay
@@ -183,11 +188,13 @@ public class HudOverlay implements IGuiOverlay
         if (mc.options.keyPlayerList.isDown())
             return false;
 
+        boolean hasCompassInCurios = ModList.get().isLoaded("curios") && findCompassInCurios(); // Only check Curios if installed
+
         return switch (ConfigData.displayWhen)
                 {
                     case NEVER -> false;
                     case ALWAYS -> true;
-                    case HAS_COMPASS -> findCompassInInventory();
+                    case HAS_COMPASS -> findCompassInInventory() || hasCompassInCurios; // Added optional Curios check
                     case HOLDING_COMPASS -> findCompassInHands();
                 };
     }
@@ -213,6 +220,24 @@ public class HudOverlay implements IGuiOverlay
                 return true;
         }
         return false;
+    }
+
+    private boolean findCompassInCurios() {
+        if (mc.player == null) return false;
+
+        // Check if Curios is loaded before using its API
+        if (!ModList.get().isLoaded("curios")) return false;
+
+        try {
+            // Use Curios API safely
+            Optional<SlotResult> curioSlot = top.theillusivec4.curios.api.CuriosApi.getCuriosHelper()
+                    .findFirstCurio(mc.player, Items.COMPASS);
+
+            return curioSlot.isPresent();
+        } catch (Exception e) {
+            // If something goes wrong, fail gracefully and return false
+            return false;
+        }
     }
 
     private Vec2 angleFromPoint(Vec3 position, double playerPosX, double playerPosY, double playerPosZ)
