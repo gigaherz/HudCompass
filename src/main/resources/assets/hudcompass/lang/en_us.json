@@ -1,4 +1,6 @@
 {
+  "curios.slot": "Slot",
+  "curios.identifier.compass": "Compass",
 
   "key.hudcompass.category": "Hud Compass",
   "key.hudcompass.add_waypoint": "Quick Waypoint",
