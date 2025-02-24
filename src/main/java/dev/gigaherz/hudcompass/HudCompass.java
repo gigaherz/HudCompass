@@ -4,6 +4,7 @@ import dev.gigaherz.hudcompass.client.ClientHandler;
 import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
+import dev.gigaherz.hudcompass.integrations.curios.CuriosSlotIntegration;
 import dev.gigaherz.hudcompass.integrations.journeymap.JourneymapIntegration;
 import dev.gigaherz.hudcompass.integrations.server.PlayerTracker;
 import dev.gigaherz.hudcompass.integrations.server.SpawnPointPoints;
@@ -33,6 +34,7 @@ import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
@@ -53,6 +55,8 @@ public class HudCompass
     public static final String MODID = "hudcompass";
 
     public static HudCompass instance;
+
+    private static boolean curiosLoaded;
 
     public static final Logger LOGGER = LogManager.getLogger(MODID);
 
@@ -113,6 +117,11 @@ public class HudCompass
             JourneymapIntegration.staticInit();
         }
 
+        if (ModList.get().isLoaded("curios")) {
+            curiosLoaded = true;
+            modEventBus.addListener(this::enqueueIMC);
+        }
+
         ModLoadingContext modLoadingContext = ModLoadingContext.get();
         //modLoadingContext.registerConfig(ModConfig.Type.SERVER, ConfigData.SERVER_SPEC);
         modLoadingContext.registerConfig(ModConfig.Type.CLIENT, ConfigData.CLIENT_SPEC);
@@ -120,6 +129,12 @@ public class HudCompass
 
         //Make sure the mod being absent on the other network side does not cause the client to display the server as incompatible
         ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> "", (a, b) -> true));
+    }
+
+    private void enqueueIMC(final InterModEnqueueEvent event) {
+        if (curiosLoaded) {
+            CuriosSlotIntegration.register(event);
+        }
     }
 
     public void modConfig(ModConfigEvent event)
