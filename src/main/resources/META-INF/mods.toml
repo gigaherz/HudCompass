@@ -32,3 +32,9 @@ See where you go
    versionRange="[5.8.0beta17,)"
    ordering="NONE"
    side="BOTH"
+[[dependencies.hudcompass]]
+   modId="curios"
+   mandatory=false
+   versionRange="[${curios_version},)"
+   ordering="NONE"
+   side="BOTH"

@@ -33,7 +33,14 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
+// For curios support
+import net.minecraftforge.fml.ModList;
+import net.minecraft.world.item.Items;
+import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.SlotResult;
+
 import java.util.List;
+import java.util.Optional;
 
 public class HudOverlay extends GuiComponent implements IIngameOverlay
 {
@@ -172,11 +179,13 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
     {
         if (mc.player == null) return false;
 
+        boolean hasCompassInCurios = ModList.get().isLoaded("curios") && findCompassInCurios();
+
         return switch (ConfigData.displayWhen)
                 {
                     case NEVER -> false;
                     case ALWAYS -> true;
-                    case HAS_COMPASS -> findCompassInInventory();
+                    case HAS_COMPASS -> findCompassInInventory() || hasCompassInCurios;
                     case HOLDING_COMPASS -> findCompassInHands();
                 };
     }
@@ -202,6 +211,21 @@ public class HudOverlay extends GuiComponent implements IIngameOverlay
                 return true;
         }
         return false;
+    }
+
+    private boolean findCompassInCurios() {
+        if (mc.player == null) return false;
+
+        if (!ModList.get().isLoaded("curios")) return false;
+
+        try {
+            Optional<SlotResult> curioSlot = CuriosApi.getCuriosHelper()
+                    .findFirstCurio(mc.player, Items.COMPASS);
+
+            return curioSlot.isPresent();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private Vec2 angleFromPoint(Vec3 position, double playerPosX, double playerPosY, double playerPosZ)
