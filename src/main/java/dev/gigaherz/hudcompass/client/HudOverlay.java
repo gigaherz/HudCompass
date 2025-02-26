@@ -5,6 +5,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
+import dev.gigaherz.hudcompass.integrations.curios.CuriosIntegration;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.client.PointRenderer;
@@ -36,11 +37,16 @@ import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent;
 import org.joml.Matrix4f;
+import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.SlotResult;
+import net.minecraft.world.item.Items;
 
 import java.util.List;
+import java.util.Optional;
 
 @Mod.EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class HudOverlay implements IGuiOverlay
@@ -183,11 +189,13 @@ public class HudOverlay implements IGuiOverlay
         if (mc.options.keyPlayerList.isDown())
             return false;
 
+        boolean hasCompassInCurios = ModList.get().isLoaded("curios") && findCompassInCurios(); // Only check Curios if installed
+
         return switch (ConfigData.displayWhen)
                 {
                     case NEVER -> false;
                     case ALWAYS -> true;
-                    case HAS_COMPASS -> findCompassInInventory();
+                    case HAS_COMPASS -> findCompassInInventory() || hasCompassInCurios; // Added optional Curios check
                     case HOLDING_COMPASS -> findCompassInHands();
                 };
     }
@@ -213,6 +221,10 @@ public class HudOverlay implements IGuiOverlay
                 return true;
         }
         return false;
+    }
+
+    private boolean findCompassInCurios() {
+        return CuriosIntegration.findCompassInCurios(mc, MAKES_HUDCOMPASS_VISIBLE);
     }
 
     private Vec2 angleFromPoint(Vec3 position, double playerPosX, double playerPosY, double playerPosZ)
