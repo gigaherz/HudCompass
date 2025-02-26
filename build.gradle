@@ -101,7 +101,7 @@ dependencies {
 
     compileOnly fg.deobf('curse.maven:journeymap-32274:4873848') // https://www.curseforge.com/minecraft/mc-mods/journeymap/files/4873848
 
-    implementation fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}+${minecraft_version}")
+    implementation fg.deobf("top.theillusivec4.curios:curios-forge:5.12.0+1.20.1")
 }
 
 jar {

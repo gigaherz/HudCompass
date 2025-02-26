@@ -5,6 +5,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
+import dev.gigaherz.hudcompass.integrations.curios.CuriosIntegration;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.client.PointRenderer;
@@ -223,21 +224,7 @@ public class HudOverlay implements IGuiOverlay
     }
 
     private boolean findCompassInCurios() {
-        if (mc.player == null) return false;
-
-        // Check if Curios is loaded before using its API
-        if (!ModList.get().isLoaded("curios")) return false;
-
-        try {
-            // Use Curios API safely
-            Optional<SlotResult> curioSlot = top.theillusivec4.curios.api.CuriosApi.getCuriosHelper()
-                    .findFirstCurio(mc.player, Items.COMPASS);
-
-            return curioSlot.isPresent();
-        } catch (Exception e) {
-            // If something goes wrong, fail gracefully and return false
-            return false;
-        }
+        return CuriosIntegration.findCompassInCurios(mc, MAKES_HUDCOMPASS_VISIBLE);
     }
 
     private Vec2 angleFromPoint(Vec3 position, double playerPosX, double playerPosY, double playerPosZ)
