@@ -1,5 +1,9 @@
 package dev.gigaherz.hudcompass.waypoints;
 
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSerializer;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.JsonOps;
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataRegistry;
 import net.minecraft.core.HolderLookup;
@@ -10,7 +14,11 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
@@ -155,27 +163,25 @@ public abstract class PointInfo<T extends PointInfo<T>>
         }
     }
 
-    public final CompoundTag write(CompoundTag tag, HolderLookup.Provider provider)
+    public final void write(ValueOutput output)
     {
-        tag.putString("ID", internalId.toString());
-        if (label != null) tag.putString("Label", Component.Serializer.toJson(label, provider));
-        tag.put("Icon", IconDataRegistry.serializeIcon((IIconData)iconData));
-        tag.putBoolean("DisplayVerticalDistance", displayVerticalDistance);
-        serializeAdditional(tag);
-        return tag;
+        output.putString("ID", internalId.toString());
+        if (label != null)
+        {
+            output.store("Label", ComponentSerialization.CODEC, label);
+        }
+        IconDataRegistry.serializeIcon((IIconData)iconData, output.child("Icon"));
+        output.putBoolean("DisplayVerticalDistance", displayVerticalDistance);
+        serializeAdditional(output);
     }
 
-    public final void read(CompoundTag tag, HolderLookup.Provider provider)
+    public final void read(ValueInput input)
     {
-        internalId = UUID.fromString(tag.getString("ID"));
-        if (tag.contains("Label", Tag.TAG_STRING))
-            label = Component.Serializer.fromJson(tag.getString("Label"), provider);
-        else
-            label = null;
-        //noinspection unchecked
-        iconData = IconDataRegistry.deserializeIcon(tag.getCompound("Icon"));
-        displayVerticalDistance = tag.getBoolean("DisplayVerticalDistance");
-        deserializeAdditional(tag);
+        internalId = UUID.fromString(input.getString("ID").orElseThrow());
+        label = input.read("Label", ComponentSerialization.CODEC).orElse(null);
+        iconData = IconDataRegistry.deserializeIcon(input.child("Icon").orElseThrow());
+        displayVerticalDistance = input.read("DisplayVerticalDistance", Codec.BOOL).orElseThrow();
+        deserializeAdditional(input);
     }
 
     public final void writeToPacket(RegistryFriendlyByteBuf buffer)
@@ -215,9 +221,9 @@ public abstract class PointInfo<T extends PointInfo<T>>
         deserializeAdditional(buffer);
     }
 
-    protected abstract void serializeAdditional(CompoundTag tag);
+    protected abstract void serializeAdditional(ValueOutput output);
 
-    protected abstract void deserializeAdditional(CompoundTag tag);
+    protected abstract void deserializeAdditional(ValueInput input);
 
     protected abstract void serializeAdditional(FriendlyByteBuf tag);
 

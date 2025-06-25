@@ -40,14 +40,16 @@ public class SpawnPointPoints
             if (player.level().isClientSide)
                 return;
 
-            ServerPlayer serverPlayer = (ServerPlayer) player;
+            if (!(player instanceof ServerPlayer serverPlayer))
+                return;
 
             var pois = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
             {
                 SpawnPointAddon addon = pois.getOrCreateAddonData(ADDON_ID, SpawnPointAddon::new);
 
-                ResourceKey<Level> worldKey = serverPlayer.getRespawnDimension();
-                BlockPos spawnPosition = serverPlayer.getRespawnPosition();
+                var respawnConfig = serverPlayer.getRespawnConfig();
+                ResourceKey<Level> worldKey = respawnConfig != null ? respawnConfig.dimension() : null;
+                BlockPos spawnPosition = respawnConfig != null ? respawnConfig.pos() : null;
 
                 boolean enabled = ConfigData.COMMON.enableSpawnPointWaypoint.get();
                 boolean hasWaypoint = addon.waypoint != null;
@@ -55,7 +57,7 @@ public class SpawnPointPoints
                 boolean positionChanged = !Objects.equals(addon.spawnPosition, spawnPosition);
                 boolean waypointChanged = dimensionChanged || positionChanged;
 
-                boolean hasBed = spawnPosition != null;
+                boolean hasBed = respawnConfig != null;
 
                 if (hasWaypoint && (!enabled || !hasBed || waypointChanged))
                 {

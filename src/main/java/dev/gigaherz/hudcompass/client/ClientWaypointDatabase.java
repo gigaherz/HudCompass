@@ -10,12 +10,17 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueInput;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,7 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
 
-@EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID)
 public class ClientWaypointDatabase
 {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -82,11 +87,15 @@ public class ClientWaypointDatabase
                 try
                 {
                     CompoundTag tag = NbtIo.read(path);
-
+                    var reporter = new ProblemReporter.Collector();
+                    var input = TagValueInput.create(reporter, mc.getConnection().registryAccess(), tag);
+                    var list = input.childrenListOrEmpty("Worlds");
                     pois.clear();
-
-                    ListTag list0 = tag.getList("Worlds", Tag.TAG_COMPOUND);
-                    pois.deserializeNBT(mc.player.registryAccess(), list0);
+                    pois.deserialize(list);
+                    if (!reporter.isEmpty())
+                    {
+                        throw new IllegalArgumentException("Failed to deserialise POIs: " + reporter.getReport());
+                    }
                 }
                 catch (IOException e)
                 {
@@ -125,13 +134,16 @@ public class ClientWaypointDatabase
                         Files.createDirectories(path);
                     }
 
-                    CompoundTag tag0 = new CompoundTag();
+                    var reporter = new ProblemReporter.Collector();
+                    var output = TagValueOutput.createWithContext(reporter, mc.getConnection().registryAccess());
+                    var list = output.childrenList("Worlds");
+                    pois.serialize(list);
+                    if (!reporter.isEmpty())
+                    {
+                        throw new IllegalArgumentException("Failed to deserialise POIs: " + reporter.getReport());
+                    }
 
-                    ListTag list0 = pois.serializeNBT(mc.player.registryAccess());
-
-                    tag0.put("Worlds", list0);
-
-                    NbtIo.write(tag0, path);
+                    NbtIo.write(output.buildResult(), path);
 
                     pois.savedNumber = pois.changeNumber;
 

@@ -1,10 +1,9 @@
 package dev.gigaherz.hudcompass.integrations.server;
 
 import com.google.common.collect.Maps;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
+import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import dev.gigaherz.hudcompass.icons.client.IIconRenderer;
@@ -16,14 +15,16 @@ import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.Team;
 import net.neoforged.bus.api.IEventBus;
@@ -165,6 +166,7 @@ public class PlayerTracker
         }
     }
 
+
     public static class PlayerWaypoint extends SpecificPointInfo<PlayerWaypoint, PlayerIconData>
     {
         private UUID playerUUID;
@@ -207,15 +209,15 @@ public class PlayerTracker
         }
 
         @Override
-        protected void serializeAdditional(CompoundTag tag)
+        protected void serializeAdditional(ValueOutput output)
         {
-            tag.putUUID("Player", playerUUID);
+            output.putIntArray("Player", UUIDUtil.uuidToIntArray(playerUUID));
         }
 
         @Override
-        protected void deserializeAdditional(CompoundTag tag)
+        protected void deserializeAdditional(ValueInput input)
         {
-            playerUUID = tag.getUUID("Player");
+            playerUUID = UUIDUtil.uuidFromIntArray(input.getIntArray("Player").orElseThrow());
             this.getIconData().setPlayer(playerUUID);
         }
 
@@ -277,16 +279,15 @@ public class PlayerTracker
         private static class Serializer extends IconDataSerializer<PlayerIconData>
         {
             @Override
-            public CompoundTag write(PlayerIconData data, CompoundTag tag)
+            public void write(PlayerIconData data, ValueOutput output)
             {
-                tag.putUUID("Player", data.playerId);
-                return tag;
+                output.putIntArray("Player", UUIDUtil.uuidToIntArray(data.playerId));
             }
 
             @Override
-            public PlayerIconData read(CompoundTag tag)
+            public PlayerIconData read(ValueInput input)
             {
-                return new PlayerIconData(tag.getUUID("Player"));
+                return new PlayerIconData(UUIDUtil.uuidFromIntArray(input.getIntArray("Player").orElseThrow()));
             }
 
             @Override
@@ -327,19 +328,12 @@ public class PlayerTracker
 
         private static void drawFaceLayer(GuiGraphics graphics, ResourceLocation tex, float x1, float y1, float w, float h, int tx)
         {
-            var pMatrix = graphics.pose().last().pose();
             var x2 = x1 + w;
             var y2 = y1 + h;
             var u1 = tx / 64f;
             var u2 = (tx + 8) / 64f;
 
-            var source = Minecraft.getInstance().renderBuffers().bufferSource();
-            var bufferbuilder = source.getBuffer(RenderType.guiTextured(tex));
-
-            bufferbuilder.addVertex(pMatrix, x1, y2, 0).setUv(u1, 16f / 64f).setColor(-1);
-            bufferbuilder.addVertex(pMatrix, x2, y2, 0).setUv(u2, 16f / 64f).setColor(-1);
-            bufferbuilder.addVertex(pMatrix, x2, y1, 0).setUv(u2, 8f / 64f).setColor(-1);
-            bufferbuilder.addVertex(pMatrix, x1, y1, 0).setUv(u1, 8f / 64f).setColor(-1);
+            HudOverlay.blitRaw(graphics, tex, x1, x2, y1, y2, u1, u2, 8/64f, 16/64f, 1, 1, 1, 1);
         }
     }
 }

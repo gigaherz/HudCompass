@@ -62,7 +62,7 @@ public class ClientHandler
         if (mc.player == null)
             return;
 
-        if (ADD_WAYPOINT.consumeClick())
+        if (ADD_WAYPOINT != null && ADD_WAYPOINT.consumeClick())
         {
             var pois = mc.player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
             {
@@ -79,7 +79,7 @@ public class ClientHandler
             }
         }
 
-        if (REMOVE_WAYPOINT.consumeClick())
+        if (REMOVE_WAYPOINT != null && REMOVE_WAYPOINT.consumeClick())
         {
             var pois = mc.player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
             {
@@ -105,7 +105,7 @@ public class ClientHandler
             }
         }
 
-        if (EDIT_WAYPOINTS.consumeClick())
+        if (EDIT_WAYPOINTS != null && EDIT_WAYPOINTS.consumeClick())
         {
             var pois = mc.player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
             {

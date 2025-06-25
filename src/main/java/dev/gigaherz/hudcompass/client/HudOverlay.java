@@ -1,7 +1,8 @@
 package dev.gigaherz.hudcompass.client;
 
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.*;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
@@ -11,15 +12,20 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.LayeredDraw;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.client.gui.render.TextureSetup;
+import net.minecraft.client.gui.render.state.GuiElementRenderState;
+import net.minecraft.client.gui.render.state.GuiTextRenderState;
+import net.minecraft.client.gui.render.state.ScreenArea;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
@@ -28,25 +34,28 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.client.gui.GuiLayer;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.neoforge.common.NeoForge;
-import org.joml.Matrix4f;
+import org.joml.Matrix3x2f;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
-public class HudOverlay implements LayeredDraw.Layer
+public class HudOverlay implements GuiLayer
 {
     private final Minecraft mc;
     private final Font font;
     private final TextureManager textureManager;
 
-    @EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID, bus = EventBusSubscriber.Bus.MOD)
+    @EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID)
     public static class ModBusEvents
     {
         @SubscribeEvent
@@ -72,9 +81,9 @@ public class HudOverlay implements LayeredDraw.Layer
         if (!event.getName().equals(VanillaGuiLayers.BOSS_OVERLAY) || mc.options.hideGui || !canRender())
             return;
 
-        PoseStack matrixStack = event.getGuiGraphics().pose();
-        matrixStack.pushPose();
-        matrixStack.translate(0, 28, 0);
+        var matrixStack = event.getGuiGraphics().pose();
+        matrixStack.pushMatrix();
+        matrixStack.translate(0, 28);
         needsPop = true;
     }
 
@@ -84,8 +93,8 @@ public class HudOverlay implements LayeredDraw.Layer
         if (!event.getName().equals(VanillaGuiLayers.BOSS_OVERLAY) || !needsPop)
             return;
 
-        PoseStack matrixStack = event.getGuiGraphics().pose();
-        matrixStack.popPose();
+        var matrixStack = event.getGuiGraphics().pose();
+        matrixStack.popMatrix();
         needsPop = false;
     }
 
@@ -100,8 +109,8 @@ public class HudOverlay implements LayeredDraw.Layer
     {
         if (needsPop)
         {
-            PoseStack matrixStack = event.getGuiGraphics().pose();
-            matrixStack.popPose();
+            var matrixStack = event.getGuiGraphics().pose();
+            matrixStack.popMatrix();
             needsPop = false;
         }
     }
@@ -123,8 +132,6 @@ public class HudOverlay implements LayeredDraw.Layer
         float yaw = Mth.lerp(partialTicks, mc.player.yHeadRotO, mc.player.yHeadRot) % 360;
         //if (yaw > 180) yaw -= 360;
         if (yaw < 0) yaw += 360;
-
-        RenderSystem.enableBlend();
 
         fillRect(graphics, xPos - 90, 10, xPos + 90, 18, 0x3f000000);
 
@@ -223,16 +230,27 @@ public class HudOverlay implements LayeredDraw.Layer
             float nPos = xPos + nDist;
             fillRect(graphics, nPos - 0.5f, 10, nPos + 0.5f, 18, 0x7FFFFFFF);
             if (mc.options.backgroundForChatOnly().get())
-                drawCenteredShadowString(graphics, font, text, nPos, 1, 0xFFFFFF);
+                drawCenteredShadowString(graphics, font, text, nPos, 1, 0xFFFFFFFF);
             else
-                drawCenteredBoxedString(graphics, font, text, nPos, 1, 0xFFFFFF);
+                drawCenteredBoxedString(graphics, font, text, nPos, 1, 0xFFFFFFFF);
         }
     }
 
     public void drawCenteredShadowString(GuiGraphics graphics, Font font, String text, float x, float y, int color)
     {
         float width = font.width(text);
-        graphics.drawString(font, text, (x - width / 2), y, color, true);
+
+        var xPos = (x - width / 2);
+        var xInt = (int)xPos;
+        var yInt = (int)y;
+        var xFract = xPos - xInt;
+        var yFract = y - yInt;
+
+        var pose = graphics.pose();
+        pose.pushMatrix();
+        pose.translate(xFract, yFract);
+        graphics.drawString(font, text, xInt, yInt, color, true);
+        pose.popMatrix();
     }
 
     public static void drawCenteredBoxedString(GuiGraphics graphics, Font font, String text, float x, float y, int color)
@@ -247,9 +265,18 @@ public class HudOverlay implements LayeredDraw.Layer
         int backgroundColor = ((int) Mth.clamp(mc.options.textBackgroundOpacity().get() * ((color >> 24) & 0xFF), 0, 255)) << 24;
         fillRect(graphics, x0, y, x0 + width1, y + height1, backgroundColor);
 
-        graphics.drawString(font, text, x - width / 2, y + 2, color, false);
+        var xPos = (x - width / 2);
+        var yPos = y+2;
+        var xInt = (int)xPos;
+        var yInt = (int)y;
+        var xFract = xPos - xInt;
+        var yFract = yPos - yInt;
 
-        RenderSystem.enableBlend();
+        var pose = graphics.pose();
+        pose.pushMatrix();
+        pose.translate(xFract, yFract);
+        graphics.drawString(font, text, xInt, yInt, color, true);
+        pose.popMatrix();
     }
 
     public static void drawCenteredBoxedString(GuiGraphics graphics, Font font, Component text, float x, float y, int color)
@@ -262,9 +289,7 @@ public class HudOverlay implements LayeredDraw.Layer
         float height1 = height + 3;
         float x0 = x - width1 / 2;
         fillRect(graphics, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity().get() * ((color >> 24) & 0xFF), 0, 255)) << 24);
-        graphics.drawString(font, reodering, x - width / 2, y + 2, color, true);
-
-        RenderSystem.enableBlend();
+        graphics.drawString(font, reodering, (int) (x - width / 2), (int) (y + 2), color, true);
     }
 
     private void drawPoi(Player player, GuiGraphics graphics, float yaw, float angle, float yDelta, int xPos, PointInfo<?> point, boolean isTargetted, float elapsed, Vec3 subtract)
@@ -288,8 +313,8 @@ public class HudOverlay implements LayeredDraw.Layer
         {
             float nPos = xPos + nDist;
             var poseStack = graphics.pose();
-            poseStack.pushPose();
-            poseStack.translate(nPos, 0, 0);
+            poseStack.pushMatrix();
+            poseStack.translate(nPos, 0);
 
             PointRenderer.renderIcon(point, player, textureManager, graphics, 0, 14, alpha);
             boolean showLabel =
@@ -324,7 +349,7 @@ public class HudOverlay implements LayeredDraw.Layer
                 if (yDelta <= -2) drawBelowArrow(graphics, yDelta, alpha);
             }
 
-            poseStack.popPose();
+            poseStack.popMatrix();
         }
     }
 
@@ -362,36 +387,6 @@ public class HudOverlay implements LayeredDraw.Layer
                 r, g, b, a);
     }
 
-    private static void blitRaw(
-            GuiGraphics graphics,
-            ResourceLocation pAtlasLocation,
-            float x1, float x2, float y1, float y2,
-            float u0, float u1, float v0, float v1,
-            float r, float g, float b, float a
-    )
-    {
-        var source = Minecraft.getInstance().renderBuffers().bufferSource();
-        var bufferbuilder = source.getBuffer(RenderType.guiTextured(pAtlasLocation));
-
-        Matrix4f matrix = graphics.pose().last().pose();
-        bufferbuilder.addVertex(matrix, x1, y1, 0).setUv(u0, v0).setColor(r, g, b, a);
-        bufferbuilder.addVertex(matrix, x1, y2, 0).setUv(u0, v1).setColor(r, g, b, a);
-        bufferbuilder.addVertex(matrix, x2, y2, 0).setUv(u1, v1).setColor(r, g, b, a);
-        bufferbuilder.addVertex(matrix, x2, y1, 0).setUv(u1, v0).setColor(r, g, b, a);
-    }
-
-    private static void fillRect(GuiGraphics graphics, float x0, float y0, float x1, float y1, int color)
-    {
-        var source = Minecraft.getInstance().renderBuffers().bufferSource();
-        var builder = source.getBuffer(RenderType.gui());
-
-        Matrix4f matrix = graphics.pose().last().pose();
-        builder.addVertex(matrix, x0, y1, 0.0f).setColor(color);
-        builder.addVertex(matrix, x1, y1, 0.0f).setColor(color);
-        builder.addVertex(matrix, x1, y0, 0.0f).setColor(color);
-        builder.addVertex(matrix, x0, y0, 0.0f).setColor(color);
-    }
-
     private float angleDistance(float yaw, float other)
     {
         float dist = other - yaw;
@@ -402,6 +397,166 @@ public class HudOverlay implements LayeredDraw.Layer
         else
         {
             return dist < -180 ? (dist + 360) : dist;
+        }
+    }
+
+    public static void blitRaw(
+            GuiGraphics graphics,
+            ResourceLocation pAtlasLocation,
+            float x0, float x1, float y0, float y1,
+            float u0, float u1, float v0, float v1,
+            float r, float g, float b, float a
+    )
+    {
+        int color = ARGB.colorFromFloat(a, r,g,b);
+        GpuTextureView gputextureview = Minecraft.getInstance().getTextureManager().getTexture(pAtlasLocation).getTextureView();
+        graphics.submitGuiElementRenderState(
+                new BlitRenderStateF(
+                        RenderPipelines.GUI_TEXTURED,
+                        TextureSetup.singleTexture(gputextureview),
+                        new Matrix3x2f(graphics.pose()),
+                        x0, y0,
+                        x1, y1,
+                        u0, v0,
+                        u1, v1,
+                        color,
+                        graphics.peekScissorStack()
+                )
+        );
+    }
+
+    public record BlitRenderStateF(
+            RenderPipeline pipeline,
+            TextureSetup textureSetup,
+            Matrix3x2f pose,
+            float x0, float y0,
+            float x1, float y1,
+            float u0, float v0,
+            float u1, float v1,
+            int color,
+            @Nullable ScreenRectangle scissorArea,
+            @Nullable ScreenRectangle bounds
+    ) implements GuiElementRenderState
+    {
+        public BlitRenderStateF(
+                RenderPipeline pipeline,
+                TextureSetup textureSetup,
+                Matrix3x2f pose,
+                float x0, float y0,
+                float x1, float y1,
+                float u0, float v0,
+                float u1, float v1,
+                int color,
+                @Nullable ScreenRectangle bounds
+        ) {
+            this(
+                    pipeline,
+                    textureSetup,
+                    pose,
+                    x0,
+                    y0,
+                    x1,
+                    y1,
+                    u0,
+                    u1, v0,
+                    v1,
+                    color,
+                    bounds,
+                    getBounds(x0, y0, x1, y1, pose, bounds)
+            );
+        }
+
+        @Override
+        public void buildVertices(VertexConsumer consumer, float z) {
+            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y0(), z).setUv(this.u0(), this.v0()).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y1(), z).setUv(this.u0(), this.v1()).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y1(), z).setUv(this.u1(), this.v1()).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y0(), z).setUv(this.u1(), this.v0()).setColor(this.color());
+        }
+
+        @Nullable
+        private static ScreenRectangle getBounds(
+                float x0, float y0, float x1, float y1, Matrix3x2f pose, @Nullable ScreenRectangle rect
+        ) {
+            ScreenRectangle screenrectangle = new ScreenRectangle(Mth.floor(x0), Mth.floor(y0), Mth.ceil(x1 - x0), Mth.ceil(y1 - y0)).transformMaxBounds(pose);
+            return rect != null ? rect.intersection(screenrectangle) : screenrectangle;
+        }
+    }
+
+
+    public static void fillRect(
+            GuiGraphics graphics,
+            float x0, float y0,
+            float x1, float y1,
+            int color
+    ) {
+        graphics.submitGuiElementRenderState(
+                new FillRenderStateF(
+                        RenderPipelines.GUI,
+                        TextureSetup.noTexture(),
+                        new Matrix3x2f(graphics.pose()),
+                        x0,
+                        y0,
+                        x1,
+                        y1,
+                        color,
+                        graphics.peekScissorStack()
+                )
+        );
+    }
+
+    public record FillRenderStateF(
+            RenderPipeline pipeline,
+            TextureSetup textureSetup,
+            Matrix3x2f pose,
+            float x0,
+            float y0,
+            float x1,
+            float y1,
+            int color,
+            @Nullable ScreenRectangle scissorArea,
+            @Nullable ScreenRectangle bounds
+    ) implements GuiElementRenderState
+    {
+        public FillRenderStateF(
+                RenderPipeline pipeline,
+                TextureSetup textureSetup,
+                Matrix3x2f pose,
+                float x0,
+                float y0,
+                float x1,
+                float y1,
+                int color,
+                @Nullable ScreenRectangle bounds
+        ) {
+            this(
+                    pipeline,
+                    textureSetup,
+                    pose,
+                    x0,
+                    y0,
+                    x1,
+                    y1,
+                    color,
+                    bounds,
+                    getBounds(x0, y0, x1, y1, pose, bounds)
+            );
+        }
+
+        @Override
+        public void buildVertices(VertexConsumer consumer, float z) {
+            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y0(), z).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y1(), z).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y1(), z).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y0(), z).setColor(this.color());
+        }
+
+        @Nullable
+        private static ScreenRectangle getBounds(
+                float x0, float y0, float x1, float y1, Matrix3x2f pose, @Nullable ScreenRectangle rect
+        ) {
+            ScreenRectangle screenrectangle = new ScreenRectangle(Mth.floor(x0), Mth.floor(y0), Mth.ceil(x1 - x0), Mth.ceil(y1 - y0)).transformMaxBounds(pose);
+            return rect != null ? rect.intersection(screenrectangle) : screenrectangle;
         }
     }
 }

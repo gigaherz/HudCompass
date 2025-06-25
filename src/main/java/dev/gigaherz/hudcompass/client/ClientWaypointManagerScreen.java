@@ -202,7 +202,7 @@ public class ClientWaypointManagerScreen extends Screen
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
     {
-        renderBackground(graphics, mouseX, mouseY, partialTicks);
+        //renderBackground(graphics, mouseX, mouseY, partialTicks);
 
         scrollPanel.setPartialTicks(partialTicks);
         scrollPanel.render(graphics, mouseX, mouseY, partialTicks);
@@ -510,11 +510,11 @@ public class ClientWaypointManagerScreen extends Screen
                 return false;
             double actualMouseX = getActualX(mouseX);
             double actualMouseY = getActualY(mouseY);
-            for (GuiEventListener iguieventlistener : this.children())
+            for (GuiEventListener item : this.children())
             {
-                if (iguieventlistener.mouseClicked(actualMouseX, actualMouseY, button))
+                if (item.mouseClicked(actualMouseX, actualMouseY, button))
                 {
-                    this.setFocused(iguieventlistener);
+                    this.setFocused(item);
                     if (button == 0)
                     {
                         this.setDragging(true);
@@ -535,9 +535,9 @@ public class ClientWaypointManagerScreen extends Screen
             double actualMouseX = getActualX(mouseX);
             double actualMouseY = getActualY(mouseY);
             this.setDragging(false);
-            return this.getChildAt(mouseX, mouseY).filter((listener) -> {
-                return listener.mouseReleased(actualMouseX, actualMouseY, button);
-            }).isPresent();
+            return this.getChildAt(mouseX, mouseY)
+                    .filter((listener) -> listener.mouseReleased(actualMouseX, actualMouseY, button))
+                    .isPresent();
         }
 
         @Override
@@ -558,9 +558,18 @@ public class ClientWaypointManagerScreen extends Screen
                 return false;
             double actualMouseX = getActualX(mouseX);
             double actualMouseY = getActualY(mouseY);
-            return this.getChildAt(mouseX, mouseY).filter((listener) -> {
-                return listener.mouseScrolled(actualMouseX, actualMouseY, deltaX, deltaY);
-            }).isPresent();
+            return this.getChildAt(mouseX, mouseY)
+                    .filter((listener) -> listener.mouseScrolled(actualMouseX, actualMouseY, deltaX, deltaY))
+                    .isPresent();
+        }
+
+        @Override
+        public void setFocused(boolean focused)
+        {
+            if (!focused)
+            {
+                children().forEach(item -> item.setFocused(false));
+            }
         }
 
         @Override
@@ -570,10 +579,27 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public void updateNarration(NarrationElementOutput pNarrationElementOutput)
+        public void updateNarration(NarrationElementOutput narrationElementOutput)
         {
-
+            children().forEach(item ->
+            {
+                if (item instanceof NarratableEntry narratableEntry)
+                    narratableEntry.updateNarration(narrationElementOutput.nest());
+            });
         }
+    }
+
+    private interface HierarchyParent
+    {
+        void recalculateHeight();
+
+        void setDirty();
+
+        int getLeft();
+
+        int getContentTop();
+
+        void focusChanged(GuiEventListener newFocus, ListItem itemParent);
     }
 
     private static abstract class ListItem implements ContainerEventHandler, NarratableEntry
@@ -581,7 +607,7 @@ public class ClientWaypointManagerScreen extends Screen
         protected final Minecraft minecraft;
 
         @Nullable
-        private ItemsScrollPanel parent;
+        private HierarchyParent parent;
         private int height;
         private int width;
         private int top;
@@ -626,12 +652,12 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Nullable
-        public ItemsScrollPanel getParent()
+        public HierarchyParent getParent()
         {
             return parent;
         }
 
-        public void setParent(@Nullable ItemsScrollPanel parent)
+        public void setParent(@Nullable HierarchyParent parent)
         {
             this.parent = parent;
         }
@@ -695,23 +721,25 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public void setFocused(@Nullable GuiEventListener pListener) {
+        public void setFocused(@Nullable GuiEventListener newFocus) {
+            if (parent != null)
+                parent.focusChanged(newFocus, this);
+
             if (this.focused != null) {
                 this.focused.setFocused(false);
             }
 
-            if (pListener != null) {
-                pListener.setFocused(true);
+            if (newFocus != null) {
+                newFocus.setFocused(true);
             }
 
-            this.focused = pListener;
+            this.focused = newFocus;
         }
     }
 
-    private class ItemsScrollPanel extends ScrollPanel implements NarratableEntry
+    private class ItemsScrollPanel extends ScrollPanel implements NarratableEntry, HierarchyParent
     {
         private final List<ListItem> items = Lists.newArrayList();
-        private final Minecraft minecraft;
 
         private int contentHeight;
         private float partialTicks;
@@ -719,7 +747,6 @@ public class ClientWaypointManagerScreen extends Screen
         public ItemsScrollPanel(Minecraft client, int width, int height, int top, int left)
         {
             super(client, width, height, top, left);
-            this.minecraft = client;
         }
 
         public void addItem(ListItem item)
@@ -754,29 +781,29 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        protected void drawBackground(GuiGraphics graphics, Tesselator tess, float partialTick)
+        protected void drawBackground(GuiGraphics graphics, float partialTick)
         {
-            super.drawBackground(graphics, tess, partialTick);
+            super.drawBackground(graphics, partialTick);
             this.partialTicks = partialTick;
         }
 
         @Override
-        protected void drawPanel(GuiGraphics graphics, int entryRight, int relativeY, Tesselator tess, int mouseX, int mouseY)
+        protected void drawPanel(GuiGraphics graphics, int entryRight, int relativeY, int mouseX, int mouseY)
         {
             var mStack = graphics.pose();
-            mStack.pushPose();
-            mStack.translate(left, relativeY, 0);
+            mStack.pushMatrix();
+            mStack.translate(left, relativeY);
             for (ListItem item : items)
             {
                 if (item.isVisible())
                 {
-                    mStack.pushPose();
-                    mStack.translate(0, item.getTop(), 0);
+                    mStack.pushMatrix();
+                    mStack.translate(0, item.getTop());
                     item.render(graphics, mouseX, mouseY, partialTicks);
-                    mStack.popPose();
+                    mStack.popMatrix();
                 }
             }
-            mStack.popPose();
+            mStack.popMatrix();
         }
 
         @Override
@@ -811,13 +838,23 @@ public class ClientWaypointManagerScreen extends Screen
 
         public int getContentTop()
         {
-            int baseY = this.top + border - (int) this.scrollDistance;
-            return baseY;
+            return this.top + border - (int) this.scrollDistance;
+        }
+
+        @Override
+        public void focusChanged(GuiEventListener newFocus, ListItem itemParent)
+        {
+            if (getFocused() != itemParent)
+            {
+                setFocused(itemParent);
+            }
+
+            this.bringIntoView(itemParent);
         }
 
         public void saveAll()
         {
-            items.forEach(item -> item.save());
+            items.forEach(ListItem::save);
         }
 
         public int getContentWidth()
@@ -830,6 +867,19 @@ public class ClientWaypointManagerScreen extends Screen
             item.setParent(null);
             items.remove(item);
             recalculateHeight();
+        }
+
+        public void bringIntoView(ListItem item)
+        {
+            if(item.top < this.scrollDistance)
+            {
+                this.scrollDistance = Math.clamp(item.top, 0, Math.max(0, getContentHeight() - (height - border)));
+            }
+            else if((item.top + item.height) > (this.scrollDistance + this.height))
+            {
+                var scrollOffset = item.top + item.height - this.height;
+                this.scrollDistance = Math.clamp(scrollOffset, 0, Math.max(0, getContentHeight() - (height - border)));
+            }
         }
 
         public void scrollToItem(ListItem item)
@@ -845,6 +895,64 @@ public class ClientWaypointManagerScreen extends Screen
             super.render(graphics, mouseX, mouseY, partialTicks);
         }
 
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button)
+        {
+            if (super.mouseClicked(mouseX, mouseY, button))
+                return true;
+
+            for (GuiEventListener item : this.children())
+            {
+                if (item.mouseClicked(mouseX, mouseY, button))
+                {
+                    //this.setFocused(item);
+                    if (button == 0)
+                    {
+                        this.setDragging(true);
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @Override
+        public boolean mouseReleased(double mouseX, double mouseY, int button)
+        {
+            if (super.mouseReleased(mouseX, mouseY, button))
+                return true;
+
+            this.setDragging(false);
+            return this.getChildAt(mouseX, mouseY)
+                    .filter((listener) -> listener.mouseReleased(mouseX, mouseY, button))
+                    .isPresent();
+        }
+
+        @Override
+        public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY)
+        {
+            if (super.mouseDragged(mouseX, mouseY, button, dragX, dragY))
+                return true;
+
+            return this.getFocused() != null
+                    && this.isDragging()
+                    && button == 0
+                    && this.getFocused().mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        }
+
+        @Override
+        public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY)
+        {
+            if (super.mouseScrolled(mouseX, mouseY, deltaX, deltaY))
+                return true;
+
+            return this.getChildAt(mouseX, mouseY)
+                    .filter((listener) -> listener.mouseScrolled(mouseX, mouseY, deltaX, deltaY))
+                    .isPresent();
+        }
+
         public void scrollTop()
         {
             scrollDistance = 0;
@@ -856,12 +964,8 @@ public class ClientWaypointManagerScreen extends Screen
             items.clear();
         }
 
-
-        private boolean dirty;
-
-        protected void setDirty()
+        public void setDirty()
         {
-            dirty = true;
             ClientWaypointManagerScreen.this.setDirty();
         }
 
@@ -874,7 +978,7 @@ public class ClientWaypointManagerScreen extends Screen
         @Override
         public void updateNarration(NarrationElementOutput narrationElementOutput)
         {
-
+            items.forEach(item -> item.updateNarration(narrationElementOutput.nest()));
         }
     }
 

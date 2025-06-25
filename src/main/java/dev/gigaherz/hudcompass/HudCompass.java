@@ -2,7 +2,7 @@ package dev.gigaherz.hudcompass;
 
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
-import dev.gigaherz.hudcompass.integrations.journeymap.JourneymapIntegration;
+//import dev.gigaherz.hudcompass.integrations.journeymap.JourneymapIntegration;
 import dev.gigaherz.hudcompass.integrations.server.PlayerTracker;
 import dev.gigaherz.hudcompass.integrations.server.SpawnPointPoints;
 import dev.gigaherz.hudcompass.integrations.server.VanillaMapPoints;
@@ -77,7 +77,7 @@ public class HudCompass
 
         if (ModList.get().isLoaded("journeymap"))
         {
-            JourneymapIntegration.staticInit();
+            //JourneymapIntegration.staticInit();
         }
 
         container.registerConfig(ModConfig.Type.CLIENT, ConfigData.CLIENT_SPEC);

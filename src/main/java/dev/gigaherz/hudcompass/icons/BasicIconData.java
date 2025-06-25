@@ -4,6 +4,8 @@ import dev.gigaherz.hudcompass.HudCompass;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class BasicIconData implements IIconData<BasicIconData>
 {
@@ -59,18 +61,17 @@ public class BasicIconData implements IIconData<BasicIconData>
     public static class Serializer extends IconDataSerializer<BasicIconData>
     {
         @Override
-        public CompoundTag write(BasicIconData data, CompoundTag tag)
+        public void write(BasicIconData data, ValueOutput output)
         {
-            tag.putString("SpriteName", data.spriteName.toString());
-            return tag;
+            output.putString("SpriteName", data.spriteName.toString());
         }
 
         @Override
-        public BasicIconData read(CompoundTag tag)
+        public BasicIconData read(ValueInput input)
         {
             return new BasicIconData(
                     this,
-                    ResourceLocation.parse(tag.getString("SpriteName"))
+                    ResourceLocation.parse(input.getString("SpriteName").orElseThrow())
             );
         }
 

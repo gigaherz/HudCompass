@@ -1,5 +1,5 @@
 package dev.gigaherz.hudcompass.integrations.journeymap;
-
+/*
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
@@ -177,3 +177,4 @@ public class JourneymapIntegration implements IClientPlugin
         }
     }
 }
+*/

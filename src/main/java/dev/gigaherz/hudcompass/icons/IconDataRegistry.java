@@ -10,6 +10,8 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 import javax.annotation.Nonnull;
 
@@ -19,7 +21,7 @@ public class IconDataRegistry
     public static final StreamCodec<ByteBuf, IconDataSerializer<?>> BY_ID_STREAM_CODEC = ByteBufCodecs.idMapper(HudCompass.ICON_DATA_SERIALIZERS_REGISTRY);
 
     @Nonnull
-    public static <T extends IIconData<T>> CompoundTag serializeIcon(@Nonnull T iconData)
+    public static <T extends IIconData<T>> void serializeIcon(@Nonnull T iconData, ValueOutput output)
     {
         IconDataSerializer<T> serializer = iconData.getSerializer();
         ResourceLocation serializerId = HudCompass.ICON_DATA_SERIALIZERS_REGISTRY.getKey(serializer);
@@ -27,10 +29,8 @@ public class IconDataRegistry
         {
             throw new IllegalStateException(String.format("Serializer name is null %s", serializer.getClass().getName()));
         }
-        CompoundTag tag = new CompoundTag();
-        tag.putString("Type", serializerId.toString());
-        tag = serializer.write(iconData, tag);
-        return tag;
+        output.putString("Type", serializerId.toString());
+        serializer.write(iconData, output);
     }
 
     public static <T extends IIconData<T>> void serializeIcon(T iconData, FriendlyByteBuf buffer)
@@ -43,15 +43,15 @@ public class IconDataRegistry
     }
 
     @Nonnull
-    public static IIconData<?> deserializeIcon(CompoundTag tag)
+    public static IIconData<?> deserializeIcon(ValueInput input)
     {
-        ResourceLocation serializerId = ResourceLocation.parse(tag.getString("Type"));
+        ResourceLocation serializerId = ResourceLocation.parse(input.getString("Type").orElseThrow());
         IconDataSerializer<?> serializer = HudCompass.ICON_DATA_SERIALIZERS_REGISTRY.get(serializerId).map(Holder.Reference::value).orElse(null);
         if (serializer == null)
         {
             throw new IllegalStateException(String.format("Serializer not registered %s", serializerId));
         }
-        return serializer.read(tag);
+        return serializer.read(input);
     }
 
     @Nonnull

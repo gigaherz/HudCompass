@@ -2,6 +2,7 @@ package dev.gigaherz.hudcompass.integrations.server;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.mojang.serialization.Codec;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
@@ -16,6 +17,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.MapItem;
 import net.minecraft.world.level.saveddata.maps.*;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
@@ -190,20 +193,20 @@ public class VanillaMapPoints
         }
 
         @Override
-        protected void serializeAdditional(CompoundTag tag)
+        protected void serializeAdditional(ValueOutput output)
         {
-            tag.putDouble("X", position.x);
-            tag.putDouble("Y", position.y);
-            tag.putDouble("Z", position.z);
+            output.putDouble("X", position.x);
+            output.putDouble("Y", position.y);
+            output.putDouble("Z", position.z);
         }
 
         @Override
-        protected void deserializeAdditional(CompoundTag tag)
+        protected void deserializeAdditional(ValueInput input)
         {
             position = new Vec3(
-                    tag.getDouble("X"),
-                    tag.getDouble("Y"),
-                    tag.getDouble("Z")
+                    input.read("X", Codec.DOUBLE).orElseThrow(),
+                    input.read("Y", Codec.DOUBLE).orElseThrow(),
+                    input.read("Z", Codec.DOUBLE).orElseThrow()
             );
         }
 
@@ -274,20 +277,20 @@ public class VanillaMapPoints
         }
 
         @Override
-        protected void serializeAdditional(CompoundTag tag)
+        protected void serializeAdditional(ValueOutput output)
         {
-            tag.putDouble("X", position.x);
-            tag.putDouble("Y", position.y);
-            tag.putDouble("Z", position.z);
+            output.putDouble("X", position.x);
+            output.putDouble("Y", position.y);
+            output.putDouble("Z", position.z);
         }
 
         @Override
-        protected void deserializeAdditional(CompoundTag tag)
+        protected void deserializeAdditional(ValueInput input)
         {
             position = new Vec3(
-                    tag.getDouble("X"),
-                    tag.getDouble("Y"),
-                    tag.getDouble("Z")
+                    input.read("X", Codec.DOUBLE).orElseThrow(),
+                    input.read("Y", Codec.DOUBLE).orElseThrow(),
+                    input.read("Z", Codec.DOUBLE).orElseThrow()
             );
         }
 

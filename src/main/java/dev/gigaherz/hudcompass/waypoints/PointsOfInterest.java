@@ -23,12 +23,15 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.attachment.IAttachmentHolder;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.connection.ConnectionType;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.Supplier;
 
-public class PointsOfInterest implements INBTSerializable<ListTag>
+public class PointsOfInterest implements ValueIOSerializable
 {
     private PointInfo<?> targetted;
 
@@ -96,21 +99,44 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
     }
 
     @Override
-    public ListTag serializeNBT(HolderLookup.Provider provider)
+    public void serialize(ValueOutput valueOutput)
     {
-        ListTag list = new ListTag();
+        serialize(valueOutput.childrenList("Worlds"));
+    }
 
+    @Override
+    public void deserialize(ValueInput valueInput)
+    {
+        deserialize(valueInput.childrenListOrEmpty("Worlds"));
+    }
+
+
+    public void serialize(ValueOutput.ValueOutputList list)
+    {
         for (Map.Entry<ResourceKey<Level>, WorldPoints> entry : perWorld.entrySet())
         {
-            CompoundTag tag = new CompoundTag();
-            tag.putString("World", entry.getKey().location().toString());
+            var element = list.addChild();
+            element.putString("World", entry.getKey().location().toString());
             if (entry.getValue().getDimensionTypeKey() != null)
-                tag.putString("DimensionKey", entry.getValue().getDimensionTypeKey().location().toString());
-            tag.put("POIs", entry.getValue().write(provider));
-            list.add(tag);
+                element.putString("DimensionKey", entry.getValue().getDimensionTypeKey().location().toString());
+            entry.getValue().write(element.childrenList("POIs"));
         }
+    }
 
-        return list;
+    public void deserialize(ValueInput.ValueInputList list)
+    {
+        perWorld.clear();
+        for(var element : list)
+        {
+            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(element.getString("World").orElseThrow()));
+            ResourceKey<DimensionType> dimType = null;
+            var dimKey = element.getString("DimensionKey");
+            if (dimKey.isPresent())
+                dimType = ResourceKey.create(Registries.DIMENSION_TYPE, ResourceLocation.parse(dimKey.get()));
+            WorldPoints p = get(key, dimType);
+            p.read(element.childrenList("POIs").orElseThrow());
+        }
+        savedNumber = changeNumber = 0;
     }
 
     public void write(RegistryFriendlyByteBuf buffer)
@@ -133,23 +159,6 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
             }
             value.write(buffer);
         }
-    }
-
-    @Override
-    public void deserializeNBT(HolderLookup.Provider provider, ListTag nbt)
-    {
-        perWorld.clear();
-        for (int i = 0; i < nbt.size(); i++)
-        {
-            CompoundTag tag = nbt.getCompound(i);
-            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(tag.getString("World")));
-            ResourceKey<DimensionType> dimType = null;
-            if (tag.contains("DimensionKey", Tag.TAG_STRING))
-                dimType = ResourceKey.create(Registries.DIMENSION_TYPE, ResourceLocation.parse(tag.getString("DimensionKey")));
-            WorldPoints p = get(key, dimType);
-            p.read(tag.getList("POIs", Tag.TAG_COMPOUND), provider);
-        }
-        savedNumber = changeNumber = 0;
     }
 
     public void read(RegistryFriendlyByteBuf buffer)
@@ -507,17 +516,16 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
-        public ListTag write(HolderLookup.Provider provider)
+        public void write(ValueOutput.ValueOutputList outputList)
         {
-            ListTag tag = new ListTag();
-
             for (PointInfo point : points.values())
             {
                 if (!point.isDynamic())
-                    tag.add(PointInfoRegistry.serializePoint(point, provider));
+                {
+                    var child = outputList.addChild();
+                    PointInfoRegistry.serializePoint(point, child);
+                }
             }
-
-            return tag;
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
@@ -530,13 +538,12 @@ public class PointsOfInterest implements INBTSerializable<ListTag>
             }
         }
 
-        public void read(ListTag nbt, HolderLookup.Provider provider)
+        public void read(ValueInput.ValueInputList list)
         {
             points.clear();
-            for (int i = 0; i < nbt.size(); i++)
+            for (var child : list)
             {
-                CompoundTag pointTag = nbt.getCompound(i);
-                PointInfo<?> point = PointInfoRegistry.deserializePoint(pointTag, provider);
+                PointInfo<?> point = PointInfoRegistry.deserializePoint(child);
                 points.put(point.getInternalId(), point);
             }
         }

@@ -1,5 +1,6 @@
 package dev.gigaherz.hudcompass.waypoints;
 
+import com.mojang.serialization.Codec;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.IIconData;
 import net.minecraft.core.BlockPos;
@@ -8,6 +9,8 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
@@ -74,23 +77,23 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
     }
 
     @Override
-    protected void serializeAdditional(CompoundTag tag)
+    protected void serializeAdditional(ValueOutput output)
     {
-        tag.putDouble("X", position.x);
-        tag.putDouble("Y", position.y);
-        tag.putDouble("Z", position.z);
-        tag.putString("Text", label);
+        output.putDouble("X", position.x);
+        output.putDouble("Y", position.y);
+        output.putDouble("Z", position.z);
+        output.putString("Text", label);
     }
 
     @Override
-    protected void deserializeAdditional(CompoundTag tag)
+    protected void deserializeAdditional(ValueInput input)
     {
         position = new Vec3(
-                tag.getDouble("X"),
-                tag.getDouble("Y"),
-                tag.getDouble("Z")
+                input.read("X", Codec.DOUBLE).orElseThrow(),
+                input.read("Y", Codec.DOUBLE).orElseThrow(),
+                input.read("Z", Codec.DOUBLE).orElseThrow()
         );
-        label = tag.getString("Text");
+        label = input.getString("Text").orElseThrow();
     }
 
     @Override
