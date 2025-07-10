@@ -31,6 +31,7 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.attachment.IAttachmentHolder;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.connection.ConnectionType;
@@ -221,7 +222,7 @@ public class PointsOfInterest implements ValueIOSerializable
             List<UUID> toRemove)
     {
 
-        PacketDistributor.sendToServer(new UpdateWaypointsFromGui(toAdd, toUpdate, toRemove));
+        ClientPacketDistributor.sendToServer(new UpdateWaypointsFromGui(toAdd, toUpdate, toRemove));
     }
 
     public static void handleAddWaypoint(Player sender, AddWaypoint addWaypoint)
@@ -438,7 +439,7 @@ public class PointsOfInterest implements ValueIOSerializable
         {
             if (otherSideHasMod && player.level().isClientSide && point instanceof BasicWaypoint)
             {
-                PacketDistributor.sendToServer(AddWaypoint.of((BasicWaypoint) point));
+                ClientPacketDistributor.sendToServer(AddWaypoint.of((BasicWaypoint) point));
             }
             else
             {
@@ -467,7 +468,7 @@ public class PointsOfInterest implements ValueIOSerializable
             UUID id = point.getInternalId();
             if (otherSideHasMod && player.level().isClientSide)
             {
-                PacketDistributor.sendToServer(new RemoveWaypoint(id));
+                ClientPacketDistributor.sendToServer(new RemoveWaypoint(id));
             }
             else
             {

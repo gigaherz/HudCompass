@@ -382,8 +382,8 @@ public class HudOverlay implements GuiLayer
         blitRaw(graphics,
                 sprite.atlasLocation(),
                 x, x2, y, y2,
-                sprite.getU0(), sprite.getU1(),
-                sprite.getV0(), sprite.getV1(),
+                sprite.getU0(), sprite.getV0(),
+                sprite.getU1(), sprite.getV1(),
                 r, g, b, a);
     }
 
