@@ -7,7 +7,7 @@ plugins {
 }
 
 neoForge.version = "21.11.6-beta"
-version = "0.9.0"
+version = "0.10.0"
 group= "dev.gigaherz.hudcompass"
 base.archivesName = "HudCompass-${neoForge.minecraftVersion}"
 
