@@ -30,6 +30,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 @Mod(value = HudCompass.MODID, dist = Dist.CLIENT)
 public class ClientHandler
 {
+    public static KeyMapping.Category CATEGORY = new KeyMapping.Category(HudCompass.location("key.hudcompass.category"));
     public static KeyMapping ADD_WAYPOINT;
     public static KeyMapping REMOVE_WAYPOINT;
     public static KeyMapping EDIT_WAYPOINTS;
@@ -46,14 +47,15 @@ public class ClientHandler
 
     public void initKeybinds(RegisterKeyMappingsEvent event)
     {
+        event.registerCategory(CATEGORY);
         event.register(ADD_WAYPOINT =
-                new KeyMapping("key.hudcompass.add_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
+                new KeyMapping("key.hudcompass.add_waypoint", InputConstants.UNKNOWN.getValue(), CATEGORY));
 
         event.register(REMOVE_WAYPOINT =
-                new KeyMapping("key.hudcompass.remove_waypoint", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
+                new KeyMapping("key.hudcompass.remove_waypoint", InputConstants.UNKNOWN.getValue(), CATEGORY));
 
         event.register(EDIT_WAYPOINTS =
-                new KeyMapping("key.hudcompass.edit_waypoints", InputConstants.UNKNOWN.getValue(), "key.hudcompass.category"));
+                new KeyMapping("key.hudcompass.edit_waypoints", InputConstants.UNKNOWN.getValue(), CATEGORY));
     }
 
     public void handleKeys(ClientTickEvent.Pre ev)

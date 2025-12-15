@@ -20,7 +20,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ExtraCodecs;
@@ -47,11 +47,11 @@ public class PointsOfInterest implements ValueIOSerializable
     public int changeNumber;
     public int savedNumber;
 
-    private final Map<ResourceLocation, Object> addonData = Maps.newHashMap();
+    private final Map<Identifier, Object> addonData = Maps.newHashMap();
     private final List<Runnable> listeners = Lists.newArrayList();
 
     @SuppressWarnings("unchecked")
-    public <T> T getOrCreateAddonData(ResourceLocation addonId, Supplier<T> factory)
+    public <T> T getOrCreateAddonData(Identifier addonId, Supplier<T> factory)
     {
         return (T) addonData.computeIfAbsent(addonId, key -> factory.get());
     }
@@ -117,9 +117,9 @@ public class PointsOfInterest implements ValueIOSerializable
         for (Map.Entry<ResourceKey<Level>, WorldPoints> entry : perWorld.entrySet())
         {
             var element = list.addChild();
-            element.putString("World", entry.getKey().location().toString());
+            element.putString("World", entry.getKey().identifier().toString());
             if (entry.getValue().getDimensionTypeKey() != null)
-                element.putString("DimensionKey", entry.getValue().getDimensionTypeKey().location().toString());
+                element.putString("DimensionKey", entry.getValue().getDimensionTypeKey().identifier().toString());
             entry.getValue().write(element.childrenList("POIs"));
         }
     }
@@ -129,11 +129,11 @@ public class PointsOfInterest implements ValueIOSerializable
         perWorld.clear();
         for(var element : list)
         {
-            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(element.getString("World").orElseThrow()));
+            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, Identifier.parse(element.getString("World").orElseThrow()));
             ResourceKey<DimensionType> dimType = null;
             var dimKey = element.getString("DimensionKey");
             if (dimKey.isPresent())
-                dimType = ResourceKey.create(Registries.DIMENSION_TYPE, ResourceLocation.parse(dimKey.get()));
+                dimType = ResourceKey.create(Registries.DIMENSION_TYPE, Identifier.parse(dimKey.get()));
             WorldPoints p = get(key, dimType);
             p.read(element.childrenList("POIs").orElseThrow());
         }
@@ -148,11 +148,11 @@ public class PointsOfInterest implements ValueIOSerializable
             ResourceKey<Level> key = entry.getKey();
             WorldPoints value = entry.getValue();
 
-            buffer.writeResourceLocation(key.location());
+            buffer.writeIdentifier(key.identifier());
             if (value.getDimensionTypeKey() != null)
             {
                 buffer.writeBoolean(true);
-                buffer.writeResourceLocation(value.getDimensionTypeKey().location());
+                buffer.writeIdentifier(value.getDimensionTypeKey().identifier());
             }
             else
             {
@@ -168,10 +168,10 @@ public class PointsOfInterest implements ValueIOSerializable
         int numWorlds = buffer.readVarInt();
         for (int i = 0; i < numWorlds; i++)
         {
-            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, buffer.readResourceLocation());
+            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, buffer.readIdentifier());
             boolean hasDimensionType = buffer.readBoolean();
             ResourceKey<DimensionType> dimType = hasDimensionType
-                    ? ResourceKey.create(Registries.DIMENSION_TYPE, buffer.readResourceLocation())
+                    ? ResourceKey.create(Registries.DIMENSION_TYPE, buffer.readIdentifier())
                     : null;
             WorldPoints p = get(key, dimType);
             p.read(buffer);
@@ -241,7 +241,7 @@ public class PointsOfInterest implements ValueIOSerializable
             List<PointAddRemoveEntry> toUpdate,
             List<UUID> toRemove)
     {
-        if (player.level().isClientSide && otherSideHasMod)
+        if (player.level().isClientSide() && otherSideHasMod)
         {
             sendUpdateFromGui(toAdd, toUpdate, toRemove);
         }
@@ -283,7 +283,7 @@ public class PointsOfInterest implements ValueIOSerializable
     private static ResourceKey<DimensionType> getDimensionTypeKey(Level world, @Nullable ResourceKey<DimensionType> fallback)
     {
         DimensionType dimType = world.dimensionType();
-        ResourceLocation key = world.registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE).getKey(dimType);
+        Identifier key = world.registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE).getKey(dimType);
         if (key == null)
             return fallback;
         return ResourceKey.create(Registries.DIMENSION_TYPE, key);
@@ -356,7 +356,7 @@ public class PointsOfInterest implements ValueIOSerializable
         var points = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
         {
             points.otherSideHasMod = true;
-            if (!player.level().isClientSide)
+            if (!player.level().isClientSide())
                 points.sendInitialSync(player.registryAccess());
         }
     }
@@ -396,7 +396,7 @@ public class PointsOfInterest implements ValueIOSerializable
                 point.tick(player);
             }
 
-            if (player.level().isClientSide && player.level().dimension() == worldKey)
+            if (player.level().isClientSide() && player.level().dimension() == worldKey)
             {
                 PointInfo<?> closest = null;
                 double closestAngle = Double.POSITIVE_INFINITY;
@@ -427,7 +427,7 @@ public class PointsOfInterest implements ValueIOSerializable
                 }
             }
 
-            if (!player.level().isClientSide && (changed.size() > 0 || removed.size() > 0))
+            if (!player.level().isClientSide() && (changed.size() > 0 || removed.size() > 0))
             {
                 sendSync(player.registryAccess());
                 changed.clear();
@@ -437,7 +437,7 @@ public class PointsOfInterest implements ValueIOSerializable
 
         public void addPointRequest(PointInfo<?> point)
         {
-            if (otherSideHasMod && player.level().isClientSide && point instanceof BasicWaypoint)
+            if (otherSideHasMod && player.level().isClientSide() && point instanceof BasicWaypoint)
             {
                 ClientPacketDistributor.sendToServer(AddWaypoint.of((BasicWaypoint) point));
             }
@@ -455,7 +455,7 @@ public class PointsOfInterest implements ValueIOSerializable
             {
                 oldPoint.setOwner(null);
             }
-            if (!player.level().isClientSide && otherSideHasMod)
+            if (!player.level().isClientSide() && otherSideHasMod)
             {
                 changed.add(point);
             }
@@ -466,7 +466,7 @@ public class PointsOfInterest implements ValueIOSerializable
         public void removePointRequest(PointInfo<?> point)
         {
             UUID id = point.getInternalId();
-            if (otherSideHasMod && player.level().isClientSide)
+            if (otherSideHasMod && player.level().isClientSide())
             {
                 ClientPacketDistributor.sendToServer(new RemoveWaypoint(id));
             }
@@ -488,7 +488,7 @@ public class PointsOfInterest implements ValueIOSerializable
             {
                 point.setOwner(null);
                 points.remove(point.getInternalId());
-                if (!player.level().isClientSide && otherSideHasMod)
+                if (!player.level().isClientSide() && otherSideHasMod)
                 {
                     removed.add(point);
                 }
@@ -508,7 +508,7 @@ public class PointsOfInterest implements ValueIOSerializable
 
         public void markDirty(PointInfo<?> point)
         {
-            if (!player.level().isClientSide && otherSideHasMod)
+            if (!player.level().isClientSide() && otherSideHasMod)
             {
                 changed.add(point);
             }

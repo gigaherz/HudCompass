@@ -9,7 +9,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
@@ -24,7 +24,7 @@ public class IconDataRegistry
     public static <T extends IIconData<T>> void serializeIcon(@Nonnull T iconData, ValueOutput output)
     {
         IconDataSerializer<T> serializer = iconData.getSerializer();
-        ResourceLocation serializerId = HudCompass.ICON_DATA_SERIALIZERS_REGISTRY.getKey(serializer);
+        Identifier serializerId = HudCompass.ICON_DATA_SERIALIZERS_REGISTRY.getKey(serializer);
         if (serializerId == null)
         {
             throw new IllegalStateException(String.format("Serializer name is null %s", serializer.getClass().getName()));
@@ -45,7 +45,7 @@ public class IconDataRegistry
     @Nonnull
     public static IIconData<?> deserializeIcon(ValueInput input)
     {
-        ResourceLocation serializerId = ResourceLocation.parse(input.getString("Type").orElseThrow());
+        Identifier serializerId = Identifier.parse(input.getString("Type").orElseThrow());
         IconDataSerializer<?> serializer = HudCompass.ICON_DATA_SERIALIZERS_REGISTRY.get(serializerId).map(Holder.Reference::value).orElse(null);
         if (serializer == null)
         {

@@ -3,7 +3,7 @@ package dev.gigaherz.hudcompass.icons;
 import dev.gigaherz.hudcompass.HudCompass;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
@@ -23,22 +23,22 @@ public class BasicIconData implements IIconData<BasicIconData>
 
     public static BasicIconData mapDecoration(String spriteName)
     {
-        return new BasicIconData(HudCompass.BASIC_SERIALIZER.get(), ResourceLocation.parse(spriteName));
+        return new BasicIconData(HudCompass.BASIC_SERIALIZER.get(), Identifier.parse(spriteName));
     }
 
-    public static BasicIconData basic(ResourceLocation spriteName)
+    public static BasicIconData basic(Identifier spriteName)
     {
         return new BasicIconData(HudCompass.BASIC_SERIALIZER.get(), spriteName);
     }
 
     private final IconDataSerializer<BasicIconData> serializer;
-    public final ResourceLocation spriteName;
+    public final Identifier spriteName;
     public float r = 1.0f;
     public float g = 1.0f;
     public float b = 1.0f;
     public float a = 1.0f;
 
-    public BasicIconData(IconDataSerializer<BasicIconData> serializer, ResourceLocation spriteName)
+    public BasicIconData(IconDataSerializer<BasicIconData> serializer, Identifier spriteName)
     {
         this.serializer = serializer;
         this.spriteName = spriteName;
@@ -71,14 +71,14 @@ public class BasicIconData implements IIconData<BasicIconData>
         {
             return new BasicIconData(
                     this,
-                    ResourceLocation.parse(input.getString("SpriteName").orElseThrow())
+                    Identifier.parse(input.getString("SpriteName").orElseThrow())
             );
         }
 
         @Override
         public void write(BasicIconData data, FriendlyByteBuf buffer)
         {
-            buffer.writeResourceLocation(data.spriteName);
+            buffer.writeIdentifier(data.spriteName);
         }
 
         @Override
@@ -86,7 +86,7 @@ public class BasicIconData implements IIconData<BasicIconData>
         {
             return new BasicIconData(
                     this,
-                    buffer.readResourceLocation()
+                    buffer.readIdentifier()
             );
         }
     }

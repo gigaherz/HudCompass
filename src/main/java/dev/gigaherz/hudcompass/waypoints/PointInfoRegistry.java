@@ -8,7 +8,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
@@ -23,7 +23,7 @@ public class PointInfoRegistry
     public static <T extends PointInfo<T>> void serializePoint(@Nonnull T pointInfo, ValueOutput output)
     {
         PointInfoType<? extends T> type = pointInfo.getType();
-        ResourceLocation typeId = HudCompass.POINT_INFO_TYPES_REGISTRY.getKey(type);
+        Identifier typeId = HudCompass.POINT_INFO_TYPES_REGISTRY.getKey(type);
         if (typeId == null)
         {
             throw new IllegalStateException(String.format("Serializer name is null %s", type.getClass().getName()));
@@ -49,7 +49,7 @@ public class PointInfoRegistry
     @Nonnull
     public static PointInfo<?> deserializePoint(ValueInput input)
     {
-        ResourceLocation typeId = ResourceLocation.parse(input.getString("Type").orElseThrow());
+        Identifier typeId = Identifier.parse(input.getString("Type").orElseThrow());
         PointInfoType<?> type = HudCompass.POINT_INFO_TYPES_REGISTRY.get(typeId).map(Holder.Reference::value).orElse(null);
         if (type == null)
         {

@@ -12,7 +12,7 @@ import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -33,6 +33,8 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
+
+import java.util.function.ObjIntConsumer;
 
 @Mod(HudCompass.MODID)
 public class HudCompass
@@ -82,7 +84,6 @@ public class HudCompass
 
         container.registerConfig(ModConfig.Type.CLIENT, ConfigData.CLIENT_SPEC);
         container.registerConfig(ModConfig.Type.COMMON, ConfigData.COMMON_SPEC);
-
     }
 
     public void modConfigLoad(ModConfigEvent.Loading event)
@@ -138,8 +139,8 @@ public class HudCompass
         }
     }
 
-    public static ResourceLocation location(String path)
+    public static Identifier location(String path)
     {
-        return ResourceLocation.fromNamespaceAndPath(MODID, path);
+        return Identifier.fromNamespaceAndPath(MODID, path);
     }
 }

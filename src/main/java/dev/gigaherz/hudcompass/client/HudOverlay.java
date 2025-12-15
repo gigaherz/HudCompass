@@ -2,6 +2,8 @@ package dev.gigaherz.hudcompass.client;
 
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.*;
 import dev.gigaherz.hudcompass.ConfigData;
@@ -22,8 +24,9 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.data.AtlasIds;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.FormattedCharSequence;
@@ -51,10 +54,6 @@ import java.util.List;
 
 public class HudOverlay implements GuiLayer
 {
-    private final Minecraft mc;
-    private final Font font;
-    private final TextureManager textureManager;
-
     @EventBusSubscriber(value = Dist.CLIENT, modid = HudCompass.MODID)
     public static class ModBusEvents
     {
@@ -64,6 +63,10 @@ public class HudOverlay implements GuiLayer
             event.registerAbove(VanillaGuiLayers.BOSS_OVERLAY, HudCompass.location("compass"), new HudOverlay());
         }
     }
+
+    private final Minecraft mc;
+    private final Font font;
+    private final TextureManager textureManager;
 
     private HudOverlay()
     {
@@ -191,7 +194,7 @@ public class HudOverlay implements GuiLayer
         };
     }
 
-    private static final TagKey<Item> MAKES_HUDCOMPASS_VISIBLE = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("hudcompass", "makes_hudcompass_visible"));
+    private static final TagKey<Item> MAKES_HUDCOMPASS_VISIBLE = TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("hudcompass", "makes_hudcompass_visible"));
 
     private boolean findCompassInHands()
     {
@@ -320,7 +323,7 @@ public class HudOverlay implements GuiLayer
             boolean showLabel =
                     ConfigData.alwaysShowLabels ||
                             (ConfigData.alwaysShowFocusedLabel && isTargetted) ||
-                            (ConfigData.showAllLabelsOnSneak && Screen.hasShiftDown());
+                            (ConfigData.showAllLabelsOnSneak && Minecraft.getInstance().hasShiftDown());
 
             if (ConfigData.animateLabels)
             {
@@ -369,10 +372,10 @@ public class HudOverlay implements GuiLayer
         drawMapIcon(graphics, HudCompass.location(tex), x, x + 8, y, y + 8, 1,1,1, alpha/255.0f);
     }
 
-    public static void drawMapIcon(GuiGraphics graphics, ResourceLocation spriteName,
+    public static void drawMapIcon(GuiGraphics graphics, Identifier spriteName,
                                    float x, float x2, float y, float y2, float r, float g, float b, float a)
     {
-        var sprite = Minecraft.getInstance().getMapDecorationTextures().textureAtlas.getSprite(spriteName);
+        var sprite = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.MAP_DECORATIONS).getSprite(spriteName);
         drawSprite(graphics, sprite, x, x2, y, y2, r, g, b, a);
     }
 
@@ -402,7 +405,7 @@ public class HudOverlay implements GuiLayer
 
     public static void blitRaw(
             GuiGraphics graphics,
-            ResourceLocation pAtlasLocation,
+            Identifier pAtlasLocation,
             float x0, float x1, float y0, float y1,
             float u0, float u1, float v0, float v1,
             float r, float g, float b, float a
@@ -413,7 +416,7 @@ public class HudOverlay implements GuiLayer
         graphics.submitGuiElementRenderState(
                 new BlitRenderStateF(
                         RenderPipelines.GUI_TEXTURED,
-                        TextureSetup.singleTexture(gputextureview),
+                        TextureSetup.singleTexture(gputextureview, RenderSystem.getSamplerCache().getRepeat(FilterMode.NEAREST)),
                         new Matrix3x2f(graphics.pose()),
                         x0, y0,
                         x1, y1,
@@ -467,11 +470,11 @@ public class HudOverlay implements GuiLayer
         }
 
         @Override
-        public void buildVertices(VertexConsumer consumer, float z) {
-            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y0(), z).setUv(this.u0(), this.v0()).setColor(this.color());
-            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y1(), z).setUv(this.u0(), this.v1()).setColor(this.color());
-            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y1(), z).setUv(this.u1(), this.v1()).setColor(this.color());
-            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y0(), z).setUv(this.u1(), this.v0()).setColor(this.color());
+        public void buildVertices(VertexConsumer consumer) {
+            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y0()).setUv(this.u0(), this.v0()).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y1()).setUv(this.u0(), this.v1()).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y1()).setUv(this.u1(), this.v1()).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y0()).setUv(this.u1(), this.v0()).setColor(this.color());
         }
 
         @Nullable
@@ -544,11 +547,11 @@ public class HudOverlay implements GuiLayer
         }
 
         @Override
-        public void buildVertices(VertexConsumer consumer, float z) {
-            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y0(), z).setColor(this.color());
-            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y1(), z).setColor(this.color());
-            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y1(), z).setColor(this.color());
-            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y0(), z).setColor(this.color());
+        public void buildVertices(VertexConsumer consumer) {
+            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y0()).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x0(), this.y1()).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y1()).setColor(this.color());
+            consumer.addVertexWith2DPose(this.pose(), this.x1(), this.y0()).setColor(this.color());
         }
 
         @Nullable

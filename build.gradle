@@ -3,10 +3,10 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.99'
+    id 'net.neoforged.moddev' version '2.0.116'
 }
 
-neoForge.version = "21.7.17-beta"
+neoForge.version = "21.11.6-beta"
 version = "0.9.0"
 group= "dev.gigaherz.hudcompass"
 base.archivesName = "HudCompass-${neoForge.minecraftVersion}"
@@ -60,15 +60,15 @@ neoForge {
     }
 
     parchment {
-        minecraftVersion = "1.21.6"
+        minecraftVersion = "1.21.10"
         mappingsVersion = "BLEEDING-SNAPSHOT"
     }
 }
 
 dependencies {
-    compileOnly 'info.journeymap:journeymap-api-neoforge:2.0.0-1.21.7-SNAPSHOT'
+    //compileOnly 'info.journeymap:journeymap-api-neoforge:2.0.0-1.21.8-SNAPSHOT'
     //compileOnly 'flatdir:journeymap-neoforge:1.21.7-6.0.0-beta.28'
-    runtimeOnly 'flatdir:journeymap-neoforge:1.21.7-6.0.0-beta.52'
+    //runtimeOnly 'flatdir:journeymap-neoforge:1.21.7-6.0.0-beta.52'
 }
 
 jar {

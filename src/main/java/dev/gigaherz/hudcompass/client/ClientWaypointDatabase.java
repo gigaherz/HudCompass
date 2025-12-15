@@ -9,7 +9,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
@@ -57,7 +57,7 @@ public class ClientWaypointDatabase
             {
                 address = addr.toString();
             }
-            ResourceLocation dim = mc.player.level().dimension().location();
+            Identifier dim = mc.player.level().dimension().identifier();
             String dimension = dim.getNamespace() + "_" + dim.getPath();
             return FMLPaths.GAMEDIR.get().resolve("server_waypoints").resolve(address).resolve(dimension).resolve("waypoints.dat").toAbsolutePath();
         }
@@ -170,7 +170,7 @@ public class ClientWaypointDatabase
     @SubscribeEvent
     public static void entityJoinWorld(EntityJoinLevelEvent event)
     {
-        if (event.getLevel().isClientSide && event.getEntity() instanceof LocalPlayer)
+        if (event.getLevel().isClientSide() && event.getEntity() instanceof LocalPlayer)
         {
             populateFromDisk(Minecraft.getInstance());
         }

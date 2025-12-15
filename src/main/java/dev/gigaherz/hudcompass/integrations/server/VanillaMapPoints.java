@@ -12,7 +12,7 @@ import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.MapItem;
@@ -38,7 +38,7 @@ public class VanillaMapPoints
 {
     public static final VanillaMapPoints INSTANCE = new VanillaMapPoints();
 
-    private static final ResourceLocation ADDON_ID = HudCompass.location("vanilla_map");
+    private static final Identifier ADDON_ID = HudCompass.location("vanilla_map");
 
     private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.POINT_INFO_TYPES;
     public static final DeferredHolder<PointInfoType<?>, PointInfoType<MapDecorationWaypoint>> DECORATION_TYPE = PIT.register("map_decoration", () -> new PointInfoType<>(MapDecorationWaypoint::new));
@@ -66,7 +66,7 @@ public class VanillaMapPoints
             counter = 0;
 
             Player player = event.getEntity();
-            if (player.level().isClientSide)
+            if (player.level().isClientSide())
                 return;
 
             var pois = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);

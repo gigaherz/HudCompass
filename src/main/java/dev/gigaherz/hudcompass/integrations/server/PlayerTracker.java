@@ -11,17 +11,16 @@ import dev.gigaherz.hudcompass.icons.client.IconRendererRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Util;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
@@ -45,7 +44,7 @@ public class PlayerTracker
 {
     public static final PlayerTracker INSTANCE = new PlayerTracker();
 
-    private static final ResourceLocation ADDON_ID = HudCompass.location("player_tracker");
+    private static final Identifier ADDON_ID = HudCompass.location("player_tracker");
 
     private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.POINT_INFO_TYPES;
     private static final DeferredRegister<IconDataSerializer<?>> IDS = HudCompass.ICON_DATA_SERIALIZERS;
@@ -72,7 +71,7 @@ public class PlayerTracker
     private void startTracking(PlayerEvent.StartTracking event)
     {
         Player player = event.getEntity();
-        if (player.level().isClientSide)
+        if (player.level().isClientSide())
             return;
 
         if (event.getTarget() instanceof ServerPlayer target && !(target instanceof FakePlayer))
@@ -100,7 +99,7 @@ public class PlayerTracker
     private void stopTracking(PlayerEvent.StopTracking event)
     {
         Player player = event.getEntity();
-        if (player.level().isClientSide)
+        if (player.level().isClientSide())
             return;
 
         if (event.getTarget() instanceof ServerPlayer target && !(target instanceof FakePlayer))
@@ -136,7 +135,7 @@ public class PlayerTracker
             counter = 0;
 
             Player player = event.getEntity();
-            if (player.level().isClientSide)
+            if (player.level().isClientSide())
                 return;
 
             var pois = player.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
@@ -237,7 +236,7 @@ public class PlayerTracker
         @Override
         public void tick(Player player)
         {
-            if (!player.level().isClientSide)
+            if (!player.level().isClientSide())
                 return;
 
             var target = player.level().getPlayerByUUID(playerUUID);
@@ -319,14 +318,14 @@ public class PlayerTracker
         {
             if (player.level().getPlayerByUUID(data.playerId) instanceof AbstractClientPlayer clientPlayer)
             {
-                var tex = clientPlayer.getSkin().texture();
+                var tex = clientPlayer.getSkin().body().texturePath();
 
                 drawFaceLayer(graphics, tex, x - 4, y - 4, 8, 8, 8);
                 drawFaceLayer(graphics, tex, x - 4.5f, y - 4.5f, 9, 9, 40);
             }
         }
 
-        private static void drawFaceLayer(GuiGraphics graphics, ResourceLocation tex, float x1, float y1, float w, float h, int tx)
+        private static void drawFaceLayer(GuiGraphics graphics, Identifier tex, float x1, float y1, float w, float h, int tx)
         {
             var x2 = x1 + w;
             var y2 = y1 + h;

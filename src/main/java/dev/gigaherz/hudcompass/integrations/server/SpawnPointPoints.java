@@ -6,7 +6,7 @@ import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -21,7 +21,7 @@ public class SpawnPointPoints
 {
     public static final SpawnPointPoints INSTANCE = new SpawnPointPoints();
 
-    private static final ResourceLocation ADDON_ID = HudCompass.location("spawn_point");
+    private static final Identifier ADDON_ID = HudCompass.location("spawn_point");
 
     public static void init()
     {
@@ -37,7 +37,7 @@ public class SpawnPointPoints
             counter = 0;
 
             Player player = event.getEntity();
-            if (player.level().isClientSide)
+            if (player.level().isClientSide())
                 return;
 
             if (!(player instanceof ServerPlayer serverPlayer))
@@ -48,8 +48,8 @@ public class SpawnPointPoints
                 SpawnPointAddon addon = pois.getOrCreateAddonData(ADDON_ID, SpawnPointAddon::new);
 
                 var respawnConfig = serverPlayer.getRespawnConfig();
-                ResourceKey<Level> worldKey = respawnConfig != null ? respawnConfig.dimension() : null;
-                BlockPos spawnPosition = respawnConfig != null ? respawnConfig.pos() : null;
+                ResourceKey<Level> worldKey = respawnConfig != null ? respawnConfig.respawnData().dimension() : null;
+                BlockPos spawnPosition = respawnConfig != null ? respawnConfig.respawnData().pos() : null;
 
                 boolean enabled = ConfigData.COMMON.enableSpawnPointWaypoint.get();
                 boolean hasWaypoint = addon.waypoint != null;

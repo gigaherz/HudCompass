@@ -5,14 +5,14 @@ import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public class ClientHello implements CustomPacketPayload
 {
     public static final ClientHello INSTANCE = new ClientHello();
 
-    public static final ResourceLocation ID = HudCompass.location("client_hello");
+    public static final Identifier ID = HudCompass.location("client_hello");
 
     public static final Type<ClientHello> TYPE = new Type<>(ID);
 

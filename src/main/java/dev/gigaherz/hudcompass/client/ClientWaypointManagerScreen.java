@@ -1,6 +1,7 @@
 package dev.gigaherz.hudcompass.client;
 
 import com.google.common.collect.Lists;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.Tesselator;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
@@ -17,6 +18,7 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
@@ -84,7 +86,7 @@ public class ClientWaypointManagerScreen extends Screen
 
     private void loadWaypoints()
     {
-        pois.getAllWorlds().stream().sorted(Comparator.comparing(w -> w.getWorldKey().location())).forEach(world -> {
+        pois.getAllWorlds().stream().sorted(Comparator.comparing(w -> w.getWorldKey().identifier())).forEach(world -> {
             WorldListItem worldItem = addWorld(world.getWorldKey(), world.getDimensionTypeKey());
 
             for (PointInfo<?> point : world.getPoints())
@@ -109,8 +111,8 @@ public class ClientWaypointManagerScreen extends Screen
         saveButton = addRenderableWidget(Button.builder(Component.translatable("text.hudcompass.waypoint_editor.save"), (button) -> {
             scrollPanel.saveAll();
             pois.updateFromGui(
-                    toAdd.stream().map(i -> new PointAddRemoveEntry(i.worldItem.worldKey.location(), i.pointInfo)).toList(),
-                    toUpdate.stream().map(i -> new PointAddRemoveEntry(i.worldItem.worldKey.location(), i.pointInfo)).toList(),
+                    toAdd.stream().map(i -> new PointAddRemoveEntry(i.worldItem.worldKey.identifier(), i.pointInfo)).toList(),
+                    toUpdate.stream().map(i -> new PointAddRemoveEntry(i.worldItem.worldKey.identifier(), i.pointInfo)).toList(),
                     toRemove.stream().map(i -> i.pointInfo.getInternalId()).toList()
             );
             onClose();
@@ -242,7 +244,7 @@ public class ClientWaypointManagerScreen extends Screen
         {
             super(minecraft, 22);
 
-            this.title = Component.translatable("text.hudcompass.waypoint_editor.world", key.location().toString());
+            this.title = Component.translatable("text.hudcompass.waypoint_editor.world", key.identifier().toString());
             this.worldKey = key;
             this.dimensionTypeKey = dimensionTypeKey;
         }
@@ -504,18 +506,18 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public boolean mouseClicked(double mouseX, double mouseY, int button)
+        public boolean mouseClicked(MouseButtonEvent event, boolean isDoubleClick)
         {
             if (!isVisible())
                 return false;
-            double actualMouseX = getActualX(mouseX);
-            double actualMouseY = getActualY(mouseY);
+            double actualMouseX = getActualX(event.x());
+            double actualMouseY = getActualY(event.y());
             for (GuiEventListener item : this.children())
             {
-                if (item.mouseClicked(actualMouseX, actualMouseY, button))
+                if (item.mouseClicked(new MouseButtonEvent(actualMouseX, actualMouseY, event.buttonInfo()), isDoubleClick))
                 {
                     this.setFocused(item);
-                    if (button == 0)
+                    if (event.button() == InputConstants.MOUSE_BUTTON_LEFT)
                     {
                         this.setDragging(true);
                     }
@@ -528,27 +530,27 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public boolean mouseReleased(double mouseX, double mouseY, int button)
+        public boolean mouseReleased(MouseButtonEvent event)
         {
             if (!isVisible())
                 return false;
-            double actualMouseX = getActualX(mouseX);
-            double actualMouseY = getActualY(mouseY);
+            double actualMouseX = getActualX(event.x());
+            double actualMouseY = getActualY(event.y());
             this.setDragging(false);
-            return this.getChildAt(mouseX, mouseY)
-                    .filter((listener) -> listener.mouseReleased(actualMouseX, actualMouseY, button))
+            return this.getChildAt(event.x(), event.y())
+                    .filter((listener) -> listener.mouseReleased(new MouseButtonEvent(actualMouseX, actualMouseY, event.buttonInfo())))
                     .isPresent();
         }
 
         @Override
-        public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY)
+        public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY)
         {
             if (!isVisible())
                 return false;
-            double actualMouseX = getActualX(mouseX);
-            double actualMouseY = getActualY(mouseY);
-            return this.getFocused() != null && this.isDragging() && button == 0
-                    && this.getFocused().mouseDragged(actualMouseX, actualMouseY, button, dragX, dragY);
+            double actualMouseX = getActualX(event.x());
+            double actualMouseY = getActualY(event.y());
+            return this.getFocused() != null && this.isDragging() && event.button() == InputConstants.MOUSE_BUTTON_LEFT
+                    && this.getFocused().mouseDragged(new MouseButtonEvent(actualMouseX, actualMouseY, event.buttonInfo()), dragX, dragY);
         }
 
         @Override
@@ -896,17 +898,17 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public boolean mouseClicked(double mouseX, double mouseY, int button)
+        public boolean mouseClicked(MouseButtonEvent event, boolean isDoubleClick)
         {
-            if (super.mouseClicked(mouseX, mouseY, button))
+            if (super.mouseClicked(event, isDoubleClick))
                 return true;
 
             for (GuiEventListener item : this.children())
             {
-                if (item.mouseClicked(mouseX, mouseY, button))
+                if (item.mouseClicked(event, isDoubleClick))
                 {
                     //this.setFocused(item);
-                    if (button == 0)
+                    if (event.button() == InputConstants.MOUSE_BUTTON_LEFT)
                     {
                         this.setDragging(true);
                     }
@@ -919,27 +921,27 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public boolean mouseReleased(double mouseX, double mouseY, int button)
+        public boolean mouseReleased(MouseButtonEvent event)
         {
-            if (super.mouseReleased(mouseX, mouseY, button))
+            if (super.mouseReleased(event))
                 return true;
 
             this.setDragging(false);
-            return this.getChildAt(mouseX, mouseY)
-                    .filter((listener) -> listener.mouseReleased(mouseX, mouseY, button))
+            return this.getChildAt(event.x(), event.y())
+                    .filter((listener) -> listener.mouseReleased(event))
                     .isPresent();
         }
 
         @Override
-        public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY)
+        public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY)
         {
-            if (super.mouseDragged(mouseX, mouseY, button, dragX, dragY))
+            if (super.mouseDragged(event, dragX, dragY))
                 return true;
 
             return this.getFocused() != null
                     && this.isDragging()
-                    && button == 0
-                    && this.getFocused().mouseDragged(mouseX, mouseY, button, dragX, dragY);
+                    && event.button() == InputConstants.MOUSE_BUTTON_LEFT
+                    && this.getFocused().mouseDragged(event, dragX, dragY);
         }
 
         @Override

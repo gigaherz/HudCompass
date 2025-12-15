@@ -8,7 +8,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
@@ -17,10 +17,10 @@ public record AddWaypoint(
         double x,
         double y,
         double z,
-        ResourceLocation spriteName
+        Identifier spriteName
 ) implements CustomPacketPayload
 {
-    public static final ResourceLocation ID = HudCompass.location("add_waypoint");
+    public static final Identifier ID = HudCompass.location("add_waypoint");
 
     public static final Type<AddWaypoint> TYPE = new Type<>(ID);
 
@@ -29,7 +29,7 @@ public record AddWaypoint(
             ByteBufCodecs.DOUBLE, AddWaypoint::x,
             ByteBufCodecs.DOUBLE, AddWaypoint::y,
             ByteBufCodecs.DOUBLE, AddWaypoint::z,
-            ResourceLocation.STREAM_CODEC, AddWaypoint::spriteName,
+            Identifier.STREAM_CODEC, AddWaypoint::spriteName,
             AddWaypoint::new
     );
 
