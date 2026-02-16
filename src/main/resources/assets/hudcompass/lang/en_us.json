@@ -11,6 +11,11 @@
   "text.hudcompass.waypoint_editor.world_all": "World: All",
   "text.hudcompass.waypoint_editor.world": "World: %s",
 
+  "text.hudcompass.direction.south": "S",
+  "text.hudcompass.direction.north": "N",
+  "text.hudcompass.direction.east": "E",
+  "text.hudcompass.direction.west": "W",
+
   "text.hudcompass.waypoint_editor.cancel": "Cancel",
   "text.hudcompass.waypoint_editor.save": "Save",
 
