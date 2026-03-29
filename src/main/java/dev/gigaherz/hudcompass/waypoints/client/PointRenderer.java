@@ -5,19 +5,19 @@ import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.client.IconRendererRegistry;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 
 public class PointRenderer
 {
-    public static void renderIcon(PointInfo<?> info, Player player, TextureManager textureManager, GuiGraphics graphics, int x, int y, int alpha)
+    public static void renderIcon(PointInfo<?> info, Player player, TextureManager textureManager, GuiGraphicsExtractor graphics, int x, int y, int alpha)
     {
         IconRendererRegistry.renderIcon(info.getIconData(), player, textureManager, graphics, x, y, alpha);
     }
 
-    public static void renderLabel(PointInfo<?> info, Font font, GuiGraphics graphics, int x, int y, int alpha)
+    public static void renderLabel(PointInfo<?> info, Font font, GuiGraphicsExtractor graphics, int x, int y, int alpha)
     {
         Component label = info.getLabel();
         if (label != null && label.getString().length() > 0)

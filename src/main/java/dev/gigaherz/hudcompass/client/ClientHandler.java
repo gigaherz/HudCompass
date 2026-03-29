@@ -30,7 +30,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 @Mod(value = HudCompass.MODID, dist = Dist.CLIENT)
 public class ClientHandler
 {
-    public static KeyMapping.Category CATEGORY = new KeyMapping.Category(HudCompass.location("key.hudcompass.category"));
+    public static KeyMapping.Category CATEGORY = new KeyMapping.Category(HudCompass.location("hudcompass"));
     public static KeyMapping ADD_WAYPOINT;
     public static KeyMapping REMOVE_WAYPOINT;
     public static KeyMapping EDIT_WAYPOINTS;

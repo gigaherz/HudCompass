@@ -13,14 +13,11 @@ import dev.gigaherz.hudcompass.waypoints.client.PointRenderer;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
-import net.minecraft.client.gui.render.state.GuiElementRenderState;
-import net.minecraft.client.gui.render.state.GuiTextRenderState;
-import net.minecraft.client.gui.render.state.ScreenArea;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.registries.Registries;
@@ -119,7 +116,7 @@ public class HudOverlay implements GuiLayer
     }
 
     @Override
-    public void render(GuiGraphics graphics, DeltaTracker _partialTicks)
+    public void render(GuiGraphicsExtractor graphics, DeltaTracker _partialTicks)
     {
         if (!canRender()) return;
 
@@ -225,7 +222,7 @@ public class HudOverlay implements GuiLayer
         return new Vec2((float) Math.toDegrees(-Math.atan2(xd, zd)), (float) yd);
     }
 
-    private void drawCardinalDirection(GuiGraphics graphics, float yaw, float angle, int xPos, String text)
+    private void drawCardinalDirection(GuiGraphicsExtractor graphics, float yaw, float angle, int xPos, String text)
     {
         float nDist = angleDistance(yaw, angle);
         if (Math.abs(nDist) <= 90)
@@ -239,7 +236,7 @@ public class HudOverlay implements GuiLayer
         }
     }
 
-    public void drawCenteredShadowString(GuiGraphics graphics, Font font, String text, float x, float y, int color)
+    public void drawCenteredShadowString(GuiGraphicsExtractor graphics, Font font, String text, float x, float y, int color)
     {
         float width = font.width(text);
 
@@ -252,11 +249,11 @@ public class HudOverlay implements GuiLayer
         var pose = graphics.pose();
         pose.pushMatrix();
         pose.translate(xFract, yFract);
-        graphics.drawString(font, text, xInt, yInt, color, true);
+        graphics.text(font, text, xInt, yInt, color, true);
         pose.popMatrix();
     }
 
-    public static void drawCenteredBoxedString(GuiGraphics graphics, Font font, String text, float x, float y, int color)
+    public static void drawCenteredBoxedString(GuiGraphicsExtractor graphics, Font font, String text, float x, float y, int color)
     {
         Minecraft mc = Minecraft.getInstance();
         float width = font.width(text);
@@ -278,11 +275,11 @@ public class HudOverlay implements GuiLayer
         var pose = graphics.pose();
         pose.pushMatrix();
         pose.translate(xFract, yFract);
-        graphics.drawString(font, text, xInt, yInt, color, true);
+        graphics.text(font, text, xInt, yInt, color, true);
         pose.popMatrix();
     }
 
-    public static void drawCenteredBoxedString(GuiGraphics graphics, Font font, Component text, float x, float y, int color)
+    public static void drawCenteredBoxedString(GuiGraphicsExtractor graphics, Font font, Component text, float x, float y, int color)
     {
         FormattedCharSequence reodering = text.getVisualOrderText();
         Minecraft mc = Minecraft.getInstance();
@@ -292,10 +289,10 @@ public class HudOverlay implements GuiLayer
         float height1 = height + 3;
         float x0 = x - width1 / 2;
         fillRect(graphics, x0, y, x0 + width1, y + height1, ((int) Mth.clamp(mc.options.textBackgroundOpacity().get() * ((color >> 24) & 0xFF), 0, 255)) << 24);
-        graphics.drawString(font, reodering, (int) (x - width / 2), (int) (y + 2), color, true);
+        graphics.text(font, reodering, (int) (x - width / 2), (int) (y + 2), color, true);
     }
 
-    private void drawPoi(Player player, GuiGraphics graphics, float yaw, float angle, float yDelta, int xPos, PointInfo<?> point, boolean isTargetted, float elapsed, Vec3 subtract)
+    private void drawPoi(Player player, GuiGraphicsExtractor graphics, float yaw, float angle, float yDelta, int xPos, PointInfo<?> point, boolean isTargetted, float elapsed, Vec3 subtract)
     {
         var fadeSqr = ConfigData.waypointViewDistance * ConfigData.waypointViewDistance;
         double distance2 = subtract.lengthSqr();
@@ -356,7 +353,7 @@ public class HudOverlay implements GuiLayer
         }
     }
 
-    private void drawAboveArrow(GuiGraphics graphics, float yDelta, int alpha)
+    private void drawAboveArrow(GuiGraphicsExtractor graphics, float yDelta, int alpha)
     {
         var tex = yDelta > 10 ? "above" : "slightly_above";
         var x = -4.5f;
@@ -364,7 +361,7 @@ public class HudOverlay implements GuiLayer
         drawMapIcon(graphics, HudCompass.location(tex), x, x + 8, y, y + 8, 1,1,1, alpha/255.0f);
     }
 
-    private void drawBelowArrow(GuiGraphics graphics, float yDelta, int alpha)
+    private void drawBelowArrow(GuiGraphicsExtractor graphics, float yDelta, int alpha)
     {
         var tex = yDelta < -10 ? "below" : "slightly_below";
         var x = -4.5f;
@@ -372,14 +369,14 @@ public class HudOverlay implements GuiLayer
         drawMapIcon(graphics, HudCompass.location(tex), x, x + 8, y, y + 8, 1,1,1, alpha/255.0f);
     }
 
-    public static void drawMapIcon(GuiGraphics graphics, Identifier spriteName,
+    public static void drawMapIcon(GuiGraphicsExtractor graphics, Identifier spriteName,
                                    float x, float x2, float y, float y2, float r, float g, float b, float a)
     {
         var sprite = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.MAP_DECORATIONS).getSprite(spriteName);
         drawSprite(graphics, sprite, x, x2, y, y2, r, g, b, a);
     }
 
-    public static void drawSprite(GuiGraphics graphics, TextureAtlasSprite sprite,
+    public static void drawSprite(GuiGraphicsExtractor graphics, TextureAtlasSprite sprite,
                                   float x, float x2, float y, float y2, float r, float g, float b, float a)
     {
         blitRaw(graphics,
@@ -404,7 +401,7 @@ public class HudOverlay implements GuiLayer
     }
 
     public static void blitRaw(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             Identifier pAtlasLocation,
             float x0, float x1, float y0, float y1,
             float u0, float u1, float v0, float v1,
@@ -488,7 +485,7 @@ public class HudOverlay implements GuiLayer
 
 
     public static void fillRect(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             float x0, float y0,
             float x1, float y1,
             int color

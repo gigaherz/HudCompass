@@ -12,7 +12,7 @@ import dev.gigaherz.hudcompass.waypoints.PointInfoType;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.UUIDUtil;
@@ -314,7 +314,7 @@ public class PlayerTracker
     private static class OtherPlayerRenderer implements IIconRenderer<PlayerIconData>
     {
         @Override
-        public void renderIcon(PlayerIconData data, Player player, TextureManager textureManager, GuiGraphics graphics, int x, int y, int alpha)
+        public void renderIcon(PlayerIconData data, Player player, TextureManager textureManager, GuiGraphicsExtractor graphics, int x, int y, int alpha)
         {
             if (player.level().getPlayerByUUID(data.playerId) instanceof AbstractClientPlayer clientPlayer)
             {
@@ -325,7 +325,7 @@ public class PlayerTracker
             }
         }
 
-        private static void drawFaceLayer(GuiGraphics graphics, Identifier tex, float x1, float y1, float w, float h, int tx)
+        private static void drawFaceLayer(GuiGraphicsExtractor graphics, Identifier tex, float x1, float y1, float w, float h, int tx)
         {
             var x2 = x1 + w;
             var y2 = y1 + h;

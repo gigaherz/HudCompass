@@ -2,7 +2,7 @@ package dev.gigaherz.hudcompass.icons.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.world.entity.player.Player;
 import dev.gigaherz.hudcompass.client.HudOverlay;
@@ -13,7 +13,7 @@ public record BasicIconRenderer()
     public static final int ICON_WIDTH = 8;
     public static final int ICON_HEIGHT = 8;
 
-    public void renderIcon(BasicIconData data, Player player, TextureManager textureManager, GuiGraphics graphics, int x, int y, int alpha)
+    public void renderIcon(BasicIconData data, Player player, TextureManager textureManager, GuiGraphicsExtractor graphics, int x, int y, int alpha)
     {
         var xStart = x - ICON_WIDTH / 2;
         var yStart = y - ICON_HEIGHT / 2;

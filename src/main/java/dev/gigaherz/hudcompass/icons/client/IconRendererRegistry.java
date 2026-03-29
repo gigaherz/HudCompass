@@ -6,7 +6,7 @@ import dev.gigaherz.hudcompass.client.HudOverlay;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.world.entity.player.Player;
 import org.apache.logging.log4j.LogManager;
@@ -33,7 +33,7 @@ public class IconRendererRegistry
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public static void renderIcon(IIconData<?> data, Player player, TextureManager textureManager, GuiGraphics graphics, int x, int y, int alpha)
+    public static void renderIcon(IIconData<?> data, Player player, TextureManager textureManager, GuiGraphicsExtractor graphics, int x, int y, int alpha)
     {
         IIconRenderer renderer = REGISTRY.computeIfAbsent(data.getSerializer(), (key) -> {
             LOGGER.warn("Missing icon renderer for {}", HudCompass.ICON_DATA_SERIALIZERS_REGISTRY.getKey(data.getSerializer()));

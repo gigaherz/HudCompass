@@ -9,7 +9,7 @@ import dev.gigaherz.hudcompass.waypoints.PointInfo;
 import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
 import gigaherz.hudcompass.waypoints.PointAddRemoveEntry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -27,6 +27,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.gui.widget.ScrollPanel;
 
@@ -202,27 +203,27 @@ public class ClientWaypointManagerScreen extends Screen
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a)
     {
         //renderBackground(graphics, mouseX, mouseY, partialTicks);
 
-        scrollPanel.setPartialTicks(partialTicks);
-        scrollPanel.render(graphics, mouseX, mouseY, partialTicks);
+        scrollPanel.setPartialTicks(a);
+        scrollPanel.extractRenderState(graphics, mouseX, mouseY, a);
 
-        super.render(graphics, mouseX, mouseY, partialTicks);
+        super.extractRenderState(graphics, mouseX, mouseY, a);
 
-        graphics.drawCenteredString(minecraft.font, title, width / 2, 7, 0xFFFFFFFF);
+        graphics.centeredText(minecraft.font, title, width / 2, 7, 0xFFFFFFFF);
 
         int nameWidth = Math.max(scrollPanel.getContentWidth() - (61 * 2 + 41 + 23 + 23 + 3), 50);
         int x = scrollPanel.getLeft() + 6;
         int y = scrollPanel.getTop() - 10;
-        graphics.drawString(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_label"), x, y, 0xFFFFFFFF, false);
+        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_label"), x, y, 0xFFFFFFFF, false);
         x += nameWidth + 3;
-        graphics.drawString(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_x"), x, y, 0xFFFFFFFF, false);
+        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_x"), x, y, 0xFFFFFFFF, false);
         x += 61;
-        graphics.drawString(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_y"), x, y, 0xFFFFFFFF, false);
+        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_y"), x, y, 0xFFFFFFFF, false);
         x += 41;
-        graphics.drawString(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_z"), x, y, 0xFFFFFFFF, false);
+        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_z"), x, y, 0xFFFFFFFF, false);
     }
 
     private class WorldListItem extends CompositeListItem
@@ -271,11 +272,11 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
+        public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks)
         {
             super.render(graphics, mouseX, mouseY, partialTicks);
 
-            graphics.drawString(minecraft.font, title, 4 + 20, 10, 0xFFFFFFFF, false);
+            graphics.text(minecraft.font, title, 4 + 20, 10, 0xFFFFFFFF, false);
         }
 
         public void addWaypoint(WaypointListItem item)
@@ -471,7 +472,7 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
+        public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks)
         {
             if (!isVisible())
                 return;
@@ -483,7 +484,7 @@ public class ClientWaypointManagerScreen extends Screen
             }
             for (AbstractWidget i : renderables)
             {
-                i.render(graphics, actualMouseX, actualMouseY, partialTicks);
+                i.extractRenderState(graphics, actualMouseX, actualMouseY, partialTicks);
             }
         }
 
@@ -668,7 +669,7 @@ public class ClientWaypointManagerScreen extends Screen
         {
         }
 
-        public abstract void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks);
+        public abstract void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks);
 
         public void save()
         {
@@ -783,14 +784,14 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        protected void drawBackground(GuiGraphics graphics, float partialTick)
+        protected void drawBackground(GuiGraphicsExtractor graphics, float partialTick)
         {
             super.drawBackground(graphics, partialTick);
             this.partialTicks = partialTick;
         }
 
         @Override
-        protected void drawPanel(GuiGraphics graphics, int entryRight, int relativeY, int mouseX, int mouseY)
+        protected void drawPanel(GuiGraphicsExtractor graphics, int entryRight, int relativeY, int mouseX, int mouseY)
         {
             var mStack = graphics.pose();
             mStack.pushMatrix();
@@ -891,10 +892,10 @@ public class ClientWaypointManagerScreen extends Screen
         }
 
         @Override
-        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
+        public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks)
         {
             this.scrollDistance = Mth.clamp(scrollDistance, 0, Math.max(0, getContentHeight() - (height - border)));
-            super.render(graphics, mouseX, mouseY, partialTicks);
+            super.extractRenderState(graphics, mouseX, mouseY, partialTicks);
         }
 
         @Override

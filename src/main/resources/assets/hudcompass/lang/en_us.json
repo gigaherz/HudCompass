@@ -1,6 +1,6 @@
 {
 
-  "key.hudcompass.category": "Hud Compass",
+  "key.category.hudcompass.hudcompass": "Hud Compass",
   "key.hudcompass.add_waypoint": "Quick Waypoint",
   "key.hudcompass.remove_waypoint": "Remove Targetted Waypoint",
   "key.hudcompass.edit_waypoints": "Waypoint Editor",
