@@ -41,10 +41,12 @@ public record AddWaypoint(
 
     public static AddWaypoint of(BasicWaypoint point)
     {
+        var labelComponent = point.getLabel();
+        var labelText = labelComponent != null ? labelComponent.getString() : "";
         Vec3 position = point.getPosition();
         BasicIconData data = (BasicIconData) point.getIconData();
         return new AddWaypoint(
-                point.getLabelText(),
+                labelText,
                 position.x,
                 position.y,
                 position.z,

@@ -3,6 +3,8 @@ package dev.gigaherz.hudcompass.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
+import dev.gigaherz.hudcompass.integrations.client.LocatorBarPoints;
+import dev.gigaherz.hudcompass.integrations.server.PlayerTracker;
 import dev.gigaherz.hudcompass.network.ClientHello;
 import dev.gigaherz.hudcompass.network.RemoveWaypoint;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
@@ -41,6 +43,8 @@ public class ClientHandler
 
         NeoForge.EVENT_BUS.addListener(this::handleKeys);
         NeoForge.EVENT_BUS.addListener(this::clientTickEvent);
+
+        LocatorBarPoints.init(modEventBus);
 
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }

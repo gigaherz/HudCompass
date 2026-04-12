@@ -1,38 +1,33 @@
 package dev.gigaherz.hudcompass.waypoints;
 
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSerializer;
+import com.mojang.datafixers.Products;
+import com.mojang.datafixers.util.*;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.JsonOps;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.gigaherz.hudcompass.icons.IIconData;
-import dev.gigaherz.hudcompass.icons.IconDataRegistry;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.RegistryOps;
-import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 
 public abstract class PointInfo<T extends PointInfo<T>>
 {
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public static final StreamCodec<RegistryFriendlyByteBuf, PointInfo<?>> STREAM_CODEC = StreamCodec.of(
-            PointInfoRegistry::serializePointWithoutId,
-            PointInfoRegistry::deserializePointWithoutId
-    );
+    public static final MapCodec<PointInfo<?>>
+            DISPATCH_CODEC = PointInfoType.BY_ID_CODEC.dispatchMap(PointInfo::getType, PointInfoType::codec);
 
+    public static final StreamCodec<RegistryFriendlyByteBuf, PointInfo<?>>
+            DISPATCH_STREAM_CODEC = PointInfoType.BY_ID_STREAM_CODEC.dispatch(PointInfo::getType, PointInfoType::streamCodec);
 
     private final PointInfoType<? extends T> type;
     @Nullable
@@ -64,6 +59,16 @@ public abstract class PointInfo<T extends PointInfo<T>>
         this.iconData = iconData;
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    protected PointInfo(PointInfoType<T> type, boolean isDynamic, UUID internalId, Optional<Component>label, boolean displayVerticalDistance, IIconData<?> iconData)
+    {
+        this(type, isDynamic);
+        this.displayVerticalDistance = displayVerticalDistance;
+        this.internalId = internalId;
+        this.label = label.orElse(null);
+        this.iconData = iconData;
+    }
+
     public PointInfoType<? extends T> getType()
     {
         return type;
@@ -84,8 +89,6 @@ public abstract class PointInfo<T extends PointInfo<T>>
     {
         internalId = uuid;
     }
-
-    public abstract Vec3 getPosition();
 
     public abstract Vec3 getPosition(Player player, float partialTicks);
 
@@ -126,7 +129,7 @@ public abstract class PointInfo<T extends PointInfo<T>>
         return (T) this;
     }
 
-    public boolean displayVerticalDistance(Player player)
+    public boolean displayVerticalDistance(@Nullable Player player)
     {
         return displayVerticalDistance;
     }
@@ -163,70 +166,181 @@ public abstract class PointInfo<T extends PointInfo<T>>
         }
     }
 
-    public final void write(ValueOutput output)
+    private Fragment toFragment()
     {
-        output.putString("ID", internalId.toString());
-        if (label != null)
-        {
-            output.store("Label", ComponentSerialization.CODEC, label);
-        }
-        IconDataRegistry.serializeIcon((IIconData)iconData, output.child("Icon"));
-        output.putBoolean("DisplayVerticalDistance", displayVerticalDistance);
-        serializeAdditional(output);
+        return new Fragment(
+                internalId, Optional.ofNullable(label), displayVerticalDistance, iconData
+        );
     }
 
-    public final void read(ValueInput input)
+    protected static <T extends PointInfo<T>> Products.P4<RecordCodecBuilder.Mu<T>, UUID, Optional<Component>, Boolean, IIconData<?>>
+    codecFragment(RecordCodecBuilder.Instance<T> i)
     {
-        internalId = UUID.fromString(input.getString("ID").orElseThrow());
-        label = input.read("Label", ComponentSerialization.CODEC).orElse(null);
-        iconData = IconDataRegistry.deserializeIcon(input.child("Icon").orElseThrow());
-        displayVerticalDistance = input.read("DisplayVerticalDistance", Codec.BOOL).orElseThrow();
-        deserializeAdditional(input);
+        return i.group(
+                UUIDUtil.CODEC.fieldOf("ic").forGetter(PointInfo::getInternalId),
+                ComponentSerialization.CODEC.optionalFieldOf("label").forGetter(e -> Optional.ofNullable(e.getLabel())),
+                Codec.BOOL.fieldOf("displayVerticalDistance").forGetter(e -> e.displayVerticalDistance(null)),
+                IIconData.DISPATCH_CODEC.fieldOf("icon").forGetter(PointInfo::getIconData)
+        );
     }
 
-    public final void writeToPacket(RegistryFriendlyByteBuf buffer)
+    private record Fragment(UUID internalId, Optional<Component> label, Boolean displayVerticalDistance, IIconData<?> iconData){}
+    private static final StreamCodec<RegistryFriendlyByteBuf, Fragment> FRAGMENT_STREAM_CODEC = StreamCodec.composite(
+            UUIDUtil.STREAM_CODEC, (e -> e.internalId),
+            ByteBufCodecs.optional(ComponentSerialization.STREAM_CODEC), (e -> e.label),
+            ByteBufCodecs.BOOL, (e -> e.displayVerticalDistance),
+            IIconData.DISPATCH_STREAM_CODEC, (e -> e.iconData),
+            Fragment::new
+    );
+
+    public static <B extends RegistryFriendlyByteBuf, C extends PointInfo<C>, T1>
+    StreamCodec<B, C> streamCodec(StreamCodec<? super B, T1> codec1, Function<C, T1> getter1,
+                                  Function5<UUID, Optional<Component>, Boolean, IIconData<?>, T1, C> constructor)
     {
-        buffer.writeUUID(internalId);
-        writeToPacketWithoutId(buffer);
+        return StreamCodec.composite(
+                FRAGMENT_STREAM_CODEC, PointInfo::toFragment,
+                codec1, getter1,
+                (f,v1) -> constructor.apply(f.internalId, f.label, f.displayVerticalDistance, f.iconData, v1)
+        );
     }
 
-    public final void writeToPacketWithoutId(RegistryFriendlyByteBuf buffer)
+
+    public static <B extends RegistryFriendlyByteBuf, C extends PointInfo<C>, T1, T2>
+    StreamCodec<B, C> streamCodec(StreamCodec<? super B, T1> codec1, Function<C, T1> getter1,
+                                  StreamCodec<? super B, T2> codec2, Function<C, T2> getter2,
+                                  Function6<UUID, Optional<Component>, Boolean, IIconData<?>, T1, T2, C> constructor)
     {
-        boolean hasLabel = label != null;
-        buffer.writeBoolean(hasLabel);
-        if (hasLabel)
-            ComponentSerialization.STREAM_CODEC.encode(buffer, label);
-        IconDataRegistry.serializeIcon((IIconData)iconData, buffer);
-        buffer.writeBoolean(displayVerticalDistance);
-        buffer.writeBoolean(isDynamic);
-        serializeAdditional(buffer);
+        return StreamCodec.composite(
+                FRAGMENT_STREAM_CODEC, PointInfo::toFragment,
+                codec1, getter1,
+                codec2, getter2,
+                (f,v1, v2) -> constructor.apply(f.internalId, f.label, f.displayVerticalDistance, f.iconData, v1, v2)
+        );
     }
 
-    public final void readFromPacket(RegistryFriendlyByteBuf buffer)
+    public static <B extends RegistryFriendlyByteBuf, C extends PointInfo<C>, T1, T2, T3>
+    StreamCodec<B, C> streamCodec(StreamCodec<? super B, T1> codec1, Function<C, T1> getter1,
+                                  StreamCodec<? super B, T2> codec2, Function<C, T2> getter2,
+                                  StreamCodec<? super B, T3> codec3, Function<C, T3> getter3,
+                                  Function7<UUID, Optional<Component>, Boolean, IIconData<?>, T1, T2, T3, C> constructor)
     {
-        internalId = buffer.readUUID();
-        readFromPacketWithoutId(buffer);
+        return StreamCodec.composite(
+                FRAGMENT_STREAM_CODEC, PointInfo::toFragment,
+                codec1, getter1,
+                codec2, getter2,
+                codec3, getter3,
+                (f,v1, v2, v3) -> constructor.apply(f.internalId, f.label, f.displayVerticalDistance, f.iconData, v1, v2, v3)
+        );
     }
 
-    public final void readFromPacketWithoutId(RegistryFriendlyByteBuf buffer)
+    public static <B extends RegistryFriendlyByteBuf, C extends PointInfo<C>, T1, T2, T3, T4>
+    StreamCodec<B, C> streamCodec(StreamCodec<? super B, T1> codec1, Function<C, T1> getter1,
+                                  StreamCodec<? super B, T2> codec2, Function<C, T2> getter2,
+                                  StreamCodec<? super B, T3> codec3, Function<C, T3> getter3,
+                                  StreamCodec<? super B, T4> codec4, Function<C, T4> getter4,
+                                  Function8<UUID, Optional<Component>, Boolean, IIconData<?>, T1, T2, T3, T4, C> constructor)
     {
-        boolean hasLabel = buffer.readBoolean();
-        if (hasLabel)
-            label = ComponentSerialization.STREAM_CODEC.decode(buffer);
-        else
-            label = null;
-        iconData = IconDataRegistry.deserializeIcon(buffer);
-        displayVerticalDistance = buffer.readBoolean();
-        isDynamic = buffer.readBoolean();
-        deserializeAdditional(buffer);
+        return StreamCodec.composite(
+                FRAGMENT_STREAM_CODEC, PointInfo::toFragment,
+                codec1, getter1,
+                codec2, getter2,
+                codec3, getter3,
+                codec4, getter4,
+                (f,v1, v2, v3, v4) -> constructor.apply(f.internalId, f.label, f.displayVerticalDistance, f.iconData, v1, v2, v3, v4)
+        );
     }
 
-    protected abstract void serializeAdditional(ValueOutput output);
+    public static <B extends RegistryFriendlyByteBuf, C extends PointInfo<C>, T1, T2, T3, T4, T5>
+    StreamCodec<B, C> streamCodec(StreamCodec<? super B, T1> codec1, Function<C, T1> getter1,
+                                  StreamCodec<? super B, T2> codec2, Function<C, T2> getter2,
+                                  StreamCodec<? super B, T3> codec3, Function<C, T3> getter3,
+                                  StreamCodec<? super B, T4> codec4, Function<C, T4> getter4,
+                                  StreamCodec<? super B, T5> codec5, Function<C, T5> getter5,
+                                  Function9<UUID, Optional<Component>, Boolean, IIconData<?>, T1, T2, T3, T4, T5, C> constructor)
+    {
+        return StreamCodec.composite(
+                FRAGMENT_STREAM_CODEC, PointInfo::toFragment,
+                codec1, getter1,
+                codec2, getter2,
+                codec3, getter3,
+                codec4, getter4,
+                codec5, getter5,
+                (f,v1, v2, v3, v4, v5) ->
+                        constructor.apply(f.internalId, f.label, f.displayVerticalDistance, f.iconData, v1, v2, v3, v4, v5)
+        );
+    }
 
-    protected abstract void deserializeAdditional(ValueInput input);
+    public static <B extends RegistryFriendlyByteBuf, C extends PointInfo<C>, T1, T2, T3, T4, T5, T6>
+    StreamCodec<B, C> streamCodec(StreamCodec<? super B, T1> codec1, Function<C, T1> getter1,
+                                  StreamCodec<? super B, T2> codec2, Function<C, T2> getter2,
+                                  StreamCodec<? super B, T3> codec3, Function<C, T3> getter3,
+                                  StreamCodec<? super B, T4> codec4, Function<C, T4> getter4,
+                                  StreamCodec<? super B, T5> codec5, Function<C, T5> getter5,
+                                  StreamCodec<? super B, T6> codec6, Function<C, T6> getter6,
+                                  Function10<UUID, Optional<Component>, Boolean, IIconData<?>, T1, T2, T3, T4, T5, T6, C> constructor)
+    {
+        return StreamCodec.composite(
+                FRAGMENT_STREAM_CODEC, PointInfo::toFragment,
+                codec1, getter1,
+                codec2, getter2,
+                codec3, getter3,
+                codec4, getter4,
+                codec5, getter5,
+                codec6, getter6,
+                (f,v1, v2, v3, v4, v5, v6) ->
+                        constructor.apply(f.internalId, f.label, f.displayVerticalDistance, f.iconData, v1, v2, v3, v4, v5, v6)
+        );
+    }
 
-    protected abstract void serializeAdditional(FriendlyByteBuf tag);
+    public static <B extends RegistryFriendlyByteBuf, C extends PointInfo<C>, T1, T2, T3, T4, T5, T6, T7>
+    StreamCodec<B, C> streamCodec(StreamCodec<? super B, T1> codec1, Function<C, T1> getter1,
+                                  StreamCodec<? super B, T2> codec2, Function<C, T2> getter2,
+                                  StreamCodec<? super B, T3> codec3, Function<C, T3> getter3,
+                                  StreamCodec<? super B, T4> codec4, Function<C, T4> getter4,
+                                  StreamCodec<? super B, T5> codec5, Function<C, T5> getter5,
+                                  StreamCodec<? super B, T6> codec6, Function<C, T6> getter6,
+                                  StreamCodec<? super B, T7> codec7, Function<C, T7> getter7,
+                                  Function11<UUID, Optional<Component>, Boolean, IIconData<?>, T1, T2, T3, T4, T5, T6, T7, C> constructor)
+    {
+        return StreamCodec.composite(
+                FRAGMENT_STREAM_CODEC, PointInfo::toFragment,
+                codec1, getter1,
+                codec2, getter2,
+                codec3, getter3,
+                codec4, getter4,
+                codec5, getter5,
+                codec6, getter6,
+                codec7, getter7,
+                (f,v1, v2, v3, v4, v5, v6, v7) ->
+                        constructor.apply(f.internalId, f.label, f.displayVerticalDistance, f.iconData, v1, v2, v3, v4, v5, v6, v7)
+        );
+    }
 
-    protected abstract void deserializeAdditional(FriendlyByteBuf tag);
+    public static <B extends RegistryFriendlyByteBuf, C extends PointInfo<C>, T1, T2, T3, T4, T5, T6, T7, T8>
+    StreamCodec<B, C> streamCodec(StreamCodec<? super B, T1> codec1, Function<C, T1> getter1,
+                                  StreamCodec<? super B, T2> codec2, Function<C, T2> getter2,
+                                  StreamCodec<? super B, T3> codec3, Function<C, T3> getter3,
+                                  StreamCodec<? super B, T4> codec4, Function<C, T4> getter4,
+                                  StreamCodec<? super B, T5> codec5, Function<C, T5> getter5,
+                                  StreamCodec<? super B, T6> codec6, Function<C, T6> getter6,
+                                  StreamCodec<? super B, T7> codec7, Function<C, T7> getter7,
+                                  StreamCodec<? super B, T8> codec8, Function<C, T8> getter8,
+                                  Function12<UUID, Optional<Component>, Boolean, IIconData<?>, T1, T2, T3, T4, T5, T6, T7, T8, C> constructor)
+    {
+        return StreamCodec.composite(
+                FRAGMENT_STREAM_CODEC, PointInfo::toFragment,
+                codec1, getter1,
+                codec2, getter2,
+                codec3, getter3,
+                codec4, getter4,
+                codec5, getter5,
+                codec6, getter6,
+                codec7, getter7,
+                codec8, getter8,
+                (f,v1, v2, v3, v4, v5, v6, v7, v8) ->
+                        constructor.apply(f.internalId, f.label, f.displayVerticalDistance, f.iconData, v1, v2, v3, v4, v5, v6, v7, v8)
+        );
+    }
+
 }
 

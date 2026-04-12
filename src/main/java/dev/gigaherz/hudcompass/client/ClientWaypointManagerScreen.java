@@ -2,7 +2,6 @@ package dev.gigaherz.hudcompass.client;
 
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.vertex.Tesselator;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.waypoints.BasicWaypoint;
 import dev.gigaherz.hudcompass.waypoints.PointInfo;
@@ -20,6 +19,7 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -27,7 +27,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.gui.widget.ScrollPanel;
 
@@ -45,7 +44,7 @@ public class ClientWaypointManagerScreen extends Screen
     private static final Predicate<String> COORD_FORMAT_MATCHER = COORD_FORMAT.asPredicate();
 
     private static final int MARGIN_LEFT = 8;
-    private static final int MARGIN_TOP = 32;
+    private static final int MARGIN_TOP = 36;
     private static final int MARGIN_RIGHT = 8;
     private static final int MARGIN_BOTTOM = 34;
 
@@ -129,6 +128,33 @@ public class ClientWaypointManagerScreen extends Screen
         saveButton.active = false;
     }
 
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a)
+    {
+        scrollPanel.setPartialTicks(a);
+
+        ClientWaypointManagerScreen.this.extractMenuBackground(graphics, 0, scrollPanel.getTop(), width, scrollPanel.getHeight());
+        graphics.blit(RenderPipelines.GUI_TEXTURED, Screen.INWORLD_HEADER_SEPARATOR, 0, scrollPanel.getTop() - 2, 0.0F, 0.0F, width, 2, 32, 2);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, Screen.INWORLD_FOOTER_SEPARATOR, 0, scrollPanel.getBottom(), 0.0F, 0.0F, width, 2, 32, 2);
+
+        scrollPanel.extractRenderState(graphics, mouseX, mouseY, a);
+
+        super.extractRenderState(graphics, mouseX, mouseY, a);
+
+        graphics.centeredText(minecraft.font, title, width / 2, 7, 0xFFFFFFFF);
+
+        int nameWidth = Math.max(scrollPanel.getContentWidth() - (61 * 2 + 41 + 23 + 23 + 3), 50);
+        int x = scrollPanel.getLeft() + 6;
+        int y = scrollPanel.getTop() - 12;
+        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_label"), x, y, 0xFFFFFFFF, false);
+        x += nameWidth + 3;
+        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_x"), x, y, 0xFFFFFFFF, false);
+        x += 61;
+        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_y"), x, y, 0xFFFFFFFF, false);
+        x += 41;
+        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_z"), x, y, 0xFFFFFFFF, false);
+    }
+
     private void createNewPoint(WorldListItem worldItem)
     {
         BasicWaypoint wp = new BasicWaypoint(getPlayerPositionScaled(worldItem), "", BasicIconData.mapDecoration("player_off_limits"));
@@ -200,30 +226,6 @@ public class ClientWaypointManagerScreen extends Screen
         scrollPanel.removeItem(item);
         item.worldItem.removeWaypoint(item);
         setDirty();
-    }
-
-    @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a)
-    {
-        //renderBackground(graphics, mouseX, mouseY, partialTicks);
-
-        scrollPanel.setPartialTicks(a);
-        scrollPanel.extractRenderState(graphics, mouseX, mouseY, a);
-
-        super.extractRenderState(graphics, mouseX, mouseY, a);
-
-        graphics.centeredText(minecraft.font, title, width / 2, 7, 0xFFFFFFFF);
-
-        int nameWidth = Math.max(scrollPanel.getContentWidth() - (61 * 2 + 41 + 23 + 23 + 3), 50);
-        int x = scrollPanel.getLeft() + 6;
-        int y = scrollPanel.getTop() - 10;
-        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_label"), x, y, 0xFFFFFFFF, false);
-        x += nameWidth + 3;
-        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_x"), x, y, 0xFFFFFFFF, false);
-        x += 61;
-        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_y"), x, y, 0xFFFFFFFF, false);
-        x += 41;
-        graphics.text(minecraft.font, Component.translatable("text.hudcompass.waypoint_editor.header_z"), x, y, 0xFFFFFFFF, false);
     }
 
     private class WorldListItem extends CompositeListItem
@@ -364,7 +366,8 @@ public class ClientWaypointManagerScreen extends Screen
 
             label.setMaxLength(1024);
 
-            label.setValue(pointInfo.getLabelText());
+            var labelComponent = pointInfo.getLabel();
+            label.setValue(labelComponent != null ? labelComponent.getString() : "");
             xCoord.setValue(String.format(Locale.ROOT, "%1.2f", pos.x));
             yCoord.setValue(String.format(Locale.ROOT, "%1.2f", pos.y));
             zCoord.setValue(String.format(Locale.ROOT, "%1.2f", pos.z));
@@ -403,7 +406,7 @@ public class ClientWaypointManagerScreen extends Screen
 
                 if (COORD_FORMAT_MATCHER.test(xText) && COORD_FORMAT_MATCHER.test(yText) && COORD_FORMAT_MATCHER.test(zText))
                 {
-                    pointInfo.setLabelText(labelText == null ? "" : labelText);
+                    pointInfo.setLabel(labelText != null ? Component.literal(labelText) : null);
                     pointInfo.setPosition(new Vec3(Double.parseDouble(xText), Double.parseDouble(yText), Double.parseDouble(zText)));
                 }
 
@@ -752,6 +755,9 @@ public class ClientWaypointManagerScreen extends Screen
             super(client, width, height, top, left);
         }
 
+        public int getHeight() { return height; }
+        public int getBottom() { return top + height; }
+
         public void addItem(ListItem item)
         {
             addItem(items.size(), item);
@@ -786,7 +792,6 @@ public class ClientWaypointManagerScreen extends Screen
         @Override
         protected void drawBackground(GuiGraphicsExtractor graphics, float partialTick)
         {
-            super.drawBackground(graphics, partialTick);
             this.partialTicks = partialTick;
         }
 

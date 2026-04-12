@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.gigaherz.hudcompass.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "configurablecane.refmap.json",
+  "mixins": [
+    "GuiMixin"
+  ],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

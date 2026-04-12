@@ -1,15 +1,38 @@
 package dev.gigaherz.hudcompass.icons;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.gigaherz.hudcompass.HudCompass;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.client.model.block.CompositeBlockModel;
 
 public class BasicIconData implements IIconData<BasicIconData>
 {
-    public static final BasicIconData MISSING_ICON = new BasicIconData(HudCompass.BASIC_SERIALIZER.get(), HudCompass.location("unknown"));
+    public static final MapCodec<BasicIconData> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                    Identifier.CODEC.fieldOf("sprite").forGetter(e -> e.spriteName),
+                    Codec.FLOAT.fieldOf("r").forGetter(e -> e.r),
+                    Codec.FLOAT.fieldOf("g").forGetter(e -> e.g),
+                    Codec.FLOAT.fieldOf("b").forGetter(e -> e.b),
+                    Codec.FLOAT.fieldOf("a").forGetter(e -> e.a)
+            ).apply(instance, BasicIconData::new));
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, BasicIconData> STREAM_CODEC = StreamCodec.composite(
+            Identifier.STREAM_CODEC, (e -> e.spriteName),
+            ByteBufCodecs.FLOAT, (e -> e.r),
+            ByteBufCodecs.FLOAT, (e -> e.g),
+            ByteBufCodecs.FLOAT, (e -> e.b),
+            ByteBufCodecs.FLOAT, (e -> e.a),
+            BasicIconData::new
+    );
 
     public static BasicIconData generic()
     {
@@ -33,19 +56,30 @@ public class BasicIconData implements IIconData<BasicIconData>
 
     private final IconDataSerializer<BasicIconData> serializer;
     public final Identifier spriteName;
-    public float r = 1.0f;
-    public float g = 1.0f;
-    public float b = 1.0f;
-    public float a = 1.0f;
+    public final float r;
+    public final float g;
+    public final float b;
+    public final float a;
+
+    public BasicIconData(Identifier spriteName)
+    {
+        this(HudCompass.BASIC_SERIALIZER.get(), spriteName);
+    }
 
     public BasicIconData(IconDataSerializer<BasicIconData> serializer, Identifier spriteName)
     {
-        this.serializer = serializer;
-        this.spriteName = spriteName;
+        this(serializer, spriteName, 1,1,1,1);
     }
 
-    public void setColor(float r, float g, float b, float a)
+    private BasicIconData(Identifier spriteName, float r, float g, float b, float a)
     {
+        this(HudCompass.BASIC_SERIALIZER.get(), spriteName, r, g, b, a);
+    }
+
+    public BasicIconData(IconDataSerializer<BasicIconData> serializer, Identifier spriteName, float r, float g, float b, float a)
+    {
+        this.serializer = serializer;
+        this.spriteName = spriteName;
         this.r = r;
         this.g = g;
         this.b = b;
@@ -56,38 +90,5 @@ public class BasicIconData implements IIconData<BasicIconData>
     public IconDataSerializer<BasicIconData> getSerializer()
     {
         return serializer;
-    }
-
-    public static class Serializer extends IconDataSerializer<BasicIconData>
-    {
-        @Override
-        public void write(BasicIconData data, ValueOutput output)
-        {
-            output.putString("SpriteName", data.spriteName.toString());
-        }
-
-        @Override
-        public BasicIconData read(ValueInput input)
-        {
-            return new BasicIconData(
-                    this,
-                    Identifier.parse(input.getString("SpriteName").orElseThrow())
-            );
-        }
-
-        @Override
-        public void write(BasicIconData data, FriendlyByteBuf buffer)
-        {
-            buffer.writeIdentifier(data.spriteName);
-        }
-
-        @Override
-        public BasicIconData read(FriendlyByteBuf buffer)
-        {
-            return new BasicIconData(
-                    this,
-                    buffer.readIdentifier()
-            );
-        }
     }
 }

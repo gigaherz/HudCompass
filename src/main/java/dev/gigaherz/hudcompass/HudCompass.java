@@ -51,9 +51,11 @@ public class HudCompass
     public static final Registry<PointInfoType<?>> POINT_INFO_TYPES_REGISTRY = POINT_INFO_TYPES.makeRegistry(builder -> {});
     public static final Registry<IconDataSerializer<?>> ICON_DATA_SERIALIZERS_REGISTRY = ICON_DATA_SERIALIZERS.makeRegistry(builder -> {});
 
-    public static final DeferredHolder<IconDataSerializer<?>, IconDataSerializer<BasicIconData>> BASIC_SERIALIZER = ICON_DATA_SERIALIZERS.register("basic", BasicIconData.Serializer::new);
+    public static final DeferredHolder<IconDataSerializer<?>, IconDataSerializer<BasicIconData>>
+            BASIC_SERIALIZER = ICON_DATA_SERIALIZERS.register("basic", () -> new IconDataSerializer<>(BasicIconData.CODEC, BasicIconData.STREAM_CODEC));
 
-    public static final DeferredHolder<PointInfoType<?>, PointInfoType<BasicWaypoint>> BASIC_WAYPOINT = POINT_INFO_TYPES.register("basic", () -> new PointInfoType<>(BasicWaypoint::new));
+    public static final DeferredHolder<PointInfoType<?>, PointInfoType<BasicWaypoint>>
+            BASIC_WAYPOINT = POINT_INFO_TYPES.register("basic", () -> new PointInfoType<>(BasicWaypoint.CODEC, BasicWaypoint.STREAM_CODEC));
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<PointsOfInterest>> POINTS_OF_INTEREST_ATTACHMENT = ATTACHMENT_TYPES.register("poi_provider", () ->
             AttachmentType.serializable(PointsOfInterest::new).copyOnDeath().copyHandler(PointsOfInterest::duplicate).build()

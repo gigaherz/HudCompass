@@ -1,29 +1,30 @@
 package dev.gigaherz.hudcompass.integrations.server;
 
 import com.google.common.collect.Maps;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.client.HudOverlay;
+import dev.gigaherz.hudcompass.icons.BasicIconData;
 import dev.gigaherz.hudcompass.icons.IIconData;
 import dev.gigaherz.hudcompass.icons.IconDataSerializer;
 import dev.gigaherz.hudcompass.icons.client.IIconRenderer;
 import dev.gigaherz.hudcompass.icons.client.IconRendererRegistry;
-import dev.gigaherz.hudcompass.waypoints.PointInfoType;
-import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
-import net.minecraft.client.Minecraft;
+import dev.gigaherz.hudcompass.waypoints.*;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.UUIDUtil;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Util;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.Team;
 import net.neoforged.bus.api.IEventBus;
@@ -38,6 +39,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class PlayerTracker
@@ -49,9 +51,11 @@ public class PlayerTracker
     private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.POINT_INFO_TYPES;
     private static final DeferredRegister<IconDataSerializer<?>> IDS = HudCompass.ICON_DATA_SERIALIZERS;
 
-    public static final DeferredHolder<PointInfoType<?>, PointInfoType<PlayerWaypoint>> PLAYER_POINT = PIT.register("player", () -> new PointInfoType<>(PlayerWaypoint::new));
+    public static final DeferredHolder<PointInfoType<?>, PointInfoType<PlayerWaypoint>>
+            PLAYER_POINT = PIT.register("player", () -> new PointInfoType<>(PlayerWaypoint.CODEC, PlayerWaypoint.STREAM_CODEC));
 
-    public static final DeferredHolder<IconDataSerializer<?>, PlayerIconData.Serializer> ICON_DATA = IDS.register("player", PlayerIconData.Serializer::new);
+    public static final DeferredHolder<IconDataSerializer<?>, IconDataSerializer<PlayerIconData>>
+            ICON_DATA = IDS.register("player", () -> new IconDataSerializer<>(PlayerIconData.CODEC, PlayerIconData.STREAM_CODEC));
 
     public static void init(IEventBus modEventBus)
     {
@@ -168,8 +172,24 @@ public class PlayerTracker
 
     public static class PlayerWaypoint extends SpecificPointInfo<PlayerWaypoint, PlayerIconData>
     {
-        private UUID playerUUID;
+        public static final MapCodec<PlayerWaypoint> CODEC = RecordCodecBuilder.mapCodec(instance ->
+                codecFragment(instance).and(UUIDUtil.CODEC.fieldOf("player").forGetter(e -> e.playerUUID)).apply(instance, PlayerWaypoint::new)
+        );
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, PlayerWaypoint> STREAM_CODEC = PointInfo.streamCodec(
+                UUIDUtil.STREAM_CODEC, e -> e.playerUUID,
+                PlayerWaypoint::new
+        );
+
+        private final UUID playerUUID;
         private Vec3 position;
+
+        @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+        protected PlayerWaypoint(UUID internalId, Optional<Component> label, boolean displayVerticalDistance, IIconData<?> iconData, UUID playerUUID)
+        {
+            super(PLAYER_POINT.get(), true, internalId, label, displayVerticalDistance, iconData);
+            this.playerUUID = playerUUID;
+        }
 
         public PlayerWaypoint(@Nonnull Player player)
         {
@@ -181,22 +201,6 @@ public class PlayerTracker
             this.position = player.position();
         }
 
-        public PlayerWaypoint()
-        {
-            super(PLAYER_POINT.get(), true, null, new PlayerIconData());
-
-            dynamic();
-
-            this.playerUUID = Util.NIL_UUID;
-            this.position = Vec3.ZERO;
-        }
-
-        @Override
-        public Vec3 getPosition()
-        {
-            return position;
-        }
-
         @Override
         public Vec3 getPosition(Player player, float partialTicks)
         {
@@ -205,32 +209,6 @@ public class PlayerTracker
                 return position;
 
             return target.getPosition(partialTicks);
-        }
-
-        @Override
-        protected void serializeAdditional(ValueOutput output)
-        {
-            output.putIntArray("Player", UUIDUtil.uuidToIntArray(playerUUID));
-        }
-
-        @Override
-        protected void deserializeAdditional(ValueInput input)
-        {
-            playerUUID = UUIDUtil.uuidFromIntArray(input.getIntArray("Player").orElseThrow());
-            this.getIconData().setPlayer(playerUUID);
-        }
-
-        @Override
-        protected void serializeAdditional(FriendlyByteBuf buffer)
-        {
-            buffer.writeUUID(playerUUID);
-        }
-
-        @Override
-        protected void deserializeAdditional(FriendlyByteBuf buffer)
-        {
-            playerUUID = buffer.readUUID();
-            this.getIconData().setPlayer(playerUUID);
         }
 
         @Override
@@ -251,17 +229,22 @@ public class PlayerTracker
         }
     }
 
-    private static class PlayerIconData implements IIconData<PlayerIconData>
+    public static class PlayerIconData implements IIconData<PlayerIconData>
     {
+        public static final MapCodec<PlayerIconData> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                UUIDUtil.CODEC.fieldOf("player").forGetter(e -> e.playerId)
+        ).apply(instance, PlayerIconData::new));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, PlayerIconData> STREAM_CODEC = StreamCodec.composite(
+                UUIDUtil.STREAM_CODEC, (e -> e.playerId),
+                PlayerIconData::new
+        );
+
         private UUID playerId = Util.NIL_UUID;
 
         public PlayerIconData(UUID player)
         {
             playerId = player;
-        }
-
-        public PlayerIconData()
-        {
         }
 
         @Override
@@ -274,33 +257,6 @@ public class PlayerTracker
         {
             this.playerId = playerId;
         }
-
-        private static class Serializer extends IconDataSerializer<PlayerIconData>
-        {
-            @Override
-            public void write(PlayerIconData data, ValueOutput output)
-            {
-                output.putIntArray("Player", UUIDUtil.uuidToIntArray(data.playerId));
-            }
-
-            @Override
-            public PlayerIconData read(ValueInput input)
-            {
-                return new PlayerIconData(UUIDUtil.uuidFromIntArray(input.getIntArray("Player").orElseThrow()));
-            }
-
-            @Override
-            public PlayerIconData read(FriendlyByteBuf buffer)
-            {
-                return new PlayerIconData(buffer.readUUID());
-            }
-
-            @Override
-            public void write(PlayerIconData data, FriendlyByteBuf buffer)
-            {
-                buffer.writeUUID(data.playerId);
-            }
-        }
     }
 
     private static class PlayerDataAddon
@@ -311,18 +267,26 @@ public class PlayerTracker
         public Team playerTeam;
     }
 
-    private static class OtherPlayerRenderer implements IIconRenderer<PlayerIconData>
+    public static class OtherPlayerRenderer implements IIconRenderer<PlayerIconData>
     {
         @Override
         public void renderIcon(PlayerIconData data, Player player, TextureManager textureManager, GuiGraphicsExtractor graphics, int x, int y, int alpha)
         {
-            if (player.level().getPlayerByUUID(data.playerId) instanceof AbstractClientPlayer clientPlayer)
+            drawUUID(player, data.playerId, graphics, x, y, alpha);
+        }
+
+        public static boolean drawUUID(Player player, UUID uuid, GuiGraphicsExtractor graphics, int x, int y, int alpha)
+        {
+            if (player.level().getPlayerByUUID(uuid) instanceof AbstractClientPlayer clientPlayer)
             {
                 var tex = clientPlayer.getSkin().body().texturePath();
 
                 drawFaceLayer(graphics, tex, x - 4, y - 4, 8, 8, 8);
                 drawFaceLayer(graphics, tex, x - 4.5f, y - 4.5f, 9, 9, 40);
+                return true;
             }
+
+            return false;
         }
 
         private static void drawFaceLayer(GuiGraphicsExtractor graphics, Identifier tex, float x1, float y1, float w, float h, int tx)
@@ -332,7 +296,8 @@ public class PlayerTracker
             var u1 = tx / 64f;
             var u2 = (tx + 8) / 64f;
 
-            HudOverlay.blitRaw(graphics, tex, x1, x2, y1, y2, u1, u2, 8/64f, 16/64f, 1, 1, 1, 1);
+            HudOverlay.blitRaw(graphics, tex, x1, x2, y1, y2, u1, 8/64f,  u2, 16/64f, 1, 1, 1, 1);
+
         }
     }
 }

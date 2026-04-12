@@ -1,5 +1,6 @@
 package dev.gigaherz.hudcompass;
 
+import dev.gigaherz.hudcompass.client.HudOverlay;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -45,6 +46,8 @@ public class ConfigData
         public final ModConfigSpec.EnumValue<DisplayWhen> displayWhen;
         public final ModConfigSpec.DoubleValue waypointFadeDistance;
         public final ModConfigSpec.DoubleValue waypointViewDistance;
+        public final ModConfigSpec.BooleanValue showLocatorBarWaypoints;
+        public final ModConfigSpec.EnumValue<DisableLocatorBarWhen> disableLocatorBarWhen;
 
         ClientConfig(ModConfigSpec.Builder builder)
         {
@@ -59,7 +62,7 @@ public class ConfigData
                     .comment("If set to FALSE, sneaking will only show the closest waypoint to the center of the compass.")
                     .define("showAllLabelsOnSneak", true);
             animateLabels = builder
-                    .comment("If set to FALSE, support for sewing recipes will not be enabled regardless of the mod's presence.")
+                    .comment("If set to FALSE, the labels will not animate as the icons do.")
                     .define("animateLabels", true);
             displayWhen = builder
                     .comment("Choose when the compass is visible.",
@@ -77,6 +80,15 @@ public class ConfigData
             waypointViewDistance = builder
                     .comment("Sets the distance at which waypoints stop drawing. If set to 0, waypoints will never disappear.")
                     .defineInRange("waypointViewDistance", 200.0, 0.0, Double.MAX_VALUE);
+            showLocatorBarWaypoints = builder
+                    .comment("If set to FALSE, the icons from the locator bar will not be shown in the hud compass.")
+                    .define("showLocatorBarWaypoints", true);
+            disableLocatorBarWhen = builder
+                    .comment("Choose when the compass is visible.",
+                            " - NEVER: Never disable the locator bar, keep it visible as default.",
+                            " - WHEN_VISIBLE: Only disable the locator bar when the hud compass is visible.",
+                            " - ALWAYS: Disable the locator bar fully.")
+                    .defineEnum("disableLocatorBarWhen", DisableLocatorBarWhen.WHEN_VISIBLE);
             builder.pop();
         }
     }
@@ -86,6 +98,13 @@ public class ConfigData
         NEVER,
         HOLDING_COMPASS,
         HAS_COMPASS,
+        ALWAYS
+    }
+
+    public enum DisableLocatorBarWhen
+    {
+        NEVER,
+        WHEN_VISIBLE,
         ALWAYS
     }
 
@@ -143,6 +162,8 @@ public class ConfigData
     public static boolean enableJourneymapIntegration;
     public static double waypointViewDistance;
     public static double waypointFadeDistance;
+    public static boolean showLocatorBarWaypoints;
+    public static DisableLocatorBarWhen disableLocatorBarWhen;
 
     public static PlayerDisplay playerDisplay;
 
@@ -155,11 +176,24 @@ public class ConfigData
         displayWhen = CLIENT.displayWhen.get();
         waypointFadeDistance = CLIENT.waypointFadeDistance.get();
         waypointViewDistance = CLIENT.waypointViewDistance.get();
-        enableJourneymapIntegration = ConfigData.CLIENT.enableJourneymapIntegration.get();
+        enableJourneymapIntegration = CLIENT.enableJourneymapIntegration.get();
+        showLocatorBarWaypoints = CLIENT.showLocatorBarWaypoints.get();
+        disableLocatorBarWhen = CLIENT.disableLocatorBarWhen.get();
     }
 
     public static void refreshCommon()
     {
         playerDisplay = COMMON.playerDisplay.get();
+    }
+
+
+    public static boolean shouldShowLocatorBar()
+    {
+        return switch (disableLocatorBarWhen)
+        {
+            case NEVER -> true;
+            case WHEN_VISIBLE -> !HudOverlay.INSTANCE.canRender();
+            case ALWAYS -> false;
+        };
     }
 }

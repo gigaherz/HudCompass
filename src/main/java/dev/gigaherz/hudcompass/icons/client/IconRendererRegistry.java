@@ -23,8 +23,10 @@ public class IconRendererRegistry
     private static final BasicIconRenderer BASIC_ICON_RENDERER = registerRenderer(HudCompass.BASIC_SERIALIZER.get(),
             new BasicIconRenderer());
 
+    public static final BasicIconData MISSING_ICON = new BasicIconData(HudCompass.location("unknown"));
+
     private static final IIconRenderer MISSING_ICON_RENDERER = (data, player, textureManager, matrixStack, x, y, alpha) ->
-            BASIC_ICON_RENDERER.renderIcon(BasicIconData.MISSING_ICON, player, textureManager, matrixStack, x, y, alpha);
+            BASIC_ICON_RENDERER.renderIcon(MISSING_ICON, player, textureManager, matrixStack, x, y, alpha);
 
     public static <T extends IIconData<T>, R extends IIconRenderer<T>> R registerRenderer(IconDataSerializer<T> serializer, R renderer)
     {

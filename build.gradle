@@ -6,8 +6,8 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.141'
 }
 
-neoForge.version = "26.1.0.8-beta"
-version = "0.11.0"
+neoForge.version = "26.1.2.7-beta"
+version = "1.0.0"
 group= "dev.gigaherz.hudcompass"
 base.archivesName = "HudCompass-${neoForge.minecraftVersion}"
 
@@ -35,12 +35,13 @@ neoForge {
 
         client {
             client()
+            programArguments.addAll '--width', '1280', '--height', '960'
         }
 
         client2 {
             client()
 
-            programArguments.addAll '--username', 'gigaherz', '--user', 'gigaherz', '--uuid', '67752848-2bae-4c88-ae42-150fab05fea8'
+            programArguments.addAll '--username', 'gigaherz', '--uuid', '67752848-2bae-4c88-ae42-150fab05fea8'
         }
 
         server {

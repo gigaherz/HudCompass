@@ -57,9 +57,11 @@ public class HudOverlay implements GuiLayer
         @SubscribeEvent
         public static void registerOverlay(RegisterGuiLayersEvent event)
         {
-            event.registerAbove(VanillaGuiLayers.BOSS_OVERLAY, HudCompass.location("compass"), new HudOverlay());
+            event.registerAbove(VanillaGuiLayers.BOSS_OVERLAY, HudCompass.location("compass"), INSTANCE);
         }
     }
+
+    public static final HudOverlay INSTANCE = new HudOverlay();
 
     private final Minecraft mc;
     private final Font font;
@@ -175,7 +177,7 @@ public class HudOverlay implements GuiLayer
         }
     }
 
-    private boolean canRender()
+    public boolean canRender()
     {
         if (mc.player == null) return false;
 

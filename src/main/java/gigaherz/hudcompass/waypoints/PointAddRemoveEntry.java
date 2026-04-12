@@ -10,7 +10,7 @@ public record PointAddRemoveEntry(Identifier key, PointInfo<?> point)
 
     public static final StreamCodec<RegistryFriendlyByteBuf, PointAddRemoveEntry> STREAM_CODEC = StreamCodec.composite(
             Identifier.STREAM_CODEC, PointAddRemoveEntry::key,
-            PointInfo.STREAM_CODEC, PointAddRemoveEntry::point,
+            PointInfo.DISPATCH_STREAM_CODEC, PointAddRemoveEntry::point,
             PointAddRemoveEntry::new
     );
 }

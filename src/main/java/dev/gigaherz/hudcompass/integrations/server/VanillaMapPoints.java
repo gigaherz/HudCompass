@@ -2,23 +2,21 @@ package dev.gigaherz.hudcompass.integrations.server;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.gigaherz.hudcompass.ConfigData;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.BasicIconData;
-import dev.gigaherz.hudcompass.waypoints.PointInfo;
-import dev.gigaherz.hudcompass.waypoints.PointInfoType;
-import dev.gigaherz.hudcompass.waypoints.PointsOfInterest;
-import dev.gigaherz.hudcompass.waypoints.SpecificPointInfo;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import dev.gigaherz.hudcompass.icons.IIconData;
+import dev.gigaherz.hudcompass.waypoints.*;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.MapItem;
 import net.minecraft.world.level.saveddata.maps.*;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
@@ -29,10 +27,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class VanillaMapPoints
 {
@@ -41,8 +36,10 @@ public class VanillaMapPoints
     private static final Identifier ADDON_ID = HudCompass.location("vanilla_map");
 
     private static final DeferredRegister<PointInfoType<?>> PIT = HudCompass.POINT_INFO_TYPES;
-    public static final DeferredHolder<PointInfoType<?>, PointInfoType<MapDecorationWaypoint>> DECORATION_TYPE = PIT.register("map_decoration", () -> new PointInfoType<>(MapDecorationWaypoint::new));
-    public static final DeferredHolder<PointInfoType<?>, PointInfoType<MapBannerWaypoint>> BANNER_TYPE = PIT.register("map_banner", () -> new PointInfoType<>(MapBannerWaypoint::new));
+    public static final DeferredHolder<PointInfoType<?>, PointInfoType<MapDecorationWaypoint>>
+            DECORATION_TYPE = PIT.register("map_decoration", () -> new PointInfoType<>(MapDecorationWaypoint.CODEC, MapDecorationWaypoint.STREAM_CODEC));
+    public static final DeferredHolder<PointInfoType<?>, PointInfoType<MapBannerWaypoint>>
+            BANNER_TYPE = PIT.register("map_banner", () -> new PointInfoType<>(MapBannerWaypoint.CODEC, MapBannerWaypoint.STREAM_CODEC));
 
     public static void init(IEventBus modEventBus)
     {
@@ -157,8 +154,29 @@ public class VanillaMapPoints
 
     public static class MapBannerWaypoint extends SpecificPointInfo<MapBannerWaypoint, BasicIconData>
     {
+        public static final MapCodec<MapBannerWaypoint> CODEC = RecordCodecBuilder.mapCodec(instance ->
+                codecFragment(instance).and(Vec3.CODEC.fieldOf("pos").forGetter(MapBannerWaypoint::getPosition)).apply(instance, MapBannerWaypoint::new)
+        );
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, MapBannerWaypoint> STREAM_CODEC = PointInfo.streamCodec(
+                Vec3.STREAM_CODEC, MapBannerWaypoint::getPosition,
+                MapBannerWaypoint::new
+        );
+
         private final MapBanner banner;
         private Vec3 position;
+
+        private Vec3 getPosition() {
+            return position;
+        }
+
+        @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+        protected MapBannerWaypoint(UUID internalId, Optional<Component> label, boolean displayVerticalDistance, IIconData<?> iconData, Vec3 exactPosition)
+        {
+            super(BANNER_TYPE.get(), true, internalId, label, displayVerticalDistance, iconData);
+            this.position = exactPosition;
+            this.banner = null;
+        }
 
         public MapBannerWaypoint(MapBanner banner, MapDecoration decoration)
         {
@@ -181,58 +199,37 @@ public class VanillaMapPoints
         }
 
         @Override
-        public Vec3 getPosition()
-        {
-            return position;
-        }
-
-        @Override
         public Vec3 getPosition(Player player, float partialTicks)
         {
             return position;
-        }
-
-        @Override
-        protected void serializeAdditional(ValueOutput output)
-        {
-            output.putDouble("X", position.x);
-            output.putDouble("Y", position.y);
-            output.putDouble("Z", position.z);
-        }
-
-        @Override
-        protected void deserializeAdditional(ValueInput input)
-        {
-            position = new Vec3(
-                    input.read("X", Codec.DOUBLE).orElseThrow(),
-                    input.read("Y", Codec.DOUBLE).orElseThrow(),
-                    input.read("Z", Codec.DOUBLE).orElseThrow()
-            );
-        }
-
-        @Override
-        protected void serializeAdditional(FriendlyByteBuf buffer)
-        {
-            buffer.writeDouble(position.x);
-            buffer.writeDouble(position.y);
-            buffer.writeDouble(position.z);
-        }
-
-        @Override
-        protected void deserializeAdditional(FriendlyByteBuf buffer)
-        {
-            position = new Vec3(
-                    buffer.readDouble(),
-                    buffer.readDouble(),
-                    buffer.readDouble()
-            );
         }
     }
 
     public static class MapDecorationWaypoint extends SpecificPointInfo<MapDecorationWaypoint, BasicIconData>
     {
+        public static final MapCodec<MapDecorationWaypoint> CODEC = RecordCodecBuilder.mapCodec(instance ->
+                codecFragment(instance).and(Vec3.CODEC.fieldOf("pos").forGetter(MapDecorationWaypoint::getPosition)).apply(instance, MapDecorationWaypoint::new)
+        );
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, MapDecorationWaypoint> STREAM_CODEC = PointInfo.streamCodec(
+                Vec3.STREAM_CODEC, MapDecorationWaypoint::getPosition,
+                MapDecorationWaypoint::new
+        );
+
         private final MapDecoration decoration;
         private Vec3 position;
+
+        private Vec3 getPosition() {
+            return position;
+        }
+
+        @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+        protected MapDecorationWaypoint(UUID internalId, Optional<Component> label, boolean displayVerticalDistance, IIconData<?> iconData, Vec3 exactPosition)
+        {
+            super(DECORATION_TYPE.get(), true, internalId, label, displayVerticalDistance, iconData);
+            this.position = exactPosition;
+            this.decoration = null;
+        }
 
         public MapDecorationWaypoint(MapItemSavedData mapData, MapDecoration decoration)
         {
@@ -265,55 +262,14 @@ public class VanillaMapPoints
         }
 
         @Override
-        public Vec3 getPosition()
-        {
-            return position;
-        }
-
-        @Override
         public Vec3 getPosition(Player player, float partialTicks)
         {
             return position;
         }
 
-        @Override
-        protected void serializeAdditional(ValueOutput output)
-        {
-            output.putDouble("X", position.x);
-            output.putDouble("Y", position.y);
-            output.putDouble("Z", position.z);
-        }
-
-        @Override
-        protected void deserializeAdditional(ValueInput input)
-        {
-            position = new Vec3(
-                    input.read("X", Codec.DOUBLE).orElseThrow(),
-                    input.read("Y", Codec.DOUBLE).orElseThrow(),
-                    input.read("Z", Codec.DOUBLE).orElseThrow()
-            );
-        }
-
-        @Override
-        protected void serializeAdditional(FriendlyByteBuf buffer)
-        {
-            buffer.writeDouble(position.x);
-            buffer.writeDouble(position.y);
-            buffer.writeDouble(position.z);
-        }
-
-        @Override
-        protected void deserializeAdditional(FriendlyByteBuf buffer)
-        {
-            position = new Vec3(
-                    buffer.readDouble(),
-                    buffer.readDouble(),
-                    buffer.readDouble()
-            );
-        }
     }
 
-    private class VanillaMapData
+    private static class VanillaMapData
     {
         public Map<MapItemSavedData, Map<MapDecoration, PointInfo<?>>> mapDecorations = Maps.newHashMap();
     }

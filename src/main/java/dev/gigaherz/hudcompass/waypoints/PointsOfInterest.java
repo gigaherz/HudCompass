@@ -12,6 +12,7 @@ import dev.gigaherz.hudcompass.network.SyncWaypointData;
 import dev.gigaherz.hudcompass.network.UpdateWaypointsFromGui;
 import gigaherz.hudcompass.waypoints.PointAddRemoveEntry;
 import io.netty.buffer.Unpooled;
+import joptsimple.internal.Strings;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
@@ -19,6 +20,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -229,7 +231,9 @@ public class PointsOfInterest implements ValueIOSerializable
     {
         var points = sender.getData(HudCompass.POINTS_OF_INTEREST_ATTACHMENT);
         {
-            BasicWaypoint waypoint = new BasicWaypoint(new Vec3(addWaypoint.x(), addWaypoint.y(), addWaypoint.z()), addWaypoint.label(),
+            var labelText = addWaypoint.label();
+            var labelComponent = Strings.isNullOrEmpty(labelText) ? null : labelText;
+            BasicWaypoint waypoint = new BasicWaypoint(new Vec3(addWaypoint.x(), addWaypoint.y(), addWaypoint.z()), labelComponent,
                     BasicIconData.basic(addWaypoint.spriteName())
             );
             points.get(sender.level()).addPoint(waypoint);
@@ -524,7 +528,7 @@ public class PointsOfInterest implements ValueIOSerializable
                 if (!point.isDynamic())
                 {
                     var child = outputList.addChild();
-                    PointInfoRegistry.serializePoint(point, child);
+                    child.store(PointInfo.DISPATCH_CODEC, point);
                 }
             }
         }
@@ -535,7 +539,7 @@ public class PointsOfInterest implements ValueIOSerializable
             buffer.writeVarInt(points.size());
             for (PointInfo point : points.values())
             {
-                PointInfoRegistry.serializePoint(buffer, point);
+                PointInfo.DISPATCH_STREAM_CODEC.encode(buffer, point);
             }
         }
 
@@ -544,8 +548,10 @@ public class PointsOfInterest implements ValueIOSerializable
             points.clear();
             for (var child : list)
             {
-                PointInfo<?> point = PointInfoRegistry.deserializePoint(child);
-                points.put(point.getInternalId(), point);
+                var pointOpt = child.read(PointInfo.DISPATCH_CODEC);
+                pointOpt.ifPresent(point ->
+                    points.put(point.getInternalId(), point)
+                );
             }
         }
 
@@ -556,7 +562,7 @@ public class PointsOfInterest implements ValueIOSerializable
             int numPoints = buffer.readVarInt();
             for (int i = 0; i < numPoints; i++)
             {
-                PointInfo<?> point = PointInfoRegistry.deserializePoint(buffer);
+                var point = PointInfo.DISPATCH_STREAM_CODEC.decode(buffer);
                 points.put(point.getInternalId(), point);
             }
         }

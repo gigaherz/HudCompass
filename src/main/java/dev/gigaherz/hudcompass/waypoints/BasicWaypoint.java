@@ -1,50 +1,59 @@
 package dev.gigaherz.hudcompass.waypoints;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.gigaherz.hudcompass.HudCompass;
 import dev.gigaherz.hudcompass.icons.IIconData;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 public class BasicWaypoint extends PointInfo<BasicWaypoint>
 {
-    private String label;
+    public static final MapCodec<BasicWaypoint> CODEC = RecordCodecBuilder.mapCodec(instance ->
+            codecFragment(instance).and(Vec3.CODEC.fieldOf("pos").forGetter(BasicWaypoint::getPosition)).apply(instance, BasicWaypoint::new)
+    );
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, BasicWaypoint> STREAM_CODEC = PointInfo.streamCodec(
+            Vec3.STREAM_CODEC, BasicWaypoint::getPosition,
+            BasicWaypoint::new
+    );
 
     private Vec3 position;
 
-    public BasicWaypoint()
-    {
-        super(HudCompass.BASIC_WAYPOINT.get(), false);
-    }
-
-    public BasicWaypoint(BlockPos exactPosition, @Nullable String label, IIconData<?> iconData)
-    {
-        this(Vec3.atCenterOf(exactPosition), label, iconData);
-    }
-
     public BasicWaypoint(Vec3 exactPosition, @Nullable String label, IIconData<?> iconData)
     {
-        this(HudCompass.BASIC_WAYPOINT.get(), exactPosition, label, iconData);
+        this(HudCompass.BASIC_WAYPOINT.get(), exactPosition, label != null ? Component.literal(label) : null, iconData);
     }
 
-    public BasicWaypoint(PointInfoType<BasicWaypoint> type, Vec3 exactPosition, @Nullable String label, IIconData<?> iconData)
+    protected BasicWaypoint(PointInfoType<BasicWaypoint> type, Vec3 exactPosition, @Nullable String label, IIconData<?> iconData)
     {
-        super(type, false, label == null ? null : Component.literal(label), iconData);
-        this.position = exactPosition;
-        this.label = label == null ? "" : label;
+        this(type, exactPosition, label != null ? Component.literal(label) : null, iconData);
     }
 
-    @Override
+    protected BasicWaypoint(PointInfoType<BasicWaypoint> type, Vec3 exactPosition, @Nullable Component label, IIconData<?> iconData)
+    {
+        super(type, false, label, iconData);
+        this.position = exactPosition;
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    protected BasicWaypoint(UUID internalId, Optional<Component> label, boolean displayVerticalDistance, IIconData<?> iconData, Vec3 exactPosition)
+    {
+        super(HudCompass.BASIC_WAYPOINT.get(), false, internalId, label, displayVerticalDistance, iconData);
+        this.position = exactPosition;
+    }
+
     public Vec3 getPosition()
     {
         return position;
@@ -65,18 +74,7 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
         }
     }
 
-    public String getLabelText()
-    {
-        return label;
-    }
-
-    public void setLabelText(String label)
-    {
-        this.label = Objects.requireNonNull(label);
-        super.setLabel(label.length() > 0 ? Component.literal(label) : null);
-    }
-
-    @Override
+    /*@Override
     protected void serializeAdditional(ValueOutput output)
     {
         output.putDouble("X", position.x);
@@ -114,5 +112,5 @@ public class BasicWaypoint extends PointInfo<BasicWaypoint>
                 buffer.readDouble()
         );
         label = buffer.readUtf(1024);
-    }
+    }*/
 }

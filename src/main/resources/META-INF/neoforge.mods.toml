@@ -13,7 +13,9 @@ displayURL="https://github.com/gigaherz/HudCompass"
 description='''
 See where you go
 '''
-displayTest="IGNORE_ALL_VERSION"
+
+[[mixins]]
+config="hudcompass.mixins.json"
 
 [[accessTransformers]]
 file="META-INF/accesstransformer.cfg"
